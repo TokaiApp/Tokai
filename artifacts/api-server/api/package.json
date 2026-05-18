@@ -1,5 +1,4 @@
 {
-  "type": "module",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
     "cors": "^2",

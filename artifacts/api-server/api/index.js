@@ -1,6 +1,6 @@
-import express from "express";
-import cors from "cors";
-import Anthropic from "@anthropic-ai/sdk";
+const express = require("express");
+const cors = require("cors");
+const Anthropic = require("@anthropic-ai/sdk").default;
 
 const app = express();
 app.use(cors());
@@ -68,4 +68,4 @@ Your behavior:
   }
 });
 
-export default app;
+module.exports = app;
