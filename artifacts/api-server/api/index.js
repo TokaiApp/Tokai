@@ -6,59 +6,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Claude Sonnet 4.5 pricing
-const INPUT_COST_PER_TOKEN  = 3.00  / 1_000_000; // $3.00 per million input tokens
-const OUTPUT_COST_PER_TOKEN = 15.00 / 1_000_000; // $15.00 per million output tokens
-const BUDGET_LIMIT = 0.50; // $ per user (by IP)
-
-function ipKey(req) {
-  const ip = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown")
-    .split(",")[0].trim().replace(/[^a-zA-Z0-9._-]/g, "_");
-  return `tokai:usage:${ip}`;
-}
-
-async function getSpend(key) {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url) return 0;
-  const r = await fetch(`${url}/get/${key}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const data = await r.json();
-  return parseFloat(data.result) || 0;
-}
-
-async function addSpend(key, amount) {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url) return;
-  await fetch(`${url}/incrbyfloat/${key}/${amount.toFixed(8)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-}
-
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const { messages, neuralState, tasks, lang } = req.body;
+    const { messages, neuralState, tasks, lang, userApiKey } = req.body;
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = userApiKey || process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      res.json({ content: "ANTHROPIC_API_KEY is not configured." });
-      return;
-    }
-
-    // Check per-user budget
-    const key = ipKey(req);
-    const spent = await getSpend(key);
-    if (spent >= BUDGET_LIMIT) {
-      const msg = lang === "zh"
-        ? "您已達到本次預覽版的 $0.50 使用額度。感謝體驗 Tokai！"
-        : "You've reached the $0.50 usage limit for this pre-alpha. Thanks for trying Tokai!";
-      res.json({ content: msg });
+      res.json({ content: "No API key provided." });
       return;
     }
 
@@ -106,11 +64,6 @@ ${lang === "zh" ? "- Respond in Traditional Chinese (繁體中文)" : "- Respond
 
     const block = response.content[0];
     if (block.type !== "text") throw new Error("Unexpected content type");
-
-    // Track cost from actual token usage
-    const cost = response.usage.input_tokens * INPUT_COST_PER_TOKEN
-               + response.usage.output_tokens * OUTPUT_COST_PER_TOKEN;
-    await addSpend(key, cost);
 
     res.json({ content: block.text });
   } catch (err) {
