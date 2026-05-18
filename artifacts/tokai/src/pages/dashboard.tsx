@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Github } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine,
   BarChart, Bar, Cell,
@@ -241,9 +242,20 @@ export default function Dashboard() {
 
         <div>
           <SectionLabel>ABOUT TOKAI</SectionLabel>
-          <p style={{ fontSize: 13, color: "#5a8fa8", lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: 13, color: "#5a8fa8", lineHeight: 1.6, margin: "0 0 12px 0" }}>
             Tokai synthesizes EEG stream data with biological rhythms to generate adaptive cognitive recommendations for people with ADHD.
           </p>
+          <a
+            href="https://github.com/TokaiApp/Tokai-Pre-Alpha"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#5a8fa8", textDecoration: "none", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, transition: "color 0.2s" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#5a8fa8")}
+          >
+            <Github size={14} />
+            Source Code
+          </a>
         </div>
 
         <div style={{ marginTop: "auto", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(192,132,252,0.3)", letterSpacing: 1 }}>
