@@ -191,7 +191,7 @@ export default function Dashboard() {
       {/* ── Sidebar ── */}
       <aside style={{ width: 200, minWidth: 200, padding: "24px 16px", borderRight: "1px solid rgba(0,245,212,0.15)", display: "flex", flexDirection: "column", gap: 24, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
         <div>
-          <img src="/tokai_logo.png" alt="Tokai" style={{ width: "100%", maxWidth: 160, display: "block", marginBottom: 6 }} />
+          <img src="/tokai_logo.png" alt="Tokai" style={{ width: "100%", maxWidth: 110, display: "block", marginBottom: 6 }} />
           <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 2 }}>Tokai Pre-Alpha v0.1</div>
         </div>
 
