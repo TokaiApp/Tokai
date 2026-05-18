@@ -190,10 +190,10 @@ export default function Dashboard() {
     <div style={{ display: "flex", minHeight: "100vh", background: "linear-gradient(135deg, #0c0818 0%, #100a25 50%, #080614 100%)", fontFamily: "'Rajdhani', sans-serif", color: "#c8d8e8" }}>
       {/* ── Sidebar ── */}
       <aside style={{ width: 200, minWidth: 200, padding: "24px 16px", borderRight: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", gap: 24, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
-        <div>
-          <img src="/tokai_logo.png" alt="Tokai" style={{ width: "100%", maxWidth: 110, display: "block", marginBottom: 6 }} />
-          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 2 }}>Tokai Pre-Alpha v0.1</div>
-        </div>
+        <a href="https://tokai.app" target="_blank" rel="noopener noreferrer" style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none" }}>
+          <img src="/tokai_logo.png" alt="Tokai" style={{ width: 110, display: "block", marginBottom: 6 }} />
+          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 2, textAlign: "center" }}>Tokai Pre-Alpha v0.1</div>
+        </a>
 
         <div>
           <SectionLabel>SYSTEM CONTROL</SectionLabel>
