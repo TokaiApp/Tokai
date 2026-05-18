@@ -7,6 +7,11 @@ interface NeuralState {
   abRatio: number;
 }
 
+interface Task {
+  text: string;
+  done: boolean;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -14,7 +19,7 @@ interface Message {
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
-export default function AgentChat({ neuralState }: { neuralState: NeuralState }) {
+export default function AgentChat({ neuralState, tasks }: { neuralState: NeuralState; tasks: Task[] }) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -44,7 +49,7 @@ export default function AgentChat({ neuralState }: { neuralState: NeuralState })
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next, neuralState }),
+        body: JSON.stringify({ messages: next, neuralState, tasks }),
       });
 
       if (!res.ok) throw new Error(`${res.status}`);

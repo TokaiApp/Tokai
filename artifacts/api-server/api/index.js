@@ -12,7 +12,7 @@ app.get("/api/health", (_req, res) => {
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const { messages, neuralState } = req.body;
+    const { messages, neuralState, tasks } = req.body;
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
@@ -37,15 +37,21 @@ Current neural and biological state:
 - Neural Noise: ${Math.round(neuralNoise)} μV² (${noiseLabel})
 - Alpha/Beta Wave Ratio: ${abRatio}
 
+Current TokTodo task list:
+${Array.isArray(tasks) && tasks.length > 0
+  ? tasks.map(t => `- [${t.done ? "DONE" : "TODO"}] ${t.text}`).join("\n")
+  : "- (no tasks added yet)"}
+
 Task planning guidelines based on cognitive state:
 - Focus HIGH (>70): Suggest tackling the hardest, most cognitively demanding tasks first
 - Focus MODERATE (40-70): Suggest structured tasks, planning, communication, reviewing
 - Focus LOW (<40): Suggest easy wins, breaks, physical movement, or administrative tasks
 
 Your behavior:
+- You can see the user's current TokTodo task list above — reference it directly when answering questions about their tasks
 - Help the user decide what to add to their to-do list and in what order to tackle it
-- Ask what they need to get done today if they haven't said
-- Recommend task sequencing based on their brain data
+- If the task list is empty, ask what they need to get done today
+- Recommend task sequencing based on their brain data and the actual tasks listed
 - Keep responses concise — 2-4 sentences unless the user asks for more detail
 - Be direct and actionable
 - Use a calm, focused tone

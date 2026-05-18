@@ -372,12 +372,12 @@ export default function Dashboard() {
         <div style={{ borderTop: "1px solid rgba(192,132,252,0.25)", paddingTop: 20 }}>
           <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#c084fc", letterSpacing: 3, marginBottom: 14 }}>── PLANNING INTERFACE ──────────────────────────────</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 14 }}>
-          <AgentChat neuralState={neural} />
+          <AgentChat neuralState={neural} tasks={tasks.map(t => ({ text: t.text, done: t.done }))} />
 
           <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, padding: 16, boxShadow: "0 0 24px rgba(192,132,252,0.07)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
               <div style={{ width: 3, height: 16, background: "#c084fc", borderRadius: 1, flexShrink: 0 }} />
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, fontWeight: 700, color: "#c084fc", letterSpacing: 3 }}>TASK INTEGRATION</span>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, fontWeight: 700, color: "#c084fc", letterSpacing: 3 }}>TOKTODO</span>
             </div>
             <input
               value={newTask}
