@@ -215,7 +215,7 @@ export default function AgentChat({ neuralState, tasks, lang = "en", isMobile = 
 
           {/* ── Input ── */}
           <div style={{ padding: "12px 20px", borderTop: "1px solid rgba(192,132,252,0.15)", display: "flex", gap: 10, background: "rgba(0,0,0,0.15)" }}>
-            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder={t.placeholder} disabled={loading}
+            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder={t.placeholder}
               style={{ flex: 1, padding: "9px 14px", background: "rgba(0,0,0,0.35)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, outline: "none", transition: "border-color 0.2s" }}
               onFocus={e => (e.target.style.borderColor = "rgba(192,132,252,0.5)")}
               onBlur={e => (e.target.style.borderColor = "rgba(192,132,252,0.2)")}
