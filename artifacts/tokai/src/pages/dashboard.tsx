@@ -46,6 +46,12 @@ const T = {
     estTime: "Est. time", minUnit: "m",
     progress: "PROGRESS",
     complete: "✓ COMPLETE",
+    tokMed: "TOKMED · LOG",
+    medNamePlaceholder: "Med / supplement / coffee...",
+    medDosePlaceholder: "Dose (optional)",
+    medLogBtn: "LOG",
+    medEmpty: "No entries logged yet. Log a medication or supplement to see how it affects your focus.",
+    medAt: "at",
     planningInterface: "── PLANNING INTERFACE",
     focusLow: "LOW", focusMod: "MODERATE", focusHigh: "HIGH", focusOpt: "OPTIMAL",
     noiseClean: "CLEAN", noiseNom: "NOMINAL", noiseElev: "ELEVATED", noiseHigh: "HIGH",
@@ -92,6 +98,12 @@ const T = {
     estTime: "預估時間", minUnit: "分",
     progress: "進度",
     complete: "✓ 全部完成",
+    tokMed: "TOKMED · 紀錄",
+    medNamePlaceholder: "藥物 / 補充品 / 咖啡...",
+    medDosePlaceholder: "劑量（選填）",
+    medLogBtn: "紀錄",
+    medEmpty: "尚無紀錄。記錄藥物或補充品以觀察其對專注度的影響。",
+    medAt: "於",
     planningInterface: "── 規劃介面",
     focusLow: "低", focusMod: "中等", focusHigh: "高", focusOpt: "最佳",
     noiseClean: "清晰", noiseNom: "正常", noiseElev: "偏高", noiseHigh: "高",
@@ -116,6 +128,7 @@ interface NeuralState {
 interface FocusPoint { time: string; value: number; }
 type Demand = "low" | "medium" | "high";
 interface Task { id: string; title: string; description: string | null; done: boolean; demand: Demand | null; estimatedMinutes: number | null; }
+interface MedEntry { id: string; name: string; dose: string; time: string; sampleIndex: number; }
 
 function demandColor(d: Demand) {
   if (d === "low") return "#4ade80";
@@ -239,6 +252,24 @@ export default function Dashboard() {
   const [newTaskTime, setNewTaskTime] = useState("");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  const [medLog, setMedLog] = useState<MedEntry[]>([]);
+  const [newMedName, setNewMedName] = useState("");
+  const [newMedDose, setNewMedDose] = useState("");
+
+  function logMed() {
+    const name = newMedName.trim();
+    if (!name) return;
+    setMedLog(prev => [...prev, {
+      id: Date.now().toString(),
+      name,
+      dose: newMedDose.trim(),
+      time: formatTime(new Date()),
+      sampleIndex: focusHistory.length - 1,
+    }]);
+    setNewMedName("");
+    setNewMedDose("");
+  }
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -554,6 +585,10 @@ export default function Dashboard() {
                     {avgFocus !== null && (
                       <ReferenceLine y={avgFocus} stroke="rgba(192,132,252,0.55)" strokeDasharray="6 3" />
                     )}
+                    {medLog.map(med => focusHistory[med.sampleIndex] && (
+                      <ReferenceLine key={med.id} x={focusHistory[med.sampleIndex].time} stroke="rgba(251,191,36,0.7)" strokeDasharray="3 3"
+                        label={{ value: med.name.length > 10 ? med.name.slice(0, 10) + "…" : med.name, position: "insideTopLeft", fill: "#fbbf24", fontSize: 9, fontFamily: "'Share Tech Mono', monospace" }} />
+                    ))}
                     <Line type="monotone" dataKey="value" stroke="#c084fc" strokeWidth={2} dot={false} isAnimationActive={false} />
                   </LineChart>
                 </div>
@@ -570,6 +605,55 @@ export default function Dashboard() {
               </p>
             </Panel>
           </div>
+
+          {/* TokMed */}
+          <Panel title={<span style={{ fontFamily: "'Share Tech Mono', monospace" }}><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>MED · LOG</span></span>}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {/* Input row */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input
+                  value={newMedName}
+                  onChange={e => setNewMedName(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && logMed()}
+                  placeholder={t.medNamePlaceholder}
+                  style={{ flex: "1 1 200px", padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, outline: "none" }}
+                  onFocus={e => (e.target.style.borderColor = "rgba(192,132,252,0.5)")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(192,132,252,0.2)")}
+                />
+                <input
+                  value={newMedDose}
+                  onChange={e => setNewMedDose(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && logMed()}
+                  placeholder={t.medDosePlaceholder}
+                  style={{ flex: "0 1 160px", padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, outline: "none" }}
+                  onFocus={e => (e.target.style.borderColor = "rgba(192,132,252,0.5)")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(192,132,252,0.2)")}
+                />
+                <button
+                  onClick={logMed}
+                  disabled={!newMedName.trim()}
+                  style={{ padding: "8px 20px", background: newMedName.trim() ? "rgba(251,191,36,0.12)" : "rgba(251,191,36,0.04)", border: "1px solid rgba(251,191,36,0.35)", borderRadius: 6, color: "#fbbf24", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: newMedName.trim() ? "pointer" : "not-allowed" }}
+                >
+                  {t.medLogBtn}
+                </button>
+              </div>
+              {/* Log entries */}
+              {medLog.length === 0 ? (
+                <p style={{ margin: 0, fontSize: 13, color: "rgba(90,143,168,0.6)", fontFamily: "'Share Tech Mono', monospace", letterSpacing: 0.5 }}>{t.medEmpty}</p>
+              ) : (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {medLog.map(med => (
+                    <div key={med.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 20 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#fbbf24", flexShrink: 0 }} />
+                      <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#fbbf24" }}>{med.name}</span>
+                      {med.dose && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(251,191,36,0.6)" }}>{med.dose}</span>}
+                      <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)" }}>{t.medAt} {med.time}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Panel>
 
           {/* Planning interface */}
           <div style={{ borderTop: "1px solid rgba(192,132,252,0.25)", paddingTop: 20 }}>
