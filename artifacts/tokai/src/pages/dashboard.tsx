@@ -20,10 +20,9 @@ const T = {
     date: "DATE", time: "TIME", samples: "SAMPLES", status: "STATUS",
     active: "ACTIVE", paused: "PAUSED",
     aboutTokai: "ABOUT TOKAI",
-    aboutText: "Tokai synthesizes EEG stream data with biological rhythms to generate adaptive cognitive recommendations for people with ADHD.",
+    aboutText: "Tokai is a neurosupportive productivity suite for people with ADHD. It streams EEG and biological data in real time to adapt task recommendations to your current cognitive state — helping you work with your brain, not against it.",
     sourceCode: "Source Code",
     sessionLabel: "SESSION",
-    subtitle: "NEUROSUPPORTIVE DASHBOARD · ADHD MANAGEMENT SYSTEM",
     focusIndex: "FOCUS INDEX",
     bioEnergy: "BIO ENERGY",
     neuralNoise: "NEURAL NOISE",
@@ -67,10 +66,9 @@ const T = {
     date: "日期", time: "時間", samples: "樣本", status: "狀態",
     active: "作用中", paused: "已暫停",
     aboutTokai: "關於 TOKAI",
-    aboutText: "Tokai 整合 EEG 腦電流數據與生理節律，為 ADHD 使用者提供自適應認知建議。",
+    aboutText: "Tokai 是專為 ADHD 設計的神經支援生產力套件。透過即時串流 EEG 與生理數據，根據你當前的認知狀態調整任務建議——幫助你順應大腦節律，而非與之對抗。",
     sourceCode: "原始碼",
     sessionLabel: "工作階段",
-    subtitle: "神經支援儀表板 · ADHD 管理系統",
     focusIndex: "專注指數",
     bioEnergy: "生理能量",
     neuralNoise: "神經噪訊",
@@ -455,13 +453,10 @@ export default function Dashboard() {
 
           {/* Desktop header */}
           {!isMobile && (
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-              <div>
-                <h1 style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 52, fontWeight: 700, letterSpacing: 14, textShadow: "0 0 30px rgba(192,132,252,0.4), 0 0 60px rgba(192,132,252,0.15)", margin: "0 0 4px 0" }}>
-                  <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>AI</span>
-                </h1>
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", letterSpacing: 4 }}>{t.subtitle}</div>
-              </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h1 style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 52, fontWeight: 700, letterSpacing: 14, textShadow: "0 0 30px rgba(192,132,252,0.4), 0 0 60px rgba(192,132,252,0.15)", margin: 0 }}>
+                <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>AI</span>
+              </h1>
               <LangToggle lang={lang} setLang={setLang} />
             </div>
           )}
