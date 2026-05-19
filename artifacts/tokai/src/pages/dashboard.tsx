@@ -572,15 +572,15 @@ export default function Dashboard() {
                   </div>
                 </div>
                 {/* Task list */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto", overflowX: "hidden" }}>
                   {tasks.map(task => (
-                    <div key={task.id} style={{ display: "flex", flexDirection: "column", padding: "8px 10px", background: "rgba(0,0,0,0.2)", borderRadius: 4, border: "1px solid rgba(192,132,252,0.1)", gap: 5 }}>
+                    <div key={task.id} style={{ display: "flex", flexDirection: "column", padding: "8px 10px", background: "rgba(0,0,0,0.2)", borderRadius: 4, border: "1px solid rgba(192,132,252,0.1)", gap: 5, minWidth: 0 }}>
                       {/* Top row: checkbox + title + badges + delete */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 6, minWidth: 0 }}>
                         <input type="checkbox" checked={task.done}
                           onChange={() => setTasks(p => p.map(t => t.id === task.id ? { ...t, done: !t.done } : t))}
-                          style={{ accentColor: "#c084fc", cursor: "pointer", flexShrink: 0 }} />
-                        <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: task.done ? "#5a8fa8" : "#c8d8e8", textDecoration: task.done ? "line-through" : "none", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          style={{ accentColor: "#c084fc", cursor: "pointer", flexShrink: 0, marginTop: 3 }} />
+                        <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: task.done ? "#5a8fa8" : "#c8d8e8", textDecoration: task.done ? "line-through" : "none", minWidth: 0, wordBreak: "break-word" }}>
                           {task.title}
                         </span>
                         {task.demand && (
@@ -598,7 +598,7 @@ export default function Dashboard() {
                       </div>
                       {/* Description or generate button */}
                       {task.description ? (
-                        <p style={{ margin: 0, marginLeft: 22, fontSize: 13, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif" }}>
+                        <p style={{ margin: 0, marginLeft: 22, fontSize: 13, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>
                           {task.description}
                         </p>
                       ) : !task.done && (
