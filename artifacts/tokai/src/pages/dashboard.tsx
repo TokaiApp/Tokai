@@ -510,7 +510,7 @@ export default function Dashboard() {
               <div style={{ position: "relative", height: 150 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={focusHistory} margin={{ top: 8, right: 48, bottom: 0, left: 0 }}>
-                    <XAxis dataKey="time" tick={{ fill: "#5a8fa8", fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                    <XAxis dataKey="time" tick={{ fill: "#5a8fa8", fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} interval={focusHistory.length <= 6 ? 0 : Math.ceil((focusHistory.length - 1) / 5) - 1} />
                     <YAxis domain={[0, 100]} tick={{ fill: "#5a8fa8", fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} ticks={[0, 20, 40, 60, 80, 100]} />
                     <ReferenceLine y={60} stroke="rgba(255,80,80,0.35)" strokeDasharray="4 4" />
                     {focusHistory.length > 1 && (() => {
@@ -543,8 +543,10 @@ export default function Dashboard() {
               <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, padding: 16, boxShadow: "0 0 24px rgba(192,132,252,0.07)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                   <div style={{ width: 3, height: 16, background: "#c084fc", borderRadius: 1, flexShrink: 0 }} />
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, fontWeight: 700, letterSpacing: 3 }}>
-                    {lang === "en" ? <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>TODO</span></> : <span style={{ color: "#c084fc" }}>{t.tokTodo}</span>}
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3 }}>
+                    {lang === "en"
+                      ? <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>TODO · CHECKLIST</span></>
+                      : <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>TODO · {t.tokTodo}</span></>}
                   </span>
                 </div>
                 {/* Task title input */}
@@ -560,26 +562,26 @@ export default function Dashboard() {
                   value={newTaskDesc}
                   onChange={e => setNewTaskDesc(e.target.value)}
                   placeholder={t.descPlaceholder}
-                  style={{ width: "100%", padding: "5px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.2)", borderTop: "none", borderRadius: "0 0 4px 4px", color: "#7a9ab8", fontFamily: "'Rajdhani', sans-serif", fontSize: 13, marginBottom: 8, boxSizing: "border-box", outline: "none", fontStyle: "italic" }}
+                  style={{ width: "100%", padding: "5px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.2)", borderTop: "none", borderRadius: "0 0 4px 4px", color: "#7a9ab8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, marginBottom: 8, boxSizing: "border-box", outline: "none", fontStyle: "italic" }}
                 />
                 {/* Demand + time selectors */}
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{t.demandLabel}:</span>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{t.demandLabel}:</span>
                   {(["low", "medium", "high"] as Demand[]).map(d => (
-                    <button key={d} onClick={() => setNewTaskDemand(newTaskDemand === d ? null : d)} style={{ padding: "2px 8px", background: newTaskDemand === d ? demandColor(d) + "22" : "transparent", border: `1px solid ${newTaskDemand === d ? demandColor(d) : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: newTaskDemand === d ? demandColor(d) : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, cursor: "pointer", letterSpacing: 1, transition: "all 0.15s" }}>
+                    <button key={d} onClick={() => setNewTaskDemand(newTaskDemand === d ? null : d)} style={{ padding: "3px 10px", background: newTaskDemand === d ? demandColor(d) + "22" : "transparent", border: `1px solid ${newTaskDemand === d ? demandColor(d) : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: newTaskDemand === d ? demandColor(d) : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, cursor: "pointer", letterSpacing: 1, transition: "all 0.15s" }}>
                       {d === "low" ? t.demandLow : d === "medium" ? t.demandMed : t.demandHigh}
                     </button>
                   ))}
-                  <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>{t.estTime}:</span>
+                  <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", letterSpacing: 1 }}>{t.estTime}:</span>
                     <input
                       type="number" min={1} max={480}
                       value={newTaskTime}
                       onChange={e => setNewTaskTime(e.target.value)}
                       placeholder="—"
-                      style={{ width: 46, padding: "2px 5px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, outline: "none", textAlign: "center" }}
+                      style={{ width: 52, padding: "3px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", textAlign: "center" }}
                     />
-                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8" }}>{t.minUnit}</span>
+                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8" }}>{t.minUnit}</span>
                   </div>
                 </div>
                 {/* Task list */}

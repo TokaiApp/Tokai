@@ -126,7 +126,7 @@ export default function AgentChat({ neuralState, tasks, lang = "en", isMobile = 
   }
 
   const S = {
-    wrap: { background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)" } as React.CSSProperties,
+    wrap: { background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column" } as React.CSSProperties,
     header: { padding: "12px 20px", borderBottom: "1px solid rgba(192,132,252,0.15)", display: "flex", alignItems: "center", gap: 10, background: "rgba(192,132,252,0.03)" } as React.CSSProperties,
   };
 
@@ -135,7 +135,7 @@ export default function AgentChat({ neuralState, tasks, lang = "en", isMobile = 
       {/* Header */}
       <div style={S.header}>
         <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#c084fc", boxShadow: "0 0 8px rgba(192,132,252,0.9)", flexShrink: 0 }} />
-        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, fontWeight: 700, letterSpacing: 3 }}>
+        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3 }}>
           <span style={{ color: "#7c3aed" }}>TOK</span>
           <span style={{ color: "#c084fc" }}>{lang === "en" ? "AGENT · TASK PLANNER" : "AGENT · 任務規劃"}</span>
         </span>
@@ -146,7 +146,7 @@ export default function AgentChat({ neuralState, tasks, lang = "en", isMobile = 
             <span>{t.noise} {Math.round(neuralState.neuralNoise)} μV²</span>
           </>}
           {apiKey && (
-            <button onClick={clearKey} style={{ background: "none", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 4, color: "#5a8fa8", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, padding: "2px 7px", letterSpacing: 1 }}>
+            <button onClick={clearKey} style={{ background: "none", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 4, color: "#5a8fa8", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, padding: "4px 10px", letterSpacing: 1 }}>
               {t.clearKey}
             </button>
           )}
@@ -180,7 +180,7 @@ export default function AgentChat({ neuralState, tasks, lang = "en", isMobile = 
       ) : (
         <>
           {/* ── Messages ── */}
-          <div style={{ height: 260, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ flex: 1, minHeight: 220, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
             {messages.map((msg, i) => (
               <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
                 <div style={{ maxWidth: "72%", padding: "10px 14px", borderRadius: msg.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: msg.role === "user" ? "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.12))" : "rgba(192,132,252,0.06)", border: `1px solid ${msg.role === "user" ? "rgba(124,58,237,0.35)" : "rgba(192,132,252,0.18)"}`, fontSize: 16, color: "#d0e8f8", lineHeight: 1.6, fontFamily: "'Rajdhani', sans-serif" }}>
