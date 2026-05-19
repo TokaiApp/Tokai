@@ -41,6 +41,8 @@ const T = {
     descPlaceholder: "Description (optional)...",
     generateDesc: "✦ GENERATE DESCRIPTION",
     generating: "GENERATING...",
+    taskDetail: "TASK DETAIL",
+    deleteTask: "DELETE TASK",
     demandLabel: "DEMAND",
     demandLow: "LOW", demandMed: "MED", demandHigh: "HIGH",
     estTime: "Est. time", minUnit: "m",
@@ -86,6 +88,8 @@ const T = {
     descPlaceholder: "描述（選填）...",
     generateDesc: "✦ 生成描述",
     generating: "生成中...",
+    taskDetail: "任務詳情",
+    deleteTask: "刪除任務",
     demandLabel: "認知負荷",
     demandLow: "低", demandMed: "中", demandHigh: "高",
     estTime: "預估時間", minUnit: "分",
@@ -231,10 +235,17 @@ export default function Dashboard() {
   const [newTaskDemand, setNewTaskDemand] = useState<Demand | null>(null);
   const [newTaskTime, setNewTaskTime] = useState("");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setSelectedTaskId(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const tick = useCallback(() => {
@@ -574,12 +585,19 @@ export default function Dashboard() {
                 {/* Task list */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto", overflowX: "hidden" }}>
                   {tasks.map(task => (
-                    <div key={task.id} style={{ display: "flex", flexDirection: "column", padding: "8px 10px", background: "rgba(0,0,0,0.2)", borderRadius: 4, border: "1px solid rgba(192,132,252,0.1)", gap: 5, minWidth: 0 }}>
-                      {/* Top row: checkbox + title + badges + delete */}
+                    <div key={task.id}
+                      onClick={() => setSelectedTaskId(task.id)}
+                      style={{ display: "flex", flexDirection: "column", padding: "8px 10px", background: "rgba(0,0,0,0.2)", borderRadius: 4, border: "1px solid rgba(192,132,252,0.1)", gap: 5, minWidth: 0, cursor: "pointer", transition: "border-color 0.15s, background 0.15s" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(192,132,252,0.35)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(192,132,252,0.05)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(192,132,252,0.1)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(0,0,0,0.2)"; }}
+                    >
+                      {/* Top row: checkbox + title + badges */}
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 6, minWidth: 0 }}>
-                        <input type="checkbox" checked={task.done}
-                          onChange={() => setTasks(p => p.map(t => t.id === task.id ? { ...t, done: !t.done } : t))}
-                          style={{ accentColor: "#c084fc", cursor: "pointer", flexShrink: 0, marginTop: 3 }} />
+                        <div onClick={e => e.stopPropagation()}>
+                          <input type="checkbox" checked={task.done}
+                            onChange={() => setTasks(p => p.map(t => t.id === task.id ? { ...t, done: !t.done } : t))}
+                            style={{ accentColor: "#c084fc", cursor: "pointer", flexShrink: 0, marginTop: 3 }} />
+                        </div>
                         <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: task.done ? "#5a8fa8" : "#c8d8e8", textDecoration: task.done ? "line-through" : "none", minWidth: 0, wordBreak: "break-word" }}>
                           {task.title}
                         </span>
@@ -593,22 +611,12 @@ export default function Dashboard() {
                             {task.estimatedMinutes}{t.minUnit}
                           </span>
                         )}
-                        <button onClick={() => setTasks(p => p.filter(t => t.id !== task.id))}
-                          style={{ background: "none", border: "none", color: "#5a8fa8", cursor: "pointer", fontSize: 16, padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
                       </div>
-                      {/* Description or generate button */}
-                      {task.description ? (
+                      {/* Description preview */}
+                      {task.description && (
                         <p style={{ margin: 0, marginLeft: 22, fontSize: 13, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>
                           {task.description}
                         </p>
-                      ) : !task.done && (
-                        <button
-                          onClick={() => generateDescription(task)}
-                          disabled={generatingId === task.id}
-                          style={{ alignSelf: "flex-start", marginLeft: 22, background: "none", border: "none", color: generatingId === task.id ? "#5a8fa8" : "rgba(192,132,252,0.5)", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, cursor: generatingId === task.id ? "default" : "pointer", letterSpacing: 1, padding: 0 }}
-                        >
-                          {generatingId === task.id ? t.generating : t.generateDesc}
-                        </button>
                       )}
                     </div>
                   ))}
@@ -637,6 +645,86 @@ export default function Dashboard() {
 
         </div>
       </main>
+
+      {/* ── Task detail modal ── */}
+      {(() => {
+        const task = tasks.find(t => t.id === selectedTaskId);
+        if (!task) return null;
+        return (
+          <div onClick={() => setSelectedTaskId(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 520, background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 12, padding: 24, boxShadow: "0 0 48px rgba(192,132,252,0.12)", display: "flex", flexDirection: "column", gap: 14 }}>
+
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 3, height: 16, background: "#c084fc", borderRadius: 1, flexShrink: 0 }} />
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#c084fc", letterSpacing: 3, flex: 1 }}>{t.taskDetail}</span>
+                <button onClick={() => setSelectedTaskId(null)} style={{ background: "none", border: "none", color: "#5a8fa8", cursor: "pointer", fontSize: 22, padding: 0, lineHeight: 1 }}>×</button>
+              </div>
+
+              {/* Done toggle + title */}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <input type="checkbox" checked={task.done}
+                  onChange={() => setTasks(p => p.map(t => t.id === task.id ? { ...t, done: !t.done } : t))}
+                  style={{ accentColor: "#c084fc", cursor: "pointer", flexShrink: 0, marginTop: 6, width: 16, height: 16 }} />
+                <input
+                  value={task.title}
+                  onChange={e => setTasks(p => p.map(t => t.id === task.id ? { ...t, title: e.target.value } : t))}
+                  style={{ flex: 1, padding: "6px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", fontSize: 20, fontWeight: 600, boxSizing: "border-box", outline: "none", textDecoration: task.done ? "line-through" : "none" }}
+                />
+              </div>
+
+              {/* Description */}
+              <textarea
+                value={task.description ?? ""}
+                onChange={e => setTasks(p => p.map(t => t.id === task.id ? { ...t, description: e.target.value || null } : t))}
+                placeholder={t.descPlaceholder}
+                rows={3}
+                style={{ width: "100%", padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#7a9ab8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontStyle: "italic", resize: "vertical", boxSizing: "border-box", outline: "none", lineHeight: 1.5 }}
+              />
+
+              {/* Generate button */}
+              <button
+                onClick={() => generateDescription(task)}
+                disabled={!!generatingId}
+                style={{ alignSelf: "flex-start", padding: "4px 12px", background: "none", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 4, color: generatingId === task.id ? "#5a8fa8" : "rgba(192,132,252,0.6)", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, cursor: generatingId ? "default" : "pointer", letterSpacing: 1 }}
+              >
+                {generatingId === task.id ? t.generating : t.generateDesc}
+              </button>
+
+              {/* Demand + time */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{t.demandLabel}:</span>
+                {(["low", "medium", "high"] as Demand[]).map(d => (
+                  <button key={d} onClick={() => setTasks(p => p.map(tk => tk.id === task.id ? { ...tk, demand: tk.demand === d ? null : d } : tk))}
+                    style={{ padding: "3px 10px", background: task.demand === d ? demandColor(d) + "22" : "transparent", border: `1px solid ${task.demand === d ? demandColor(d) : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: task.demand === d ? demandColor(d) : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, cursor: "pointer", letterSpacing: 1 }}>
+                    {d === "low" ? t.demandLow : d === "medium" ? t.demandMed : t.demandHigh}
+                  </button>
+                ))}
+                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>{t.estTime}:</span>
+                  <input type="number" min={1} max={480}
+                    value={task.estimatedMinutes ?? ""}
+                    onChange={e => setTasks(p => p.map(tk => tk.id === task.id ? { ...tk, estimatedMinutes: e.target.value ? parseInt(e.target.value) : null } : tk))}
+                    placeholder="—"
+                    style={{ width: 52, padding: "3px 7px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, outline: "none", textAlign: "center" }}
+                  />
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8" }}>{t.minUnit}</span>
+                </div>
+              </div>
+
+              {/* Delete */}
+              <button
+                onClick={() => { setTasks(p => p.filter(tk => tk.id !== task.id)); setSelectedTaskId(null); }}
+                style={{ alignSelf: "flex-start", padding: "5px 12px", background: "transparent", border: "1px solid rgba(255,80,80,0.3)", borderRadius: 4, color: "rgba(255,80,80,0.6)", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, cursor: "pointer", letterSpacing: 1 }}
+              >
+                {t.deleteTask}
+              </button>
+
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 }
