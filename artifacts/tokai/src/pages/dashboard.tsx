@@ -521,6 +521,7 @@ export default function Dashboard() {
 
           {/* Charts row — stacked on mobile */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 360px", gap: 14 }}>
+            <div style={{ minWidth: 0 }}>
             <Panel title={
               <span style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <span>{t.focusStream}</span>
@@ -551,6 +552,7 @@ export default function Dashboard() {
                 </div>
               </div>
             </Panel>
+            </div>
 
             <Panel title={t.neuralInsights}>
               <p style={{ fontSize: 15, color: "#c8d8e8", lineHeight: 1.65, fontStyle: "italic", margin: 0 }}>
