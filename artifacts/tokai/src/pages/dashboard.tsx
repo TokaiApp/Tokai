@@ -468,7 +468,7 @@ export default function Dashboard() {
           <div style={{ borderTop: "1px solid rgba(192,132,252,0.25)", paddingTop: 20 }}>
             <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#c084fc", letterSpacing: 3, marginBottom: 14 }}>{t.planningInterface}</div>
             {/* Agent + Todo — stacked on mobile */}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 380px", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
               <AgentChat neuralState={neural} tasks={tasks.map(t => ({ text: t.text, done: t.done }))} lang={lang} />
 
               <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, padding: 16, boxShadow: "0 0 24px rgba(192,132,252,0.07)" }}>
@@ -485,7 +485,7 @@ export default function Dashboard() {
                   placeholder={t.taskPlaceholder}
                   style={{ width: "100%", padding: "6px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 4, color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, marginBottom: 10, boxSizing: "border-box", outline: "none" }}
                 />
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 240, overflowY: "auto" }}>
                   {tasks.map(task => (
                     <div key={task.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", background: "rgba(0,0,0,0.2)", borderRadius: 4, border: "1px solid rgba(192,132,252,0.1)" }}>
                       <input type="checkbox" checked={task.done}
