@@ -250,8 +250,8 @@ export default function Dashboard() {
 
   const tick = useCallback(() => {
     const prev = neuralRef.current;
-    const newAlpha = drift(prev.alpha, 6, 10, 180);
-    const newBeta = drift(prev.beta, 6, 10, 180);
+    const newAlpha = drift(prev.alpha, 18, 10, 180);
+    const newBeta = drift(prev.beta, 18, 10, 180);
     const next: NeuralState = {
       focusIndex: drift(prev.focusIndex, 4, 0, 100),
       bioEnergy: drift(prev.bioEnergy, 2, 0, 100),
@@ -498,7 +498,7 @@ export default function Dashboard() {
                   <BarChart data={waveData} margin={{ top: 0, right: 4, bottom: 22, left: 4 }}>
                     <XAxis dataKey="name" tick={{ fill: "#5a8fa8", fontSize: 8, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} />
                     <YAxis hide domain={[0, 200]} />
-                    <Bar dataKey="value" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                    <Bar dataKey="value" radius={[3, 3, 0, 0]} isAnimationActive={true} animationDuration={600}>
                       <Cell fill="#c084fc" /><Cell fill="#7c3aed" />
                     </Bar>
                   </BarChart>
