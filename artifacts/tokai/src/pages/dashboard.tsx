@@ -603,7 +603,7 @@ export default function Dashboard() {
               </button>
             </div>
             {medLog.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 2 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 2, maxHeight: 136, overflowY: "auto" }}>
                 {medLog.map(med => editingMedId === med.id ? (
                   <div key={med.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 6px", background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.4)", borderRadius: 5 }}>
                     <input
