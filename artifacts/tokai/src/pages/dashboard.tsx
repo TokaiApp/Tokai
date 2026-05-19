@@ -56,7 +56,7 @@ const T = {
     notePlaceholder: "Write a note... (Enter to save)",
     noteEmpty: "No journal entries yet. Write a note to capture your thoughts alongside your focus data.",
     noteFocusLabel: "Focus",
-    moodFocused: "Focused", moodScattered: "Scattered", moodHyperfocus: "Hyperfocus", moodLow: "Low",
+    moodHyperfocus: "Hyperfocus", moodFlow: "Flow", moodFocused: "Focused", moodRestless: "Restless", moodScattered: "Scattered", moodAnxious: "Anxious", moodFatigued: "Fatigued", moodZonedOut: "Zoned Out", moodCrashed: "Crashed", moodLow: "Low",
     planningInterface: "── PLANNING INTERFACE",
     focusLow: "LOW", focusMod: "MODERATE", focusHigh: "HIGH", focusOpt: "OPTIMAL",
     noiseClean: "CLEAN", noiseNom: "NOMINAL", noiseElev: "ELEVATED", noiseHigh: "HIGH",
@@ -113,7 +113,7 @@ const T = {
     notePlaceholder: "寫筆記... (Enter 儲存)",
     noteEmpty: "尚無日誌紀錄。記下你的想法，與專注數據一起追蹤。",
     noteFocusLabel: "專注",
-    moodFocused: "專注", moodScattered: "渙散", moodHyperfocus: "超專注", moodLow: "低落",
+    moodHyperfocus: "超專注", moodFlow: "心流", moodFocused: "專注", moodRestless: "坐立難安", moodScattered: "渙散", moodAnxious: "焦慮", moodFatigued: "疲憊", moodZonedOut: "恍神", moodCrashed: "崩潰", moodLow: "低落",
     planningInterface: "── 規劃介面",
     focusLow: "低", focusMod: "中等", focusHigh: "高", focusOpt: "最佳",
     noiseClean: "清晰", noiseNom: "正常", noiseElev: "偏高", noiseHigh: "高",
@@ -139,7 +139,7 @@ interface FocusPoint { time: string; value: number; }
 type Demand = "low" | "medium" | "high";
 interface Task { id: string; title: string; description: string | null; done: boolean; demand: Demand | null; estimatedMinutes: number | null; createdAt?: string; }
 interface MedEntry { id: string; name: string; dose: string; time: string; sampleIndex: number; rating: number | null; }
-type Mood = "focused" | "scattered" | "hyperfocus" | "low";
+type Mood = "hyperfocus" | "flow" | "focused" | "restless" | "scattered" | "anxious" | "fatigued" | "zoned-out" | "crashed" | "low";
 interface JournalEntry { id: string; text: string; time: string; focusIndex: number; mood: Mood | null; }
 
 function demandColor(d: Demand) {
@@ -888,7 +888,7 @@ export default function Dashboard() {
                         <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#c084fc" }}>{t.noteFocusLabel} {entry.focusIndex.toFixed(1)}</span>
                         {entry.mood && (
                           <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, padding: "1px 6px", border: "1px solid rgba(192,132,252,0.3)", borderRadius: 3, color: "#c084fc", letterSpacing: 1 }}>
-                            {entry.mood === "focused" ? t.moodFocused : entry.mood === "scattered" ? t.moodScattered : entry.mood === "hyperfocus" ? t.moodHyperfocus : t.moodLow}
+                            {({ hyperfocus: t.moodHyperfocus, flow: t.moodFlow, focused: t.moodFocused, restless: t.moodRestless, scattered: t.moodScattered, anxious: t.moodAnxious, fatigued: t.moodFatigued, "zoned-out": t.moodZonedOut, crashed: t.moodCrashed, low: t.moodLow } as Record<string, string>)[entry.mood] ?? entry.mood}
                           </span>
                         )}
                         <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(192,132,252,0.3)", marginLeft: "auto" }}>✎</span>
@@ -917,8 +917,14 @@ export default function Dashboard() {
                 >
                   <option value="" disabled>{lang === "en" ? "Focus (self-report)" : "自評專注"}</option>
                   <option value="hyperfocus">{t.moodHyperfocus}</option>
+                  <option value="flow">{t.moodFlow}</option>
                   <option value="focused">{t.moodFocused}</option>
+                  <option value="restless">{t.moodRestless}</option>
                   <option value="scattered">{t.moodScattered}</option>
+                  <option value="anxious">{t.moodAnxious}</option>
+                  <option value="fatigued">{t.moodFatigued}</option>
+                  <option value="zoned-out">{t.moodZonedOut}</option>
+                  <option value="crashed">{t.moodCrashed}</option>
                   <option value="low">{t.moodLow}</option>
                 </select>
                 <button
