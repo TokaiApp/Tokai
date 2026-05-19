@@ -475,6 +475,15 @@ export default function Dashboard() {
             onMouseLeave={e => (e.currentTarget.style.color = "#5a8fa8")}>
             <Github size={20} />{t.sourceCode}
           </a>
+          <div style={{ marginTop: 10, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5 }}>
+            Developed by:{" "}
+            <a href="https://austinhua.com" target="_blank" rel="noopener noreferrer"
+              style={{ color: "rgba(90,143,168,0.5)", textDecoration: "none", transition: "color 0.2s" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(90,143,168,0.5)")}>
+              Austin Hua
+            </a>
+          </div>
         </div>
 
       </aside>
