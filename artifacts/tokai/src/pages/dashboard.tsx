@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Github } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine,
-  BarChart, Bar, Cell,
 } from "recharts";
 import AgentChat from "@/components/agent-chat";
 
@@ -28,12 +27,12 @@ const T = {
     focusIndex: "FOCUS INDEX",
     bioEnergy: "BIO ENERGY",
     neuralNoise: "NEURAL NOISE",
-    abRatio: "A/B WAVE RATIO",
+    tbRatio: "T/B RATIO",
+    tbrFocused: "FOCUSED", tbrNormal: "NORMAL", tbrElevated: "ELEVATED", tbrHigh: "HIGH",
     focusWindow: "FOCUS WINDOW",
     collectingData: "Collecting data...",
     streamMoreSamples: "STREAM MORE SAMPLES",
     confidence: "CONFIDENCE",
-    waveBreakdown: "WAVE BREAKDOWN",
     focusStream: "REAL-TIME FOCUS STREAM",
     neuralInsights: "TOKAI · NEURAL INSIGHTS",
     tokTodo: "TOKTODO",
@@ -75,12 +74,12 @@ const T = {
     focusIndex: "專注指數",
     bioEnergy: "生理能量",
     neuralNoise: "神經噪訊",
-    abRatio: "α/β 波比",
+    tbRatio: "θ/β 比值",
+    tbrFocused: "專注", tbrNormal: "正常", tbrElevated: "偏高", tbrHigh: "高",
     focusWindow: "專注窗口",
     collectingData: "資料收集中...",
     streamMoreSamples: "繼續收集樣本",
     confidence: "可信度",
-    waveBreakdown: "波形分析",
     focusStream: "即時專注串流",
     neuralInsights: "TOKAI · 神經洞察",
     tokTodo: "任務清單",
@@ -111,8 +110,8 @@ interface NeuralState {
   focusIndex: number;
   bioEnergy: number;
   neuralNoise: number;
-  abRatio: number;
-  alpha: number;
+  tbRatio: number;
+  theta: number;
   beta: number;
 }
 
@@ -216,7 +215,7 @@ export default function Dashboard() {
 
   const [neural, setNeural] = useState<NeuralState>({
     focusIndex: 35.6, bioEnergy: 84, neuralNoise: 29,
-    abRatio: 0.78, alpha: 88.48, beta: 101.07,
+    tbRatio: 2.10, theta: 88.0, beta: 41.9,
   });
   const neuralRef = useRef(neural);
   useEffect(() => { neuralRef.current = neural; }, [neural]);
@@ -253,7 +252,7 @@ export default function Dashboard() {
 
   const tick = useCallback(() => {
     const prev = neuralRef.current;
-    const newAlpha = drift(prev.alpha, 18, 10, 180);
+    const newTheta = drift(prev.theta, 18, 10, 180);
     const newBeta = drift(prev.beta, 18, 10, 180);
 
     // Mean-reverting focus simulation: target drifts slowly, focus pulls toward it
@@ -268,8 +267,8 @@ export default function Dashboard() {
       focusIndex: newFocus,
       bioEnergy: drift(prev.bioEnergy, 2, 0, 100),
       neuralNoise: drift(prev.neuralNoise, 3, 0, 80),
-      abRatio: parseFloat((newAlpha / newBeta).toFixed(2)),
-      alpha: newAlpha, beta: newBeta,
+      tbRatio: parseFloat((newTheta / newBeta).toFixed(2)),
+      theta: newTheta, beta: newBeta,
     };
     setNeural(next);
     neuralRef.current = next;
@@ -291,6 +290,13 @@ export default function Dashboard() {
     return { label: t.focusOpt, color: "#f472b6" };
   }
 
+  function getTBRInfo(tbr: number) {
+    if (tbr < 1.5) return { label: t.tbrFocused, color: "#f472b6" };
+    if (tbr < 2.5) return { label: t.tbrNormal, color: "#4ade80" };
+    if (tbr < 3.5) return { label: t.tbrElevated, color: "#ffa040" };
+    return { label: t.tbrHigh, color: "#ff4d4d" };
+  }
+
   function getNoiseInfo(n: number) {
     if (n < 20) return { label: t.noiseClean, color: "#f472b6" };
     if (n < 40) return { label: t.noiseNom, color: "#c084fc" };
@@ -300,6 +306,7 @@ export default function Dashboard() {
 
   const focusInfo = getFocusInfo(neural.focusIndex);
   const noiseInfo = getNoiseInfo(neural.neuralNoise);
+  const tbrInfo = getTBRInfo(neural.tbRatio);
 
   function getInsight() {
     const f = neural.focusIndex;
@@ -352,10 +359,6 @@ export default function Dashboard() {
   const avgFocus = focusHistory.length > 1
     ? Math.round(focusHistory.reduce((s, p) => s + p.value, 0) / focusHistory.length)
     : null;
-  const waveData = [
-    { name: "Alpha (8-11 Hz)", value: neural.alpha },
-    { name: "Beta (11-70 Hz)", value: neural.beta },
-  ];
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "linear-gradient(135deg, #0c0818 0%, #100a25 50%, #080614 100%)", fontFamily: "'Rajdhani', sans-serif", color: "#c8d8e8" }}>
@@ -463,8 +466,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Metric cards — 2 cols on mobile, 6 on desktop */}
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)", gap: isMobile ? 10 : 14 }}>
+          {/* Metric cards — 2 cols on mobile, 5 on desktop */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(5, 1fr)", gap: isMobile ? 10 : 14 }}>
             <MetricCard title={t.focusIndex}>
               <div style={{ fontSize: 34, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                 {neural.focusIndex.toFixed(1)}<span style={{ fontSize: 16, color: "#5a8fa8" }}>/100</span>
@@ -488,10 +491,13 @@ export default function Dashboard() {
               <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: noiseInfo.color, letterSpacing: 2 }}>{noiseInfo.label}</span>
             </MetricCard>
 
-            <MetricCard title={t.abRatio}>
-              <div style={{ fontSize: 34, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>{neural.abRatio}</div>
-              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#5a8fa8", letterSpacing: 1 }}>
-                α:{neural.alpha.toFixed(2)}  β:{neural.beta.toFixed(2)}
+            <MetricCard title={t.tbRatio}>
+              <div style={{ fontSize: 34, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>{neural.tbRatio}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Badge color={tbrInfo.color}>{tbrInfo.label}</Badge>
+              </div>
+              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1, marginTop: 6 }}>
+                θ:{neural.theta.toFixed(1)}  β:{neural.beta.toFixed(1)}
               </div>
             </MetricCard>
 
@@ -504,19 +510,6 @@ export default function Dashboard() {
               </div>
             </MetricCard>
 
-            <MetricCard title={t.waveBreakdown}>
-              <div style={{ height: 82 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={waveData} margin={{ top: 0, right: 4, bottom: 22, left: 4 }}>
-                    <XAxis dataKey="name" tick={{ fill: "#5a8fa8", fontSize: 8, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} />
-                    <YAxis hide domain={[0, 200]} />
-                    <Bar dataKey="value" radius={[3, 3, 0, 0]} isAnimationActive={true} animationDuration={600}>
-                      <Cell fill="#c084fc" /><Cell fill="#7c3aed" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </MetricCard>
           </div>
 
           {/* Charts row — stacked on mobile */}

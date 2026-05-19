@@ -4,7 +4,7 @@ interface NeuralState {
   focusIndex: number;
   bioEnergy: number;
   neuralNoise: number;
-  abRatio: number;
+  tbRatio: number;
 }
 
 interface Task {

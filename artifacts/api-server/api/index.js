@@ -21,7 +21,7 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const client = new Anthropic({ apiKey });
-    const { focusIndex, bioEnergy, neuralNoise, abRatio } = neuralState;
+    const { focusIndex, bioEnergy, neuralNoise, tbRatio } = neuralState;
     const focusLabel = focusIndex > 70 ? "HIGH" : focusIndex > 40 ? "MODERATE" : "LOW";
     const energyLabel = bioEnergy > 70 ? "high" : bioEnergy > 40 ? "moderate" : "low";
     const noiseLabel = neuralNoise < 20 ? "clean" : neuralNoise < 40 ? "nominal" : "elevated";
@@ -32,7 +32,7 @@ Current neural and biological state:
 - Focus Index: ${focusIndex.toFixed(1)}/100 (${focusLabel})
 - Biological Energy: ${Math.round(bioEnergy)}% (${energyLabel})
 - Neural Noise: ${Math.round(neuralNoise)} μV² (${noiseLabel})
-- Alpha/Beta Wave Ratio: ${abRatio}
+- Theta/Beta Ratio (TBR): ${tbRatio} (elevated TBR is associated with ADHD inattention)
 
 Current TokTodo task list:
 ${Array.isArray(tasks) && tasks.length > 0
