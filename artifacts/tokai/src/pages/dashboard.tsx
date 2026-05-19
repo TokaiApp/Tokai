@@ -22,7 +22,7 @@ const T = {
     aboutTokai: "ABOUT TOKAI",
     aboutText: "Tokai is a neurosupportive productivity suite for people with ADHD. It streams EEG and biological data in real time to adapt task recommendations to your current cognitive state — helping you work with your brain, not against it.",
     sourceCode: "Source Code",
-    sessionLabel: "SESSION",
+    sessionLabel: "DURATION",
     focusIndex: "FOCUS INDEX",
     bioEnergy: "BIO ENERGY",
     neuralNoise: "NEURAL NOISE",
@@ -68,7 +68,7 @@ const T = {
     aboutTokai: "關於 TOKAI",
     aboutText: "Tokai 是專為 ADHD 設計的神經支援生產力套件。透過即時串流 EEG 與生理數據，根據你當前的認知狀態調整任務建議——幫助你順應大腦節律，而非與之對抗。",
     sourceCode: "原始碼",
-    sessionLabel: "工作階段",
+    sessionLabel: "時長",
     focusIndex: "專注指數",
     bioEnergy: "生理能量",
     neuralNoise: "神經噪訊",
@@ -410,6 +410,7 @@ export default function Dashboard() {
               {([
                 [t.date, now.toISOString().slice(0, 10)],
                 [t.time, formatTime(now)],
+                [t.sessionLabel, `${sessionDuration}m`],
                 [t.samples, String(samples)],
                 [t.status, liveStream ? t.active : t.paused],
               ] as [string, string][]).map(([k, v]) => (
@@ -530,9 +531,6 @@ export default function Dashboard() {
                     5m avg: {avgFocus}
                   </span>
                 )}
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)", letterSpacing: 1, fontWeight: 400 }}>
-                  {t.sessionLabel} {sessionDuration}m
-                </span>
               </span>
             }>
               <div style={{ position: "relative", height: 150 }}>
