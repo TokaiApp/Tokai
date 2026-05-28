@@ -896,7 +896,7 @@ export default function Dashboard({ session }: { session: Session }) {
       <div style={{ flex: 1 }} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 8 }}>
-          <img src="/tok-en.png" alt="TokEn" style={{ width: 28, height: 28, flexShrink: 0 }} />
+          <img src="/tok-en.png" alt="TokEn" style={{ width: 34, height: 34, flexShrink: 0 }} />
           <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, letterSpacing: 2 }}>
             <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>ENS</span>
             <span style={{ color: "#c084fc" }}>: {tokEn}</span>
@@ -943,7 +943,7 @@ export default function Dashboard({ session }: { session: Session }) {
             <div style={{ padding: "6px 16px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  <img src="/tok-en.png" alt="TokEn" style={{ width: 20, height: 20, flexShrink: 0 }} />
+                  <img src="/tok-en.png" alt="TokEn" style={{ width: 24, height: 24, flexShrink: 0 }} />
                   <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 2 }}>
                     <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>ENS</span>
                     <span style={{ color: "#c084fc" }}>: {tokEn}</span>
