@@ -896,12 +896,10 @@ export default function Dashboard({ session }: { session: Session }) {
       <div style={{ flex: 1 }} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 8 }}>
-          <img src="/tok-en.png" alt="TokEn" style={{ width: 30, height: 30, flexShrink: 0 }} />
-          <div>
-            <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 3 }}>
-              <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>ENS</span>
-            </div>
-            <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 22, color: "#c084fc", lineHeight: 1.1 }}>{tokEn}</div>
+          <img src="/tok-en.png" alt="TokEn" style={{ width: 28, height: 28, flexShrink: 0 }} />
+          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, letterSpacing: 2 }}>
+            <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>ENS</span>
+            <span style={{ color: "#c084fc" }}>: {tokEn}</span>
           </div>
         </div>
         <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, wordBreak: "break-all" }}>
@@ -945,12 +943,10 @@ export default function Dashboard({ session }: { session: Session }) {
             <div style={{ padding: "6px 16px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  <img src="/tok-en.png" alt="TokEn" style={{ width: 22, height: 22, flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, letterSpacing: 2 }}>
-                      <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>ENS</span>
-                    </div>
-                    <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 16, color: "#c084fc", lineHeight: 1.1 }}>{tokEn}</div>
+                  <img src="/tok-en.png" alt="TokEn" style={{ width: 20, height: 20, flexShrink: 0 }} />
+                  <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 2 }}>
+                    <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>ENS</span>
+                    <span style={{ color: "#c084fc" }}>: {tokEn}</span>
                   </div>
                 </div>
                 <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5 }}>

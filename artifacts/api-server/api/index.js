@@ -12,7 +12,7 @@ app.get("/api/health", (_req, res) => {
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const { messages, neuralState, tasks, journalEntries, medLog, lang, userApiKey } = req.body;
+    const { messages, neuralState, tasks, journalEntries, medLog, lang, userApiKey, moodAssessment } = req.body;
 
     const apiKey = userApiKey || process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
@@ -80,10 +80,16 @@ Your behavior:
 - Be direct and actionable
 - Use a calm, focused tone
 - Do not use emojis
-${lang === "zh" ? "- Respond in Traditional Chinese (繁體中文)" : "- Respond in English"}`;
+${lang === "zh" ? "- Respond in Traditional Chinese (繁體中文)" : "- Respond in English"}${moodAssessment ? `
+
+Mood check-in (AI vision scan of user's selfie at session start):
+- Apparent mood: ${moodAssessment.mood}
+- Apparent energy: ${moodAssessment.energy}
+- Apparent stress: ${moodAssessment.stress}
+- Recommendation: ${moodAssessment.suggestion}` : ""}`;
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-4-6",
       max_tokens: 512,
       system,
       messages,
@@ -112,6 +118,39 @@ ${lang === "zh" ? "- Respond in Traditional Chinese (繁體中文)" : "- Respond
   }
 });
 
+app.post("/api/mood-check", async (req, res) => {
+  try {
+    const { imageBase64, mimeType = "image/jpeg", userApiKey } = req.body;
+    const apiKey = userApiKey || process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) { res.status(503).json({ error: "No API key provided." }); return; }
+
+    const client = new Anthropic({ apiKey });
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 256,
+      system: `You are a wellness assistant in Tokai, a productivity app for people with ADHD.
+Analyze the person's apparent emotional and energy state from their selfie.
+Reply ONLY with a valid JSON object — no prose, no markdown fences — in this exact shape:
+{"mood":"positive","energy":"high","stress":"calm","suggestion":"one short actionable sentence"}
+Valid values: mood = positive|neutral|low, energy = high|moderate|low, stress = calm|mild|elevated`,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: mimeType, data: imageBase64 } },
+          { type: "text", text: "Here is my selfie. Please assess my state." },
+        ],
+      }],
+    });
+
+    const block = response.content[0];
+    if (block.type !== "text") throw new Error("Unexpected content type");
+    res.json(JSON.parse(block.text));
+  } catch (err) {
+    console.error("Mood check error:", err);
+    res.status(500).json({ error: err instanceof Error ? err.message : "Mood check failed." });
+  }
+});
+
 app.post("/api/generate-description", async (req, res) => {
   try {
     const { title, neuralState, lang, userApiKey } = req.body;
@@ -122,7 +161,7 @@ app.post("/api/generate-description", async (req, res) => {
     const { focusIndex, bioEnergy } = neuralState ?? {};
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-4-6",
       max_tokens: 80,
       system: `You are TokAgent, an AI task assistant for people with ADHD. Write exactly one concise sentence (max 20 words) describing the concrete, observable outcome of completing a task. Be specific and actionable. No emojis. No quotation marks. ${lang === "zh" ? "Respond in Traditional Chinese (繁體中文)." : "Respond in English."}`,
       messages: [{
