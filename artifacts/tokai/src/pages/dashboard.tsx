@@ -142,7 +142,7 @@ type Demand = "low" | "medium" | "high";
 interface Task { id: string; title: string; description: string | null; done: boolean; demand: Demand | null; estimatedMinutes: number | null; createdAt?: string; deadline?: string; emoji?: string; }
 
 const TASK_EMOJIS = ["📚", "✍️", "💻", "📧", "💪", "🍳", "🧹", "🎯", "🔬", "📞", "🛒", "🎨"];
-interface MedEntry { id: string; name: string; dose: string; time: string; focusTime?: string; sampleIndex: number; rating: number | null; }
+interface MedEntry { id: string; name: string; dose: string; time: string; date: string; focusTime?: string; sampleIndex: number; rating: number | null; }
 type Mood = "hyperfocus" | "flow" | "focused" | "restless" | "scattered" | "anxious" | "fatigued" | "zoned-out" | "crashed" | "low";
 interface JournalEntry { id: string; text: string; time: string; date: string; focusIndex: number; mood: Mood[]; focusTime?: string; }
 interface MoodAssessment { mood: "positive" | "neutral" | "low"; energy: "high" | "moderate" | "low"; stress: "calm" | "mild" | "elevated"; suggestion: string; }
@@ -334,6 +334,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [medLog, setMedLog] = useState<MedEntry[]>([]);
   const [newMedName, setNewMedName] = useState("");
   const [newMedDose, setNewMedDose] = useState("");
+  const [newMedTime, setNewMedTime] = useState("");
   const [editingMedId, setEditingMedId] = useState<string | null>(null);
   const [editMedName, setEditMedName] = useState("");
   const [editMedDose, setEditMedDose] = useState("");
@@ -352,6 +353,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [infoModal, setInfoModal] = useState<{ title: string; body: string } | null>(null);
   const [moodAssessment, setMoodAssessment] = useState<MoodAssessment | null>(null);
   const [moodCheckLoading, setMoodCheckLoading] = useState(false);
+  const [moodCheckError, setMoodCheckError] = useState<string | null>(null);
   const [showMoodConsent, setShowMoodConsent] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -394,7 +396,9 @@ export default function Dashboard({ session }: { session: Session }) {
       }));
       const mappedMeds: MedEntry[] = (mData ?? []).map((r: Record<string, unknown>) => ({
         id: r.id as string, name: r.name as string, dose: r.dose as string,
-        time: r.time as string, focusTime: r.focus_time as string | undefined,
+        time: r.time as string,
+        date: r.logged_at ? (r.logged_at as string).slice(0, 10) : todayStr(),
+        focusTime: r.focus_time as string | undefined,
         sampleIndex: r.sample_index as number, rating: r.rating as number | null,
       }));
       const mappedJournal: JournalEntry[] = (jData ?? []).map((r: Record<string, unknown>) => ({
@@ -505,15 +509,18 @@ export default function Dashboard({ session }: { session: Session }) {
   async function logMed() {
     const name = newMedName.trim();
     if (!name) return;
+    const timeStr = newMedTime.trim() || formatTime(new Date());
     const sampleIndex = focusHistory.length - 1;
     const entry: MedEntry = {
       id: Date.now().toString(), name, dose: newMedDose.trim(),
-      time: formatTime(new Date()), focusTime: focusHistory[sampleIndex]?.time,
+      time: timeStr, date: todayStr(),
+      focusTime: focusHistory[sampleIndex]?.time,
       sampleIndex, rating: null,
     };
     setMedLog(prev => [...prev, entry]);
     setNewMedName("");
     setNewMedDose("");
+    setNewMedTime("");
     await supabase.from("med_log").insert({
       id: entry.id, user_id: userId, name: entry.name, dose: entry.dose,
       time: entry.time, focus_time: entry.focusTime ?? null, sample_index: entry.sampleIndex, rating: null,
@@ -608,7 +615,12 @@ export default function Dashboard({ session }: { session: Session }) {
     if (!file) return;
     e.target.value = "";
     setMoodCheckLoading(true);
+    setMoodCheckError(null);
     const reader = new FileReader();
+    reader.onerror = () => {
+      setMoodCheckError(lang === "en" ? "Could not read image." : "無法讀取圖片。");
+      setMoodCheckLoading(false);
+    };
     reader.onload = async () => {
       const base64 = (reader.result as string).split(",")[1];
       const mimeType = (file.type || "image/jpeg") as "image/jpeg" | "image/png" | "image/webp";
@@ -618,11 +630,18 @@ export default function Dashboard({ session }: { session: Session }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageBase64: base64, mimeType, userApiKey: localStorage.getItem("tokai_anthropic_key") ?? "" }),
         });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.mood) setMoodAssessment(data);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+        if (data.mood) {
+          setMoodAssessment(data);
+        } else {
+          throw new Error("Unexpected response from scan.");
         }
-      } catch { /* silent */ }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Scan failed.";
+        console.error("Mood check error:", msg);
+        setMoodCheckError(lang === "en" ? `Scan failed: ${msg}` : `掃描失敗：${msg}`);
+      }
       setMoodCheckLoading(false);
     };
     reader.readAsDataURL(file);
@@ -783,6 +802,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const visibleTasks = selectedDate === todayStr()
     ? tasks
     : tasks.filter(task => task.createdAt?.startsWith(selectedDate));
+  const visibleMedLog = medLog.filter(m => (m.date ?? todayStr()) === selectedDate);
   const visibleCompleted = visibleTasks.filter(t => t.done).length;
   const sessionElapsed = Math.floor((now.getTime() - sessionStart.current.getTime()) / 1000);
   const sessionDuration = `${Math.floor(sessionElapsed / 3600)}:${String(Math.floor((sessionElapsed % 3600) / 60)).padStart(2, "0")}:${String(sessionElapsed % 60).padStart(2, "0")}`;
@@ -859,36 +879,51 @@ export default function Dashboard({ session }: { session: Session }) {
             <InfoButton onClick={() => setInfoModal(INFO[lang].tokMed)} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <input
-              value={newMedName}
-              onChange={e => setNewMedName(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && logMed()}
-              placeholder={t.medNamePlaceholder}
-              style={{ width: "100%", padding: "6px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 5, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, outline: "none", boxSizing: "border-box" }}
-              onFocus={e => (e.target.style.borderColor = "rgba(251,191,36,0.5)")}
-              onBlur={e => (e.target.style.borderColor = "rgba(251,191,36,0.2)")}
-            />
-            <div style={{ display: "flex", gap: 5 }}>
+            {selectedDate === todayStr() ? (<>
               <input
-                value={newMedDose}
-                onChange={e => setNewMedDose(e.target.value)}
+                value={newMedName}
+                onChange={e => setNewMedName(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && logMed()}
-                placeholder={t.medDosePlaceholder}
-                style={{ flex: 1, padding: "6px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 5, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, outline: "none", minWidth: 0 }}
+                placeholder={t.medNamePlaceholder}
+                style={{ width: "100%", padding: "6px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 5, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, outline: "none", boxSizing: "border-box" }}
                 onFocus={e => (e.target.style.borderColor = "rgba(251,191,36,0.5)")}
                 onBlur={e => (e.target.style.borderColor = "rgba(251,191,36,0.2)")}
               />
-              <button
-                onClick={logMed}
-                disabled={!newMedName.trim()}
-                style={{ padding: "6px 12px", background: newMedName.trim() ? "rgba(251,191,36,0.12)" : "rgba(251,191,36,0.04)", border: "1px solid rgba(251,191,36,0.35)", borderRadius: 5, color: "#fbbf24", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: newMedName.trim() ? "pointer" : "not-allowed", flexShrink: 0 }}
-              >
-                {t.medLogBtn}
-              </button>
-            </div>
-            {medLog.length > 0 && (
+              <div style={{ display: "flex", gap: 5 }}>
+                <input
+                  value={newMedDose}
+                  onChange={e => setNewMedDose(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && logMed()}
+                  placeholder={t.medDosePlaceholder}
+                  style={{ flex: 1, padding: "6px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 5, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, outline: "none", minWidth: 0 }}
+                  onFocus={e => (e.target.style.borderColor = "rgba(251,191,36,0.5)")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(251,191,36,0.2)")}
+                />
+                <input
+                  type="time"
+                  value={newMedTime}
+                  onChange={e => setNewMedTime(e.target.value)}
+                  placeholder="now"
+                  style={{ width: 72, padding: "6px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 5, color: newMedTime ? "#fbbf24" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, outline: "none", colorScheme: "dark", flexShrink: 0 }}
+                  onFocus={e => (e.target.style.borderColor = "rgba(251,191,36,0.5)")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(251,191,36,0.2)")}
+                />
+                <button
+                  onClick={logMed}
+                  disabled={!newMedName.trim()}
+                  style={{ padding: "6px 12px", background: newMedName.trim() ? "rgba(251,191,36,0.12)" : "rgba(251,191,36,0.04)", border: "1px solid rgba(251,191,36,0.35)", borderRadius: 5, color: "#fbbf24", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: newMedName.trim() ? "pointer" : "not-allowed", flexShrink: 0 }}
+                >
+                  {t.medLogBtn}
+                </button>
+              </div>
+            </>) : (
+              <div style={{ padding: "5px 8px", border: "1px solid rgba(251,191,36,0.15)", borderRadius: 4, fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(251,191,36,0.4)", letterSpacing: 1 }}>
+                {lang === "en" ? "PAST DAY · READ ONLY" : "歷史日期 · 唯讀"}
+              </div>
+            )}
+            {visibleMedLog.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 2, maxHeight: 148, overflowY: "auto" }}>
-                {medLog.map(med => editingMedId === med.id ? (
+                {visibleMedLog.map(med => selectedDate === todayStr() && editingMedId === med.id ? (
                   <div key={med.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.4)", borderRadius: 5 }}>
                     <input
                       autoFocus
@@ -905,11 +940,16 @@ export default function Dashboard({ session }: { session: Session }) {
                     <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#fbbf24", flexShrink: 0 }} />
                     <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#fbbf24", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{med.name}{med.dose ? ` · ${med.dose}` : ""}</span>
                     <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)", flexShrink: 0 }}>{med.time}</span>
-                    <button onClick={() => startEditMed(med)} style={{ background: "none", border: "none", color: "rgba(251,191,36,0.4)", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, cursor: "pointer", padding: 0, flexShrink: 0 }}>✎</button>
-                    <button onClick={() => deleteMed(med.id)} style={{ background: "none", border: "none", color: "rgba(255,100,100,0.5)", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, cursor: "pointer", padding: 0, flexShrink: 0 }}>✕</button>
+                    {selectedDate === todayStr() && <>
+                      <button onClick={() => startEditMed(med)} style={{ background: "none", border: "none", color: "rgba(251,191,36,0.4)", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, cursor: "pointer", padding: 0, flexShrink: 0 }}>✎</button>
+                      <button onClick={() => deleteMed(med.id)} style={{ background: "none", border: "none", color: "rgba(255,100,100,0.5)", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, cursor: "pointer", padding: 0, flexShrink: 0 }}>✕</button>
+                    </>}
                   </div>
                 ))}
               </div>
+            )}
+            {visibleMedLog.length === 0 && selectedDate === todayStr() && (
+              <p style={{ margin: 0, fontSize: 12, color: "rgba(90,143,168,0.5)", fontFamily: "'Share Tech Mono', monospace", letterSpacing: 0.3 }}>{t.medEmpty}</p>
             )}
           </div>
         </div>
@@ -1168,34 +1208,51 @@ export default function Dashboard({ session }: { session: Session }) {
                 <InfoButton onClick={() => setInfoModal(INFO[lang].tokMed)} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <input value={newMedName} onChange={e => setNewMedName(e.target.value)} onKeyDown={e => e.key === "Enter" && logMed()} placeholder={t.medNamePlaceholder}
-                  style={{ width: "100%", padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, outline: "none", boxSizing: "border-box" }} />
-                <div style={{ display: "flex", gap: 6 }}>
-                  <input value={newMedDose} onChange={e => setNewMedDose(e.target.value)} onKeyDown={e => e.key === "Enter" && logMed()} placeholder={t.medDosePlaceholder}
-                    style={{ flex: 1, padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, outline: "none", minWidth: 0 }} />
-                  <button onClick={logMed} disabled={!newMedName.trim()}
-                    style={{ padding: "8px 16px", background: newMedName.trim() ? "rgba(251,191,36,0.15)" : "rgba(251,191,36,0.04)", border: "1px solid rgba(251,191,36,0.4)", borderRadius: 6, color: "#fbbf24", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: newMedName.trim() ? "pointer" : "not-allowed", flexShrink: 0 }}>
-                    {t.medLogBtn}
-                  </button>
-                </div>
-                {medLog.length > 0 && (
+                {selectedDate === todayStr() ? (<>
+                  <input value={newMedName} onChange={e => setNewMedName(e.target.value)} onKeyDown={e => e.key === "Enter" && logMed()} placeholder={t.medNamePlaceholder}
+                    style={{ width: "100%", padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, outline: "none", boxSizing: "border-box" }} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input value={newMedDose} onChange={e => setNewMedDose(e.target.value)} onKeyDown={e => e.key === "Enter" && logMed()} placeholder={t.medDosePlaceholder}
+                      style={{ flex: 1, padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, outline: "none", minWidth: 0 }} />
+                    <input
+                      type="time"
+                      value={newMedTime}
+                      onChange={e => setNewMedTime(e.target.value)}
+                      style={{ width: 80, padding: "8px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 6, color: newMedTime ? "#fbbf24" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", colorScheme: "dark", flexShrink: 0 }}
+                    />
+                    <button onClick={logMed} disabled={!newMedName.trim()}
+                      style={{ padding: "8px 16px", background: newMedName.trim() ? "rgba(251,191,36,0.15)" : "rgba(251,191,36,0.04)", border: "1px solid rgba(251,191,36,0.4)", borderRadius: 6, color: "#fbbf24", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: newMedName.trim() ? "pointer" : "not-allowed", flexShrink: 0 }}>
+                      {t.medLogBtn}
+                    </button>
+                  </div>
+                </>) : (
+                  <div style={{ padding: "6px 10px", border: "1px solid rgba(251,191,36,0.15)", borderRadius: 4, fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(251,191,36,0.4)", letterSpacing: 1 }}>
+                    {lang === "en" ? "PAST DAY · READ ONLY" : "歷史日期 · 唯讀"}
+                  </div>
+                )}
+                {visibleMedLog.length > 0 && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4, maxHeight: 160, overflowY: "auto" }}>
-                    {medLog.map(med => (
+                    {visibleMedLog.map(med => (
                       <div key={med.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.15)", borderRadius: 5 }}>
                         <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#fbbf24", flexShrink: 0 }} />
                         <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#fbbf24", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{med.name}{med.dose ? ` · ${med.dose}` : ""}</span>
                         <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)", flexShrink: 0 }}>{med.time}</span>
-                        <button onClick={() => deleteMed(med.id)} style={{ background: "none", border: "none", color: "rgba(255,100,100,0.5)", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, cursor: "pointer", padding: 0, flexShrink: 0 }}>✕</button>
+                        {selectedDate === todayStr() && (
+                          <button onClick={() => deleteMed(med.id)} style={{ background: "none", border: "none", color: "rgba(255,100,100,0.5)", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, cursor: "pointer", padding: 0, flexShrink: 0 }}>✕</button>
+                        )}
                       </div>
                     ))}
                   </div>
+                )}
+                {visibleMedLog.length === 0 && selectedDate === todayStr() && (
+                  <p style={{ margin: 0, fontSize: 13, color: "rgba(90,143,168,0.5)", fontFamily: "'Share Tech Mono', monospace", letterSpacing: 0.3, lineHeight: 1.5 }}>{t.medEmpty}</p>
                 )}
               </div>
             </div>
           )}
 
-          {/* TokNote · TokAgent · TokTodo */}
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 14 }}>
+          {/* TokNote · TokAgent */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
           <div style={{ background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: 480 }}>
             {/* Header */}
             <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(192,132,252,0.15)", display: "flex", alignItems: "center", gap: 10, background: "rgba(192,132,252,0.03)", flexShrink: 0 }}>
@@ -1302,16 +1359,23 @@ export default function Dashboard({ session }: { session: Session }) {
                   onFocus={e => (e.target.style.borderColor = "rgba(192,132,252,0.5)")}
                   onBlur={e => (e.target.style.borderColor = "rgba(192,132,252,0.2)")}
                 />
-                <button
-                  onClick={triggerMoodCheck}
-                  disabled={moodCheckLoading}
-                  title={lang === "en" ? "Mood scan (photo)" : "情緒掃描（拍照）"}
-                  style={{ padding: "8px 10px", background: moodAssessment ? "rgba(192,132,252,0.15)" : "rgba(192,132,252,0.05)", border: `1px solid ${moodAssessment ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: moodAssessment ? "#c084fc" : "#5a8fa8", cursor: moodCheckLoading ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}
-                  onMouseEnter={e => { if (!moodCheckLoading) { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(192,132,252,0.5)"; (e.currentTarget as HTMLButtonElement).style.color = "#c084fc"; } }}
-                  onMouseLeave={e => { if (!moodAssessment) { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(192,132,252,0.2)"; (e.currentTarget as HTMLButtonElement).style.color = "#5a8fa8"; } }}
-                >
-                  {moodCheckLoading ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, letterSpacing: 1 }}>...</span> : <Camera size={14} />}
-                </button>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                  <button
+                    onClick={triggerMoodCheck}
+                    disabled={moodCheckLoading}
+                    title={lang === "en" ? "Mood scan (photo)" : "情緒掃描（拍照）"}
+                    style={{ padding: "8px 10px", background: moodAssessment ? "rgba(192,132,252,0.15)" : moodCheckError ? "rgba(248,113,113,0.08)" : "rgba(192,132,252,0.05)", border: `1px solid ${moodCheckError ? "rgba(248,113,113,0.4)" : moodAssessment ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: moodCheckError ? "#f87171" : moodAssessment ? "#c084fc" : "#5a8fa8", cursor: moodCheckLoading ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+                    onMouseEnter={e => { if (!moodCheckLoading && !moodCheckError) { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(192,132,252,0.5)"; (e.currentTarget as HTMLButtonElement).style.color = "#c084fc"; } }}
+                    onMouseLeave={e => { if (!moodAssessment && !moodCheckError) { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(192,132,252,0.2)"; (e.currentTarget as HTMLButtonElement).style.color = "#5a8fa8"; } }}
+                  >
+                    {moodCheckLoading ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, letterSpacing: 1 }}>...</span> : <Camera size={14} />}
+                  </button>
+                  {moodCheckError && (
+                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "#f87171", letterSpacing: 0.3, maxWidth: 80, textAlign: "center", lineHeight: 1.3, cursor: "pointer" }} onClick={() => setMoodCheckError(null)}>
+                      {moodCheckError}
+                    </span>
+                  )}
+                </div>
                 <div ref={moodDropdownRef} style={{ position: "relative", flexShrink: 0 }}>
                   <button
                     onClick={() => setMoodDropdownOpen(o => !o)}
@@ -1363,7 +1427,10 @@ export default function Dashboard({ session }: { session: Session }) {
             onInfo={() => setInfoModal(INFO[lang].tokAgent)}
             moodAssessment={moodAssessment ?? undefined}
           />
-          <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, padding: 16, boxShadow: "0 0 24px rgba(192,132,252,0.07)", height: 480, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          </div>
+
+          {/* TokTodo */}
+          <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, padding: 16, boxShadow: "0 0 24px rgba(192,132,252,0.07)", minHeight: 360, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                   <ListChecks size={16} color="#c084fc" style={{ flexShrink: 0 }} />
                   <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3, flex: 1 }}>
@@ -1469,7 +1536,6 @@ export default function Dashboard({ session }: { session: Session }) {
                   {t.progress} {visibleCompleted}/{visibleTasks.length} {visibleCompleted > 0 && visibleCompleted === visibleTasks.length ? t.complete : ""}
                 </div>
               </div>
-          </div>
 
           {/* Mobile footer with session info + links */}
           {isMobile && (
