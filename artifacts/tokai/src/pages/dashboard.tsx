@@ -39,6 +39,7 @@ const T = {
     tokTodo: "TOKDO",
     taskPlaceholder: "Task title — press Enter to add...",
     descPlaceholder: "Description (optional)...",
+    addTaskBtn: "+ ADD TASK", addTaskClose: "✕ CLOSE",
     generateDesc: "✦ GENERATE DESCRIPTION",
     generating: "GENERATING...",
     taskDetail: "TASK DETAIL",
@@ -121,6 +122,7 @@ const T = {
     tokTodo: "任務清單",
     taskPlaceholder: "任務標題 — 按 Enter 新增...",
     descPlaceholder: "描述（選填）...",
+    addTaskBtn: "+ 新增任務", addTaskClose: "✕ 關閉",
     generateDesc: "✦ 生成描述",
     generating: "生成中...",
     taskDetail: "任務詳情",
@@ -378,6 +380,23 @@ export default function Dashboard({ session }: { session: Session }) {
   useEffect(() => { neuralRef.current = neural; }, [neural]);
   const chartScrollRef = useRef<HTMLDivElement>(null);
   const chartWrapRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-aware fade hints for the metric card row (left appears once scrolled, right hides at the end)
+  const metricScrollRef = useRef<HTMLDivElement>(null);
+  const [metricFade, setMetricFade] = useState({ left: false, right: false });
+  useEffect(() => {
+    const el = metricScrollRef.current;
+    if (!el) return;
+    const update = () => {
+      const left = el.scrollLeft > 4;
+      const right = el.scrollWidth - el.scrollLeft - el.clientWidth > 4;
+      setMetricFade(prev => (prev.left === left && prev.right === right) ? prev : { left, right });
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => { el.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
+  }, [isMobile]);
   const [chartWrapWidth, setChartWrapWidth] = useState(600);
   const [isLive, setIsLive] = useState(true);
   const sessionStartSampleCount = useRef(0);
@@ -417,6 +436,11 @@ export default function Dashboard({ session }: { session: Session }) {
   const [newTaskTime, setNewTaskTime] = useState("");
   const [newTaskEmoji, setNewTaskEmoji] = useState("");
   const [newTaskFocusRequired, setNewTaskFocusRequired] = useState<number | null>(null);
+  const [taskFormOpen, setTaskFormOpen] = useState(false);
+  function closeTaskForm() {
+    setTaskFormOpen(false);
+    setNewTask(""); setNewTaskDesc(""); setNewTaskTime(""); setNewTaskDeadline(""); setNewTaskEmoji(""); setNewTaskFocusRequired(null);
+  }
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -1425,7 +1449,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
           {/* Metric cards — horizontal scroll, ~5 visible */}
           <div style={{ position: "relative" }}>
-            <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}>
+            <div ref={metricScrollRef} style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}>
               <MetricCard title={t.focusIndex} icon={<Crosshair size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].focusIndex)}>
                 <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                   {neural.focusIndex.toFixed(1)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
@@ -1496,8 +1520,9 @@ export default function Dashboard({ session }: { session: Session }) {
                 </Badge>
               </MetricCard>
             </div>
-            {/* Fade hint — more cards to the right */}
-            <div style={{ position: "absolute", right: 0, top: 0, bottom: 4, width: 48, background: "linear-gradient(to right, transparent, rgba(8,6,20,0.85))", pointerEvents: "none" }} />
+            {/* Fade hints — appear only when there are more cards in that direction */}
+            {metricFade.left && <div style={{ position: "absolute", left: 0, top: 0, bottom: 4, width: 48, background: "linear-gradient(to left, transparent, rgba(8,6,20,0.85))", pointerEvents: "none" }} />}
+            {metricFade.right && <div style={{ position: "absolute", right: 0, top: 0, bottom: 4, width: 48, background: "linear-gradient(to right, transparent, rgba(8,6,20,0.85))", pointerEvents: "none" }} />}
           </div>
 
           {/* Focus stream — full width */}
@@ -1888,8 +1913,11 @@ export default function Dashboard({ session }: { session: Session }) {
                   </span>
                   <InfoButton onClick={() => setInfoModal(INFO[lang].tokTodo)} />
                 </div>
-                {selectedDate === todayStr() ? (<>
-                <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={addTask} placeholder={t.taskPlaceholder}
+                {selectedDate === todayStr() ? (taskFormOpen ? (<>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
+                  <button onClick={closeTaskForm} style={{ background: "none", border: "none", color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>{t.addTaskClose}</button>
+                </div>
+                <input value={newTask} autoFocus onChange={e => setNewTask(e.target.value)} onKeyDown={addTask} placeholder={t.taskPlaceholder}
                   style={{ width: "100%", padding: "6px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: "4px 4px 0 0", color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, boxSizing: "border-box", outline: "none" }} />
                 <input value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)} placeholder={t.descPlaceholder}
                   style={{ width: "100%", padding: "5px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.2)", borderTop: "none", borderRadius: "0 0 4px 4px", color: "#7a9ab8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, marginBottom: 8, boxSizing: "border-box", outline: "none", fontStyle: "italic" }} />
@@ -1908,6 +1936,11 @@ export default function Dashboard({ session }: { session: Session }) {
                   </div>
                 </div>
                 </>) : (
+                <button onClick={() => setTaskFormOpen(true)}
+                  style={{ width: "100%", padding: "9px 0", marginBottom: 4, background: "rgba(192,132,252,0.12)", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: "pointer" }}>
+                  {t.addTaskBtn}
+                </button>
+                )) : (
                 <div style={{ padding: "8px 12px", marginBottom: 10, border: "1px solid rgba(192,132,252,0.12)", borderRadius: 4, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 1 }}>
                   {t.pastDayReadOnly}
                 </div>
@@ -2105,8 +2138,11 @@ export default function Dashboard({ session }: { session: Session }) {
 
           {/* Task input */}
           <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(192,132,252,0.1)" }}>
-            {selectedDate === todayStr() ? (<>
-              <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={addTask} placeholder={t.taskPlaceholder}
+            {selectedDate === todayStr() ? (taskFormOpen ? (<>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
+                <button onClick={closeTaskForm} style={{ background: "none", border: "none", color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>{t.addTaskClose}</button>
+              </div>
+              <input value={newTask} autoFocus onChange={e => setNewTask(e.target.value)} onKeyDown={addTask} placeholder={t.taskPlaceholder}
                 style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: "4px 4px 0 0", color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, boxSizing: "border-box", outline: "none" }} />
               <input value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)} placeholder={t.descPlaceholder}
                 style={{ width: "100%", padding: "6px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.2)", borderTop: "none", borderRadius: "0 0 4px 4px", color: "#7a9ab8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, marginBottom: 8, boxSizing: "border-box", outline: "none", fontStyle: "italic" }} />
@@ -2132,6 +2168,13 @@ export default function Dashboard({ session }: { session: Session }) {
                 <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.4)" }}>/ 100  ({t.minFocusHint})</span>
               </div>
             </>) : (
+              <button onClick={() => setTaskFormOpen(true)}
+                style={{ width: "100%", padding: "9px 0", background: "rgba(192,132,252,0.12)", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: "pointer", transition: "background 0.2s" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(192,132,252,0.2)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "rgba(192,132,252,0.12)")}>
+                {t.addTaskBtn}
+              </button>
+            )) : (
               <div style={{ padding: "6px 0", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 1 }}>
                 {t.pastDayReadOnly}
               </div>
