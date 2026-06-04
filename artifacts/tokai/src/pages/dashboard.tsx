@@ -318,7 +318,10 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
 
 export default function Dashboard({ session }: { session: Session }) {
   const userId = session.user.id;
-  const tokEn = 100; // Alpha: fixed allocation. Beta: fetch from DB per user.
+  const [profile, setProfile] = useState<{ name: string; bciDevice: string; subscriptionTier: string; tokens: number; aiProfile: string | null } | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileGenerating, setProfileGenerating] = useState(false);
+  const tokEn = profile?.tokens ?? 100;
   const [lang, setLang] = useState<Lang>("en");
   const t = T[lang];
 
@@ -485,10 +488,11 @@ export default function Dashboard({ session }: { session: Session }) {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const [{ data: tData }, { data: mData }, { data: jData }] = await Promise.all([
+      const [{ data: tData }, { data: mData }, { data: jData }, { data: profileData }] = await Promise.all([
         supabase.from("tasks").select("*").eq("user_id", userId),
         supabase.from("med_log").select("*").eq("user_id", userId).order("logged_at"),
         supabase.from("journal_entries").select("*").eq("user_id", userId),
+        supabase.from("profiles").select("*").eq("user_id", userId).single(),
       ]);
       if (cancelled) return;
 
@@ -558,6 +562,15 @@ export default function Dashboard({ session }: { session: Session }) {
         setMedLog(mappedMeds);
         setJournal(mappedJournal);
       }
+      // Profile
+      if (profileData) {
+        setProfile({ name: profileData.name ?? "", bciDevice: profileData.bci_device, subscriptionTier: profileData.subscription_tier, tokens: profileData.tokens, aiProfile: profileData.ai_profile ?? null });
+      } else {
+        const defaultName = (session.user.user_metadata?.full_name as string) ?? "";
+        await supabase.from("profiles").insert({ user_id: userId, name: defaultName, bci_device: "none", subscription_tier: "free", tokens: 100 });
+        setProfile({ name: defaultName, bciDevice: "none", subscriptionTier: "free", tokens: 100, aiProfile: null });
+      }
+
       setDataLoaded(true);
     }
     load();
@@ -595,6 +608,40 @@ export default function Dashboard({ session }: { session: Session }) {
     setTasks(p => p.filter(tk => tk.id !== id));
     setSelectedTaskId(null);
     await supabase.from("tasks").delete().eq("id", id);
+  }
+
+  async function saveProfile(updates: Partial<typeof profile>) {
+    if (!profile) return;
+    const next = { ...profile, ...updates };
+    setProfile(next);
+    await supabase.from("profiles").update({
+      name: next.name, bci_device: next.bciDevice,
+      subscription_tier: next.subscriptionTier, updated_at: new Date().toISOString(),
+    }).eq("user_id", userId);
+  }
+
+  async function generateAiProfile() {
+    if (!profile) return;
+    setProfileGenerating(true);
+    try {
+      const apiKey = localStorage.getItem("tokai_anthropic_key") ?? "";
+      const res = await fetch(`${API_BASE}/api/generate-profile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: profile.name, email: session.user.email,
+          taskCount: tasks.length, completedCount: tasks.filter(t => t.done).length,
+          journalCount: journal.length, medCount: medLog.length,
+          userApiKey: apiKey || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.profile) {
+        setProfile(p => p ? { ...p, aiProfile: data.profile } : p);
+        await supabase.from("profiles").update({ ai_profile: data.profile, ai_profile_updated_at: new Date().toISOString() }).eq("user_id", userId);
+      }
+    } catch { /* silent */ }
+    setProfileGenerating(false);
   }
 
   function getMedDelta(med: MedEntry) {
@@ -1078,7 +1125,9 @@ export default function Dashboard({ session }: { session: Session }) {
             <span style={{ color: "#c084fc" }}>: {tokEn}</span>
           </div>
         </div>
-        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, wordBreak: "break-all" }}>
+        <div onClick={() => setShowProfileModal(true)} style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, wordBreak: "break-all", cursor: "pointer", transition: "color 0.2s" }}
+          onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
+          onMouseLeave={e => (e.currentTarget.style.color = "rgba(90,143,168,0.5)")}>
           {session.user.email}
         </div>
         <button
@@ -1125,7 +1174,7 @@ export default function Dashboard({ session }: { session: Session }) {
                     <span style={{ color: "#c084fc" }}>: {tokEn}</span>
                   </div>
                 </div>
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5 }}>
+                <div onClick={() => setShowProfileModal(true)} style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer" }}>
                   {session.user.email}
                 </div>
                 <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.4)", letterSpacing: 0.5 }}>
@@ -1761,6 +1810,104 @@ export default function Dashboard({ session }: { session: Session }) {
             {t.progress} {visibleCompleted}/{visibleTasks.length} {visibleCompleted > 0 && visibleCompleted === visibleTasks.length ? t.complete : ""}
           </div>
         </aside>
+      )}
+
+      {/* ── Profile modal ── */}
+      {showProfileModal && profile && (
+        <div onClick={() => setShowProfileModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 14, padding: 28, display: "flex", flexDirection: "column", gap: 18, boxShadow: "0 0 60px rgba(192,132,252,0.12)", maxHeight: "90vh", overflowY: "auto" }}>
+
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 3, height: 18, background: "#c084fc", borderRadius: 1 }} />
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#c084fc", letterSpacing: 3, flex: 1 }}>
+                <span style={{ color: "#7c3aed" }}>TOK</span>USER · PROFILE
+              </span>
+              <button onClick={() => setShowProfileModal(false)} style={{ background: "none", border: "none", color: "#5a8fa8", cursor: "pointer", fontSize: 22, padding: 0, lineHeight: 1 }}>×</button>
+            </div>
+
+            {/* Name */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "DISPLAY NAME" : "顯示名稱"}</span>
+              <input value={profile.name} onChange={e => setProfile(p => p ? { ...p, name: e.target.value } : p)}
+                onBlur={() => saveProfile({ name: profile.name })}
+                placeholder={lang === "en" ? "Your name..." : "你的名字..."}
+                style={{ padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, outline: "none" }} />
+            </div>
+
+            {/* Email */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "EMAIL" : "電子郵件"}</span>
+              <div style={{ padding: "8px 12px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.1)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.7)" }}>
+                {session.user.email}
+              </div>
+            </div>
+
+            {/* BCI Device */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "BCI DEVICE" : "腦機介面裝置"}</span>
+              <select value={profile.bciDevice} onChange={e => saveProfile({ bciDevice: e.target.value })}
+                style={{ padding: "8px 12px", background: "#120d28", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", cursor: "pointer", colorScheme: "dark" }}>
+                <option value="none">{lang === "en" ? "None (Simulated)" : "無（模擬）"}</option>
+                <option value="muse2">Muse 2</option>
+                <option value="muse_s">Muse S</option>
+                <option value="openbci">OpenBCI Cyton</option>
+                <option value="neurosky">NeuroSky MindWave</option>
+                <option value="emotiv">Emotiv EPOC X</option>
+                <option value="other">{lang === "en" ? "Other" : "其他"}</option>
+              </select>
+            </div>
+
+            {/* Subscription */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "SUBSCRIPTION" : "訂閱方案"}</span>
+              <div style={{ display: "flex", gap: 8 }}>
+                {(["free", "pro"] as const).map(tier => (
+                  <div key={tier} style={{ flex: 1, padding: "10px 0", textAlign: "center", background: profile.subscriptionTier === tier ? "rgba(192,132,252,0.15)" : "rgba(0,0,0,0.2)", border: `1px solid ${profile.subscriptionTier === tier ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.1)"}`, borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: profile.subscriptionTier === tier ? "#c084fc" : "#5a8fa8", letterSpacing: 2 }}>
+                    {tier === "free" ? (lang === "en" ? "FREE" : "免費") : "PRO"}
+                    {profile.subscriptionTier === tier && <div style={{ fontSize: 9, color: "rgba(192,132,252,0.6)", marginTop: 3, letterSpacing: 1 }}>{lang === "en" ? "CURRENT" : "目前方案"}</div>}
+                    {tier === "pro" && profile.subscriptionTier !== "pro" && <div style={{ fontSize: 9, color: "rgba(90,143,168,0.5)", marginTop: 3, letterSpacing: 0 }}>{lang === "en" ? "Coming in Beta" : "Beta 開放"}</div>}
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.4)", letterSpacing: 1, textAlign: "center" }}>
+                {lang === "en" ? "Alpha users get full access — subscriptions launch in Beta." : "Alpha 用戶享有完整功能——訂閱制度將於 Beta 啟動。"}
+              </div>
+            </div>
+
+            {/* Tokens */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>
+                  <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>ENS</span>
+                </span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#c084fc" }}>{profile.tokens}</span>
+              </div>
+              <div style={{ height: 4, background: "rgba(192,132,252,0.1)", borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${Math.min(100, profile.tokens)}%`, background: "linear-gradient(90deg, #7c3aed, #c084fc)", borderRadius: 2, transition: "width 0.5s" }} />
+              </div>
+            </div>
+
+            {/* AI Profile Summary */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "AI PROFILE SUMMARY" : "AI 個人摘要"}</span>
+              {profile.aiProfile ? (
+                <div style={{ padding: "10px 12px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 6, fontFamily: "'Rajdhani', sans-serif", fontSize: 15, color: "#c8d8e8", lineHeight: 1.6, fontStyle: "italic" }}>
+                  {profile.aiProfile}
+                </div>
+              ) : (
+                <div style={{ padding: "10px 12px", background: "rgba(0,0,0,0.15)", border: "1px dashed rgba(192,132,252,0.15)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5 }}>
+                  {lang === "en" ? "No profile generated yet." : "尚未生成個人摘要。"}
+                </div>
+              )}
+              <button onClick={generateAiProfile} disabled={profileGenerating}
+                style={{ alignSelf: "flex-start", padding: "6px 14px", background: "none", border: "1px solid rgba(192,132,252,0.3)", borderRadius: 4, color: profileGenerating ? "#5a8fa8" : "rgba(192,132,252,0.7)", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: profileGenerating ? "default" : "pointer", transition: "all 0.2s" }}>
+                {profileGenerating ? (lang === "en" ? "GENERATING..." : "生成中...") : (lang === "en" ? "✦ GENERATE SUMMARY" : "✦ 生成摘要")}
+              </button>
+            </div>
+
+          </div>
+        </div>
       )}
 
       {/* ── Disclaimer modal ── */}

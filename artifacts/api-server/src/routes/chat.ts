@@ -74,6 +74,37 @@ Mood check-in (AI vision scan of user's selfie taken at session start):
   }
 });
 
+router.post("/generate-profile", async (req, res) => {
+  try {
+    const { name, email, taskCount, completedCount, journalCount, medCount, userApiKey } = req.body as {
+      name?: string; email?: string; taskCount: number; completedCount: number;
+      journalCount: number; medCount: number; userApiKey?: string;
+    };
+    const anthropic = client ?? (userApiKey ? new Anthropic({ apiKey: userApiKey }) : null);
+    if (!anthropic) { res.status(503).json({ profile: null }); return; }
+
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 200,
+      messages: [{
+        role: "user",
+        content: `Write a brief neurosupportive profile summary (2-3 sentences) for a Tokai user based on their activity data. Be encouraging, specific, and clinically neutral.
+
+User: ${name || "Anonymous"} (${email || "unknown"})
+Tasks: ${completedCount} of ${taskCount} completed
+Journal entries: ${journalCount}
+Medications logged: ${medCount}
+
+Focus on observable patterns in their productivity and self-monitoring habits. Do not mention ADHD directly.`
+      }]
+    });
+    res.json({ profile: (response.content[0] as { type: string; text: string }).text.trim() });
+  } catch (err) {
+    console.error("Generate profile error:", err);
+    res.status(500).json({ profile: null });
+  }
+});
+
 router.post("/best-task", async (req, res) => {
   try {
     const { neuralState, tasks, userApiKey } = req.body as {
