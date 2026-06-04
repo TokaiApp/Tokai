@@ -1003,7 +1003,9 @@ export default function Dashboard({ session }: { session: Session }) {
     <div style={{ display: "flex", minHeight: "100vh", background: "linear-gradient(135deg, #0c0818 0%, #100a25 50%, #080614 100%)", fontFamily: "'Rajdhani', sans-serif", color: "#c8d8e8" }}>
 
       {/* ── Sidebar (desktop only) ── */}
-      <aside style={{ width: 240, minWidth: 240, padding: "24px 20px", borderRight: "1px solid rgba(192,132,252,0.15)", display: isMobile ? "none" : "flex", flexDirection: "column", gap: 24, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
+      <aside style={{ width: 240, minWidth: 240, borderRight: "1px solid rgba(192,132,252,0.15)", display: isMobile ? "none" : "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh" }}>
+        {/* Scrollable content */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 24 }}>
         <a href="https://tokai.app" target="_blank" rel="noopener noreferrer" style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none" }}>
           <img src="/tokai_logo.png" alt="Tokai" style={{ width: 120, display: "block", marginBottom: 6 }} />
           <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, color: "#5a8fa8", letterSpacing: 2, textAlign: "center" }}>{t.version}</div>
@@ -1115,29 +1117,30 @@ export default function Dashboard({ session }: { session: Session }) {
             </a>
           </div>
         </div>
+        </div>{/* end scrollable content */}
 
-      <div style={{ flex: 1 }} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 8 }}>
-          <img src="/tok-en.png" alt="TokEn" style={{ width: 34, height: 34, flexShrink: 0 }} />
-          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, letterSpacing: 2 }}>
-            <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>ENS</span>
-            <span style={{ color: "#c084fc" }}>: {tokEn}</span>
+        {/* Pinned bottom user section */}
+        <div style={{ padding: "12px 20px", borderTop: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", gap: 10, background: "linear-gradient(0deg, #0c0818, #0e0920)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 8 }}>
+            <img src="/tok-en.png" alt="TokEn" style={{ width: 30, height: 30, flexShrink: 0 }} />
+            <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, letterSpacing: 2 }}>
+              <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>ENS</span>
+              <span style={{ color: "#c084fc" }}>: {tokEn}</span>
+            </div>
           </div>
+          <div onClick={() => setShowProfileModal(true)} style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, wordBreak: "break-all", cursor: "pointer", transition: "color 0.2s" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
+            onMouseLeave={e => (e.currentTarget.style.color = "rgba(90,143,168,0.5)")}>
+            {session.user.email}
+          </div>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            style={{ width: "100%", padding: "9px 0", background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#f87171", letterSpacing: 2, cursor: "pointer", transition: "background 0.2s, border-color 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.6)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(248,113,113,0.07)"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.3)"; }}>
+            {t.signOut}
+          </button>
         </div>
-        <div onClick={() => setShowProfileModal(true)} style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, wordBreak: "break-all", cursor: "pointer", transition: "color 0.2s" }}
-          onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
-          onMouseLeave={e => (e.currentTarget.style.color = "rgba(90,143,168,0.5)")}>
-          {session.user.email}
-        </div>
-        <button
-          onClick={() => supabase.auth.signOut()}
-          style={{ width: "100%", padding: "10px 0", background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#f87171", letterSpacing: 2, cursor: "pointer", transition: "background 0.2s, border-color 0.2s" }}
-          onMouseEnter={e => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.6)"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "rgba(248,113,113,0.07)"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.3)"; }}>
-          {t.signOut}
-        </button>
-      </div>
 
       </aside>
 
