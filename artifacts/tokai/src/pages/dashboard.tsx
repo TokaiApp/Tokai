@@ -139,7 +139,8 @@ interface NeuralState {
 
 interface FocusPoint { time: string; value: number; }
 type Demand = "low" | "medium" | "high";
-interface Task { id: string; title: string; description: string | null; done: boolean; demand: Demand | null; estimatedMinutes: number | null; createdAt?: string; deadline?: string; emoji?: string; }
+type FocusRequired = "low" | "moderate" | "high";
+interface Task { id: string; title: string; description: string | null; done: boolean; demand: Demand | null; estimatedMinutes: number | null; createdAt?: string; deadline?: string; emoji?: string; focusRequired?: FocusRequired; }
 
 const TASK_EMOJIS = ["📚", "✍️", "💻", "📧", "💪", "🍳", "🧹", "🎯", "🔬", "📞", "🛒", "🎨"];
 interface MedEntry { id: string; name: string; dose: string; time: string; date: string; focusTime?: string; sampleIndex: number; rating: number | null; }
@@ -191,6 +192,28 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       <div style={{ position: "absolute", top: 2, left: checked ? 17 : 2, width: 14, height: 14, borderRadius: "50%", background: checked ? "#c084fc" : "#5a8fa8", transition: "left 0.2s" }} />
     </div>
   );
+}
+
+function estimateFocusRequired(title: string, description: string | null): FocusRequired {
+  const text = (title + " " + (description ?? "")).toLowerCase();
+  const high = ["math", "calculus", "algebra", "physics", "chemistry", "study", "homework", "assignment", "exam", "test", "essay", "thesis", "dissertation", "research", "analyze", "analysis", "code", "program", "debug", "develop", "design", "write", "draft", "read", "review", "report", "project", "solve", "problem", "chapter", "lecture", "learn"];
+  const low = ["medication", "meds", "medicine", "pill", "vitamin", "supplement", "clean", "laundry", "dishes", "wash", "shower", "bath", "groceries", "grocery", "shop", "eat", "lunch", "dinner", "breakfast", "snack", "walk", "stretch", "rest", "sleep", "nap", "call", "text", "message", "reply", "water", "hydrate"];
+  if (high.some(k => text.includes(k))) return "high";
+  if (low.some(k => text.includes(k))) return "low";
+  return "moderate";
+}
+
+function focusReadiness(required: FocusRequired | undefined, currentFocus: number): { color: string; label: string } | null {
+  if (!required) return null;
+  const thresholds: Record<FocusRequired, [number, number]> = {
+    low:      [25, 10],
+    moderate: [48, 32],
+    high:     [66, 48],
+  };
+  const labels: Record<FocusRequired, string> = { low: "LOW", moderate: "MOD", high: "HIGH" };
+  const [good, marginal] = thresholds[required];
+  const color = currentFocus >= good ? "#4ade80" : currentFocus >= marginal ? "#fbbf24" : "#f472b6";
+  return { color, label: labels[required] };
 }
 
 const INFO = {
@@ -329,6 +352,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [newTaskDemand, setNewTaskDemand] = useState<Demand | null>(null);
   const [newTaskTime, setNewTaskTime] = useState("");
   const [newTaskEmoji, setNewTaskEmoji] = useState("");
+  const [newTaskFocusRequired, setNewTaskFocusRequired] = useState<FocusRequired | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -395,6 +419,7 @@ export default function Dashboard({ session }: { session: Session }) {
         done: r.done as boolean, demand: r.demand as Demand | null,
         estimatedMinutes: r.estimated_minutes as number | null, createdAt: r.created_at as string | undefined,
         deadline: r.deadline as string | undefined, emoji: r.emoji as string | undefined,
+        focusRequired: r.focus_required as FocusRequired | undefined,
       }));
       const mappedMeds: MedEntry[] = (mData ?? []).map((r: Record<string, unknown>) => ({
         id: r.id as string, name: r.name as string, dose: r.dose as string,
@@ -474,6 +499,7 @@ export default function Dashboard({ session }: { session: Session }) {
     supabase.from("tasks").update({
       title: task.title, description: task.description,
       estimated_minutes: task.estimatedMinutes, deadline: task.deadline ?? null,
+      focus_required: task.focusRequired ?? null,
     }).eq("id", task.id);
   }, [selectedTaskId, dataLoaded]);
 
@@ -484,6 +510,7 @@ export default function Dashboard({ session }: { session: Session }) {
     if ("emoji" in changes) db.emoji = changes.emoji ?? null;
     if ("demand" in changes) db.demand = changes.demand ?? null;
     if ("deadline" in changes) db.deadline = changes.deadline ?? null;
+    if ("focusRequired" in changes) db.focus_required = changes.focusRequired ?? null;
     if (Object.keys(db).length > 0) await supabase.from("tasks").update(db).eq("id", id);
   }
 
@@ -780,20 +807,23 @@ export default function Dashboard({ session }: { session: Session }) {
 
   async function addTask(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && newTask.trim()) {
+      const title = newTask.trim();
+      const description = newTaskDesc.trim() || null;
       const task: Task = {
-        id: Date.now().toString(), title: newTask.trim(),
-        description: newTaskDesc.trim() || null, done: false, demand: newTaskDemand,
+        id: Date.now().toString(), title, description, done: false, demand: newTaskDemand,
         estimatedMinutes: newTaskTime ? parseInt(newTaskTime) : null,
         createdAt: formatDateTime(new Date()), deadline: newTaskDeadline || undefined,
         emoji: newTaskEmoji || undefined,
+        focusRequired: newTaskFocusRequired ?? estimateFocusRequired(title, description),
       };
       setTasks(prev => [...prev, task]);
       setNewTask(""); setNewTaskDesc(""); setNewTaskDemand(null);
-      setNewTaskTime(""); setNewTaskDeadline(""); setNewTaskEmoji("");
+      setNewTaskTime(""); setNewTaskDeadline(""); setNewTaskEmoji(""); setNewTaskFocusRequired(null);
       await supabase.from("tasks").insert({
         id: task.id, user_id: userId, title: task.title, description: task.description,
         done: false, demand: task.demand, estimated_minutes: task.estimatedMinutes,
         created_at: task.createdAt, deadline: task.deadline ?? null, emoji: task.emoji ?? null,
+        focus_required: task.focusRequired ?? null,
       });
     }
   }
@@ -1542,6 +1572,21 @@ export default function Dashboard({ session }: { session: Session }) {
                   <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#5a8fa8" }}>{t.minUnit}</span>
                 </div>
               </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>⚡ FOCUS:</span>
+                {(["low", "moderate", "high"] as FocusRequired[]).map(f => {
+                  const colors = { low: "#4ade80", moderate: "#fbbf24", high: "#f472b6" };
+                  const c = colors[f];
+                  const active = newTaskFocusRequired === f;
+                  return (
+                    <button key={f} onClick={() => setNewTaskFocusRequired(active ? null : f)}
+                      style={{ padding: "3px 9px", background: active ? c + "22" : "transparent", border: `1px solid ${active ? c : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: active ? c : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, cursor: "pointer", letterSpacing: 1 }}>
+                      {f === "low" ? "LOW" : f === "moderate" ? "MOD" : "HIGH"}
+                    </button>
+                  );
+                })}
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.4)", marginLeft: 2 }}>auto if blank</span>
+              </div>
             </>) : (
               <div style={{ padding: "6px 0", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 1 }}>
                 {lang === "en" ? "PAST DAY · READ ONLY" : "歷史日期 · 唯讀"}
@@ -1568,6 +1613,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   {task.emoji && <span style={{ fontSize: 17, flexShrink: 0, lineHeight: 1, opacity: task.done ? 0.5 : 1 }}>{task.emoji}</span>}
                   <span style={{ flex: 1, fontSize: 17, fontWeight: 600, color: task.done ? "#5a8fa8" : "#c8d8e8", textDecoration: task.done ? "line-through" : "none", minWidth: 0, wordBreak: "break-word" }}>{task.title}</span>
                   {task.demand && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, padding: "1px 5px", border: `1px solid ${demandColor(task.demand)}`, color: demandColor(task.demand), borderRadius: 3, flexShrink: 0 }}>{task.demand === "low" ? t.demandLow : task.demand === "medium" ? t.demandMed : t.demandHigh}</span>}
+                  {(() => { const r = focusReadiness(task.focusRequired, neural.focusIndex); return r ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, padding: "1px 5px", border: `1px solid ${r.color}`, color: r.color, borderRadius: 3, flexShrink: 0, opacity: task.done ? 0.4 : 1 }}>⚡{r.label}</span> : null; })()}
                 </div>
                 {task.description && <p style={{ margin: 0, marginLeft: 24, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
                 {task.deadline && <span style={{ marginLeft: 24, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)" }}>{lang === "en" ? "DUE" : "截止"} {task.deadline}</span>}
@@ -1746,6 +1792,23 @@ export default function Dashboard({ session }: { session: Session }) {
                   />
                   <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8" }}>{t.minUnit}</span>
                 </div>
+              </div>
+
+              {/* Focus required */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>⚡ {lang === "en" ? "FOCUS REQ:" : "專注需求:"}</span>
+                {(["low", "moderate", "high"] as FocusRequired[]).map(f => {
+                  const colors = { low: "#4ade80", moderate: "#fbbf24", high: "#f472b6" };
+                  const c = colors[f];
+                  const active = task.focusRequired === f;
+                  return (
+                    <button key={f} onClick={() => updateTask(task.id, { focusRequired: active ? undefined : f })}
+                      style={{ padding: "3px 10px", background: active ? c + "22" : "transparent", border: `1px solid ${active ? c : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: active ? c : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, cursor: "pointer", letterSpacing: 1 }}>
+                      {f === "low" ? "LOW" : f === "moderate" ? "MODERATE" : "HIGH"}
+                    </button>
+                  );
+                })}
+                {task.focusRequired && (() => { const r = focusReadiness(task.focusRequired, neural.focusIndex); return r ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: r.color, letterSpacing: 1 }}>{r.color === "#4ade80" ? "✓ READY" : r.color === "#fbbf24" ? "~ MARGINAL" : "✗ NOT YET"}</span> : null; })()}
               </div>
 
               {/* Deadline */}
