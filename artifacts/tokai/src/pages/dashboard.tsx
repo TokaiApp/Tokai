@@ -66,6 +66,21 @@ const T = {
       `Neural baseline is ${noise}. Conditions are favorable for sustained cognitive work. Focus is moderate (${f}/100). Consider chunking tasks into 20-minute intervals. Biological energy is ${eLevel} (${e}%). Leverage this window for complex problem-solving.`,
     insightLow: (f: string, e: string) =>
       `Focus index is low (${f}/100). Neural noise is elevated. Recommend switching to low-cognitive tasks — organizing, reviewing notes, or short breaks. Energy at ${e}%. Allow your neural state to recover before tackling demanding work.`,
+    signOut: "SIGN OUT",
+    developedBy: "Developed by",
+    pomodoro: "POMODORO",
+    pomoFocus: "FOCUS", pomoBreak: "BREAK", pomoLongBreak: "LONG BREAK",
+    pomoStart: "▶ START", pomoPause: "⏸ PAUSE",
+    pomoWorkLabel: "WORK", pomoBreakLabel: "BREAK",
+    bestTaskBtn: "✦ BEST TASK RIGHT NOW", bestTaskLoading: "THINKING...",
+    viewing: "VIEWING",
+    pastDayReadOnly: "PAST DAY · READ ONLY",
+    noTasksYet: "No tasks yet. Add one above.",
+    minFocusLabel: "⚡ MIN FOCUS:",
+    minFocusHint: "auto if blank",
+    focusReadyLabel: "✓ READY", focusMarginalLabel: "~ MARGINAL", focusNotYetLabel: "✗ NOT YET",
+    deadlineLabel: "DEADLINE:", taskAddedLabel: "ADDED",
+    dueLabel: "DUE",
   },
   zh: {
     version: "Tokai Alpha",
@@ -121,6 +136,21 @@ const T = {
       `神經基線${noise}。認知工作條件良好，專注度中等（${f}/100）。建議以 20 分鐘為單元分解任務。生理能量${eLevel}（${e}%），適合持續的問題求解工作。`,
     insightLow: (f: string, e: string) =>
       `專注指數偏低（${f}/100），神經噪訊較高。建議切換至低認知負荷任務——整理資料、回顧筆記或短暫休息。能量水平 ${e}%，待神經狀態恢復後再處理高難度工作。`,
+    signOut: "登出",
+    developedBy: "開發者",
+    pomodoro: "番茄鐘",
+    pomoFocus: "專注", pomoBreak: "短休", pomoLongBreak: "長休息",
+    pomoStart: "▶ 開始", pomoPause: "⏸ 暫停",
+    pomoWorkLabel: "專注時間", pomoBreakLabel: "休息時間",
+    bestTaskBtn: "✦ 現在最佳任務", bestTaskLoading: "思考中...",
+    viewing: "檢視",
+    pastDayReadOnly: "歷史日期 · 唯讀",
+    noTasksYet: "尚無任務。請在上方新增。",
+    minFocusLabel: "⚡ 最低專注：",
+    minFocusHint: "留空自動估算",
+    focusReadyLabel: "✓ 可開始", focusMarginalLabel: "~ 勉強", focusNotYetLabel: "✗ 尚未準備",
+    deadlineLabel: "截止日期：", taskAddedLabel: "新增於",
+    dueLabel: "截止",
   },
 };
 
@@ -966,10 +996,10 @@ export default function Dashboard({ session }: { session: Session }) {
 
         {/* Pomodoro Timer */}
         <div>
-          <SectionLabel>POMODORO</SectionLabel>
+          <SectionLabel>{t.pomodoro}</SectionLabel>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 2, color: pomodoroPhase === "work" ? "#c084fc" : "#6ee7b7" }}>
-              {pomodoroPhase === "work" ? "FOCUS" : pomodoroCount % 4 === 0 ? "LONG BREAK" : "BREAK"}
+              {pomodoroPhase === "work" ? t.pomoFocus : pomodoroCount % 4 === 0 ? t.pomoLongBreak : t.pomoBreak}
             </span>
             <div style={{ display: "flex", gap: 5 }}>
               {[0,1,2,3].map(i => (
@@ -982,11 +1012,11 @@ export default function Dashboard({ session }: { session: Session }) {
           </div>
           {!pomodoroRunning && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>WORK</span>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>{t.pomoWorkLabel}</span>
               <input type="number" min={1} max={90} value={pomodoroWorkMins}
                 onChange={e => { const v = Math.max(1, Math.min(90, parseInt(e.target.value) || 1)); setPomodoroWorkMins(v); if (pomodoroPhase === "work") setPomodoroTimeLeft(v * 60); }}
                 style={{ width: 42, padding: "2px 5px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, outline: "none", textAlign: "center" }} />
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>BREAK</span>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>{t.pomoBreakLabel}</span>
               <input type="number" min={1} max={30} value={pomodoroBreakMins}
                 onChange={e => { const v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); setPomodoroBreakMins(v); if (pomodoroPhase === "break") setPomodoroTimeLeft(v * 60); }}
                 style={{ width: 36, padding: "2px 5px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#6ee7b7", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, outline: "none", textAlign: "center" }} />
@@ -999,7 +1029,7 @@ export default function Dashboard({ session }: { session: Session }) {
               style={{ flex: 1, padding: "7px 0", background: pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)", border: "1px solid rgba(192,132,252,0.5)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer", transition: "background 0.2s" }}
               onMouseEnter={e => (e.currentTarget.style.background = "rgba(192,132,252,0.28)")}
               onMouseLeave={e => (e.currentTarget.style.background = pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)")}>
-              {pomodoroRunning ? "⏸ PAUSE" : "▶ START"}
+              {pomodoroRunning ? t.pomoPause : t.pomoStart}
             </button>
             <button
               onClick={() => { setPomodoroRunning(false); setPomodoroPhase("work"); pomodoroPhaseRef.current = "work"; setPomodoroTimeLeft(pomodoroWorkMins * 60); setPomodoroCount(0); pomodoroCountRef.current = 0; }}
@@ -1021,7 +1051,7 @@ export default function Dashboard({ session }: { session: Session }) {
             <Github size={20} />{t.sourceCode}
           </a>
           <div style={{ marginTop: 10, fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5 }}>
-            Developed by:{" "}
+            {t.developedBy}:{" "}
             <a href="https://austinhua.com" target="_blank" rel="noopener noreferrer"
               style={{ color: "rgba(90,143,168,0.5)", textDecoration: "none", transition: "color 0.2s" }}
               onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
@@ -1048,7 +1078,7 @@ export default function Dashboard({ session }: { session: Session }) {
           style={{ width: "100%", padding: "10px 0", background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#f87171", letterSpacing: 2, cursor: "pointer", transition: "background 0.2s, border-color 0.2s" }}
           onMouseEnter={e => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.6)"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "rgba(248,113,113,0.07)"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.3)"; }}>
-          SIGN OUT
+          {t.signOut}
         </button>
       </div>
 
@@ -1091,7 +1121,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   {session.user.email}
                 </div>
                 <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.4)", letterSpacing: 0.5 }}>
-                  Developed by{" "}
+                  {t.developedBy}{" "}
                   <a href="https://austinhua.com" target="_blank" rel="noopener noreferrer"
                     style={{ color: "rgba(90,143,168,0.4)", textDecoration: "none" }}>
                     Austin Hua
@@ -1101,7 +1131,7 @@ export default function Dashboard({ session }: { session: Session }) {
               <button
                 onClick={() => supabase.auth.signOut()}
                 style={{ padding: "6px 14px", background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#f87171", letterSpacing: 1, cursor: "pointer", flexShrink: 0 }}>
-                SIGN OUT
+                {t.signOut}
               </button>
             </div>
           </div>
@@ -1259,7 +1289,7 @@ export default function Dashboard({ session }: { session: Session }) {
           {/* Day selector — mobile only; desktop version lives in right panel header */}
           {isMobile && (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 2, flexShrink: 0 }}>{lang === "en" ? "VIEWING" : "檢視"}</span>
+            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 2, flexShrink: 0 }}>{t.viewing}</span>
             <select
               value={selectedDate}
               onChange={e => setSelectedDate(e.target.value)}
@@ -1365,7 +1395,7 @@ export default function Dashboard({ session }: { session: Session }) {
               {/* Input + mood tags (today only) */}
               {selectedDate !== todayStr() ? (
                 <div style={{ padding: "10px 16px", borderTop: "1px solid rgba(192,132,252,0.1)", background: "rgba(0,0,0,0.15)", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 1, flexShrink: 0 }}>
-                  {lang === "en" ? "PAST DAY · READ ONLY" : "歷史日期 · 唯讀"}
+                  {t.pastDayReadOnly}
                 </div>
               ) : (
               <div style={{ padding: "10px 16px", borderTop: "1px solid rgba(192,132,252,0.15)", display: "flex", gap: 8, alignItems: "center", background: "rgba(0,0,0,0.15)", flexShrink: 0 }}>
@@ -1473,7 +1503,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 </div>
               ) : (
                 <div style={{ padding: "4px 0", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(251,191,36,0.4)", letterSpacing: 1 }}>
-                  {lang === "en" ? "PAST DAY · READ ONLY" : "歷史日期 · 唯讀"}
+                  {t.pastDayReadOnly}
                 </div>
               )}
             </div>
@@ -1560,7 +1590,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 </div>
                 </>) : (
                 <div style={{ padding: "8px 12px", marginBottom: 10, border: "1px solid rgba(192,132,252,0.12)", borderRadius: 4, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 1 }}>
-                  {lang === "en" ? "PAST DAY · READ ONLY" : "歷史日期 · 唯讀"}
+                  {t.pastDayReadOnly}
                 </div>
                 )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, overflowY: "auto", overflowX: "hidden" }}>
@@ -1578,7 +1608,7 @@ export default function Dashboard({ session }: { session: Session }) {
                         {task.estimatedMinutes && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", flexShrink: 0 }}>{task.estimatedMinutes}{t.minUnit}</span>}
                       </div>
                       {task.description && <p style={{ margin: 0, marginLeft: 22, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
-                      {task.deadline && <span style={{ marginLeft: 22, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)", letterSpacing: 1 }}>{lang === "en" ? "DUE" : "截止"} {task.deadline}</span>}
+                      {task.deadline && <span style={{ marginLeft: 22, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)", letterSpacing: 1 }}>{t.dueLabel} {task.deadline}</span>}
                     </div>
                   ))}
                 </div>
@@ -1620,7 +1650,7 @@ export default function Dashboard({ session }: { session: Session }) {
               <InfoButton onClick={() => setInfoModal(INFO[lang].tokTodo)} />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 2, flexShrink: 0 }}>{lang === "en" ? "VIEWING" : "檢視"}</span>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 2, flexShrink: 0 }}>{t.viewing}</span>
               <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
                 style={{ flex: 1, padding: "5px 10px", background: "#120d28", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", outline: "none", colorScheme: "dark" }}>
                 {availableDates.map(date => (
@@ -1636,7 +1666,7 @@ export default function Dashboard({ session }: { session: Session }) {
               style={{ width: "100%", padding: "8px 0", background: "rgba(192,132,252,0.1)", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: bestTaskLoading ? "default" : "pointer", transition: "background 0.2s" }}
               onMouseEnter={e => { if (!bestTaskLoading) e.currentTarget.style.background = "rgba(192,132,252,0.2)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "rgba(192,132,252,0.1)"; }}>
-              {bestTaskLoading ? "THINKING..." : "✦ BEST TASK RIGHT NOW"}
+              {bestTaskLoading ? t.bestTaskLoading : t.bestTaskBtn}
             </button>
             {bestTask && (
               <div style={{ marginTop: 8, padding: "8px 10px", background: "rgba(192,132,252,0.06)", border: `1px solid ${bestTask.taskId ? "rgba(192,132,252,0.3)" : "rgba(90,143,168,0.2)"}`, borderRadius: 6 }}>
@@ -1677,16 +1707,16 @@ export default function Dashboard({ session }: { session: Session }) {
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>⚡ MIN FOCUS:</span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{t.minFocusLabel}</span>
                 <input type="number" min={0} max={100} value={newTaskFocusRequired ?? ""}
                   onChange={e => setNewTaskFocusRequired(e.target.value ? Math.min(100, Math.max(0, parseInt(e.target.value))) : null)}
                   placeholder="auto"
                   style={{ width: 58, padding: "3px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", textAlign: "center" }} />
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.4)" }}>/ 100  (auto if blank)</span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.4)" }}>/ 100  ({t.minFocusHint})</span>
               </div>
             </>) : (
               <div style={{ padding: "6px 0", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 1 }}>
-                {lang === "en" ? "PAST DAY · READ ONLY" : "歷史日期 · 唯讀"}
+                {t.pastDayReadOnly}
               </div>
             )}
           </div>
@@ -1695,7 +1725,7 @@ export default function Dashboard({ session }: { session: Session }) {
           <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px", display: "flex", flexDirection: "column", gap: 7 }}>
             {visibleTasks.length === 0 && (
               <p style={{ margin: 0, fontSize: 14, color: "rgba(90,143,168,0.5)", fontFamily: "'Share Tech Mono', monospace", letterSpacing: 0.5, lineHeight: 1.6 }}>
-                {lang === "en" ? "No tasks yet. Add one above." : "尚無任務。"}
+                {t.noTasksYet}
               </p>
             )}
             {visibleTasks.map(task => (
@@ -1712,7 +1742,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   {(() => { const r = focusReadiness(task.focusRequired, neural.focusIndex); return r ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, padding: "1px 5px", border: `1px solid ${r.color}`, color: r.color, borderRadius: 3, flexShrink: 0, opacity: task.done ? 0.4 : 1 }}>⚡{r.label}</span> : null; })()}
                 </div>
                 {task.description && <p style={{ margin: 0, marginLeft: 24, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
-                {task.deadline && <span style={{ marginLeft: 24, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)" }}>{lang === "en" ? "DUE" : "截止"} {task.deadline}</span>}
+                {task.deadline && <span style={{ marginLeft: 24, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)" }}>{t.dueLabel} {task.deadline}</span>}
                 {task.estimatedMinutes && <span style={{ marginLeft: 24, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.6)" }}>{task.estimatedMinutes}{t.minUnit}</span>}
               </div>
             ))}
@@ -1883,19 +1913,19 @@ export default function Dashboard({ session }: { session: Session }) {
 
               {/* Focus required */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>⚡ {lang === "en" ? "MIN FOCUS:" : "最低專注:"}</span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{t.minFocusLabel}</span>
                 <input type="number" min={0} max={100}
                   value={task.focusRequired ?? ""}
                   onChange={e => setTasks(p => p.map(tk => tk.id === task.id ? { ...tk, focusRequired: e.target.value ? Math.min(100, Math.max(0, parseInt(e.target.value))) : undefined } : tk))}
                   placeholder="0–100"
                   style={{ width: 64, padding: "3px 7px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, outline: "none", textAlign: "center" }} />
                 <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8" }}>/ 100</span>
-                {task.focusRequired != null && (() => { const r = focusReadiness(task.focusRequired, neural.focusIndex); return r ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: r.color, letterSpacing: 1 }}>{r.color === "#4ade80" ? "✓ READY" : r.color === "#fbbf24" ? "~ MARGINAL" : "✗ NOT YET"}</span> : null; })()}
+                {task.focusRequired != null && (() => { const r = focusReadiness(task.focusRequired, neural.focusIndex); return r ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: r.color, letterSpacing: 1 }}>{r.color === "#4ade80" ? t.focusReadyLabel : r.color === "#fbbf24" ? t.focusMarginalLabel : t.focusNotYetLabel}</span> : null; })()}
               </div>
 
               {/* Deadline */}
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{lang === "en" ? "DEADLINE:" : "截止日期:"}</span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{t.deadlineLabel}</span>
                 <input type="date"
                   value={task.deadline ?? ""}
                   onChange={e => setTasks(p => p.map(tk => tk.id === task.id ? { ...tk, deadline: e.target.value || undefined } : tk))}
@@ -1911,7 +1941,7 @@ export default function Dashboard({ session }: { session: Session }) {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 {task.createdAt && (
                   <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.55)", letterSpacing: 1 }}>
-                    {lang === "en" ? "ADDED" : "新增於"} {task.createdAt}
+                    {t.taskAddedLabel} {task.createdAt}
                   </span>
                 )}
                 <button
