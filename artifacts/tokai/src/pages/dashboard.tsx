@@ -36,7 +36,7 @@ const T = {
     confidence: "CONFIDENCE",
     focusStream: "REAL-TIME FOCUS STREAM",
     neuralInsights: "TOKAI · NEURAL INSIGHTS",
-    tokTodo: "TOKTODO",
+    tokTodo: "TOKDO",
     taskPlaceholder: "Task title — press Enter to add...",
     descPlaceholder: "Description (optional)...",
     generateDesc: "✦ GENERATE DESCRIPTION",
@@ -264,7 +264,7 @@ const INFO = {
     focusStream: { title: "REAL-TIME FOCUS STREAM", body: "A scrollable real-time chart of your Focus Index over time. Reference lines show your 5-minute average, session average, and day average. Yellow vertical lines mark when you logged a medication or supplement." },
     tokNote: { title: "TOKNOTE", body: "An ADHD-friendly journal. Each entry is automatically stamped with the date, time, and your Focus Index at that moment. Use it to track patterns between how you feel and how your brain is actually performing." },
     tokAgent: { title: "TOKAGENT", body: "Your AI task planning assistant, powered by Claude (Anthropic). TokAgent reads your live neural metrics, full task list, journal entries, and medication log to recommend which tasks to tackle based on your current cognitive state." },
-    tokTodo: { title: "TOKTODO", body: "A task manager built around cognitive demand. Tag tasks as Low, Medium, or High demand so TokAgent can match them to your focus level. Add time estimates and deadlines for realistic planning. Tasks are organized by day." },
+    tokTodo: { title: "TOKDO", body: "A task manager built around cognitive demand. Tag tasks as Low, Medium, or High demand so TokAgent can match them to your focus level. Add time estimates and deadlines for realistic planning. Tasks are organized by day." },
     tokMed: { title: "TOKMED", body: "Log medications, supplements, and stimulants like coffee. Tokai tracks how your Focus Index changes in the 15–30 minutes after each entry, giving you real data on what affects your brain." },
     workingMemory: { title: "WORKING MEMORY", body: "How much cognitive load your brain is currently managing — how many things it's holding at once. High load means stick to single-step tasks. Low load is ideal for multi-step planning, reading complex material, or anything requiring you to juggle information." },
     mentalFatigue: { title: "MENTAL FATIGUE", body: "Accumulated cognitive tiredness from sustained mental work. Unlike the Focus Index, fatigue builds slowly across a session. High fatigue means you're approaching burnout — a proper break will restore your performance more than pushing through." },
@@ -279,7 +279,7 @@ const INFO = {
     focusStream: { title: "即時專注串流", body: "即時顯示專注指數的可捲動折線圖。參考線分別代表 5 分鐘均值、階段均值與當日均值。黃色垂直線標記你記錄藥物或補充品的時間點。" },
     tokNote: { title: "TOKNOTE", body: "ADHD 友善日誌。每則條目自動標記日期、時間與當下的專注指數，幫助你追蹤感受與大腦實際表現之間的規律。" },
     tokAgent: { title: "TOKAGENT", body: "由 Claude（Anthropic）驅動的 AI 任務規劃助手。TokAgent 讀取你的即時神經指標、任務清單、日誌與藥物紀錄，根據當前認知狀態推薦最適合的任務。" },
-    tokTodo: { title: "TOKTODO", body: "以認知負荷為核心設計的任務管理器。為每個任務標記低、中、高需求，讓 TokAgent 能配對你的專注程度。加入預估時間與截止日期，制定更切實際的計畫。" },
+    tokTodo: { title: "TOKDO", body: "以認知負荷為核心設計的任務管理器。為每個任務標記低、中、高需求，讓 TokAgent 能配對你的專注程度。加入預估時間與截止日期，制定更切實際的計畫。" },
     tokMed: { title: "TOKMED", body: "記錄藥物、補充品與咖啡等影響專注的物質。Tokai 追蹤記錄後 15–30 分鐘內專注指數的變化，為你提供有效成分的實際數據。" },
     workingMemory: { title: "工作記憶", body: "大腦目前同時處理的認知負荷量。負荷高時，建議只做單步驟任務；負荷低時，適合多步驟規劃、閱讀複雜材料或需要同時思考多件事的工作。" },
     mentalFatigue: { title: "心理疲勞", body: "持續腦力勞動累積的認知疲勞。與專注指數不同，疲勞在整個工作階段中緩慢增加。疲勞值高代表你接近認知耗盡——此時真正的休息比硬撐更能恢復表現。" },
@@ -1870,15 +1870,15 @@ export default function Dashboard({ session }: { session: Session }) {
             moodAssessment={moodAssessment ?? undefined}
           />
 
-          {/* TokTodo — mobile only; desktop version lives in right panel */}
+          {/* TokDo — mobile only; desktop version lives in right panel */}
           {isMobile && (
           <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, padding: 16, boxShadow: "0 0 24px rgba(192,132,252,0.07)", minHeight: 360, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                   <ListChecks size={16} color="#c084fc" style={{ flexShrink: 0 }} />
                   <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3, flex: 1 }}>
                     {lang === "en"
-                      ? <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>TODO · CHECKLIST</span></>
-                      : <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>TODO · {t.tokTodo}</span></>}
+                      ? <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>DO · CHECKLIST</span></>
+                      : <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>DO · {t.tokTodo}</span></>}
                   </span>
                   <InfoButton onClick={() => setInfoModal(INFO[lang].tokTodo)} />
                 </div>
@@ -2017,7 +2017,7 @@ export default function Dashboard({ session }: { session: Session }) {
         </div>
       </main>
 
-      {/* ── TokTodo right panel (desktop only) ── */}
+      {/* ── TokDo right panel (desktop only) ── */}
       {!isMobile && (
         <aside style={{ width: 340, minWidth: 340, borderLeft: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflowY: "auto", background: "linear-gradient(180deg, #0c0818 0%, #0e0920 100%)" }}>
           {/* Header */}
@@ -2026,8 +2026,8 @@ export default function Dashboard({ session }: { session: Session }) {
               <ListChecks size={18} color="#c084fc" style={{ flexShrink: 0 }} />
               <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3, flex: 1 }}>
                 {lang === "en"
-                  ? <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>TODO</span></>
-                  : <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>TODO · {t.tokTodo}</span></>}
+                  ? <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>DO</span></>
+                  : <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>DO · {t.tokTodo}</span></>}
               </span>
               <InfoButton onClick={() => setInfoModal(INFO[lang].tokTodo)} />
             </div>
