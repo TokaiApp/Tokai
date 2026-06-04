@@ -1178,6 +1178,12 @@ export default function Dashboard({ session }: { session: Session }) {
     [visibleTasks]
   );
   const canReorder = selectedDate === todayStr();
+  // Map each visible task id to its list number (1-based), matching what's shown in the list
+  const taskNumberById = useMemo(() => {
+    const m = new Map<string, number>();
+    orderedVisibleTasks.forEach((tk, i) => m.set(tk.id, i + 1));
+    return m;
+  }, [orderedVisibleTasks]);
   const visibleMedLog = medLog.filter(m => (m.date ?? todayStr()) === selectedDate);
   const visibleCompleted = visibleTasks.filter(t => t.done).length;
   const sessionElapsed = Math.floor((now.getTime() - sessionStart.current.getTime()) / 1000);
@@ -1915,9 +1921,9 @@ export default function Dashboard({ session }: { session: Session }) {
                       disabled={tasks.filter(t => !t.done).length === 0}
                       style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.35)", border: `1px solid ${activeTaskId ? "rgba(192,132,252,0.55)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: activeTaskId ? "#c8d8e8" : "#5a8fa8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
                       <option value="">{t.activeTaskNone}</option>
-                      {tasks.filter(t => !t.done).map(tk => (
-                        <option key={tk.id} value={tk.id}>{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
-                      ))}
+                      {tasks.filter(t => !t.done).map(tk => { const n = taskNumberById.get(tk.id); return (
+                        <option key={tk.id} value={tk.id}>{n ? `${n}. ` : ""}{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
+                      ); })}
                     </select>
                   </div>
                   {tasks.some(t => !t.done) && (() => {
@@ -1930,7 +1936,7 @@ export default function Dashboard({ session }: { session: Session }) {
                     }
                     if (!bestTask.taskId) {
                       return (
-                        <div style={{ padding: "8px 10px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(90,143,168,0.2)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.5, lineHeight: 1.5 }}>
+                        <div style={{ padding: "8px 10px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.5, lineHeight: 1.5 }}>
                           {bestTask.reason}
                         </div>
                       );
@@ -1938,26 +1944,27 @@ export default function Dashboard({ session }: { session: Session }) {
                     const recTask = tasks.find(t => t.id === bestTask.taskId);
                     if (!recTask) return null;
                     const onTrack = activeTaskId != null && bestTask.taskId === activeTaskId;
-                    const accent = onTrack ? "#34d399" : "#fbbf24";
+                    const recNum = taskNumberById.get(recTask.id);
                     return (
-                      <div style={{ padding: "9px 11px", background: onTrack ? "rgba(52,211,153,0.07)" : "rgba(251,191,36,0.07)", border: `1px solid ${accent}55`, borderRadius: 6 }}>
-                        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10.5, color: accent, letterSpacing: 1, marginBottom: 5 }}>
+                      <div style={{ padding: "9px 11px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.3)", borderRadius: 6 }}>
+                        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10.5, color: "#c084fc", letterSpacing: 1, marginBottom: 5 }}>
                           {t.recommendedTaskLabel}
                         </div>
                         <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
                           onClick={() => setSelectedTaskId(recTask.id)}>
+                          {recNum && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, fontWeight: 700, color: "#7c3aed", marginRight: 6 }}>{recNum}.</span>}
                           {recTask.emoji && <span style={{ marginRight: 5 }}>{recTask.emoji}</span>}{recTask.title}
                         </div>
                         <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.3, lineHeight: 1.5 }}>
                           {bestTask.reason}
                         </div>
                         {onTrack ? (
-                          <div style={{ marginTop: 7, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: accent, letterSpacing: 0.5 }}>
+                          <div style={{ marginTop: 7, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#c084fc", letterSpacing: 0.5 }}>
                             {t.recOnTrack}
                           </div>
                         ) : (
                           <button onClick={() => selectActiveTask(recTask.id)}
-                            style={{ marginTop: 7, width: "100%", padding: "6px 0", background: `${accent}1a`, border: `1px solid ${accent}66`, borderRadius: 5, color: accent, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
+                            style={{ marginTop: 7, width: "100%", padding: "6px 0", background: "rgba(192,132,252,0.12)", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 5, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
                             {activeTaskId ? t.recSwitchBtn : t.recSetActiveBtn}
                           </button>
                         )}
@@ -2042,9 +2049,9 @@ export default function Dashboard({ session }: { session: Session }) {
                 disabled={tasks.filter(t => !t.done).length === 0}
                 style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.35)", border: `1px solid ${activeTaskId ? "rgba(192,132,252,0.55)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: activeTaskId ? "#c8d8e8" : "#5a8fa8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
                 <option value="">{t.activeTaskNone}</option>
-                {tasks.filter(t => !t.done).map(tk => (
-                  <option key={tk.id} value={tk.id}>{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
-                ))}
+                {tasks.filter(t => !t.done).map(tk => { const n = taskNumberById.get(tk.id); return (
+                  <option key={tk.id} value={tk.id}>{n ? `${n}. ` : ""}{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
+                ); })}
               </select>
             </div>
 
@@ -2059,7 +2066,7 @@ export default function Dashboard({ session }: { session: Session }) {
               }
               if (!bestTask.taskId) {
                 return (
-                  <div style={{ padding: "8px 10px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(90,143,168,0.2)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.5, lineHeight: 1.5 }}>
+                  <div style={{ padding: "8px 10px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.5, lineHeight: 1.5 }}>
                     {bestTask.reason}
                   </div>
                 );
@@ -2067,26 +2074,27 @@ export default function Dashboard({ session }: { session: Session }) {
               const recTask = tasks.find(t => t.id === bestTask.taskId);
               if (!recTask) return null;
               const onTrack = activeTaskId != null && bestTask.taskId === activeTaskId;
-              const accent = onTrack ? "#34d399" : "#fbbf24";
+              const recNum = taskNumberById.get(recTask.id);
               return (
-                <div style={{ padding: "9px 11px", background: onTrack ? "rgba(52,211,153,0.07)" : "rgba(251,191,36,0.07)", border: `1px solid ${accent}55`, borderRadius: 6 }}>
-                  <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10.5, color: accent, letterSpacing: 1, marginBottom: 5 }}>
+                <div style={{ padding: "9px 11px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.3)", borderRadius: 6 }}>
+                  <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10.5, color: "#c084fc", letterSpacing: 1, marginBottom: 5 }}>
                     {t.recommendedTaskLabel}
                   </div>
                   <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
                     onClick={() => setSelectedTaskId(recTask.id)}>
+                    {recNum && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, fontWeight: 700, color: "#7c3aed", marginRight: 6 }}>{recNum}.</span>}
                     {recTask.emoji && <span style={{ marginRight: 5 }}>{recTask.emoji}</span>}{recTask.title}
                   </div>
                   <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.3, lineHeight: 1.5 }}>
                     {bestTask.reason}
                   </div>
                   {onTrack ? (
-                    <div style={{ marginTop: 7, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: accent, letterSpacing: 0.5 }}>
+                    <div style={{ marginTop: 7, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#c084fc", letterSpacing: 0.5 }}>
                       {t.recOnTrack}
                     </div>
                   ) : (
                     <button onClick={() => selectActiveTask(recTask.id)}
-                      style={{ marginTop: 7, width: "100%", padding: "5px 0", background: `${accent}1a`, border: `1px solid ${accent}66`, borderRadius: 5, color: accent, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
+                      style={{ marginTop: 7, width: "100%", padding: "5px 0", background: "rgba(192,132,252,0.12)", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 5, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
                       {activeTaskId ? t.recSwitchBtn : t.recSetActiveBtn}
                     </button>
                   )}
