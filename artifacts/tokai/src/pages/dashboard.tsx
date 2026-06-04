@@ -354,6 +354,22 @@ export default function Dashboard({ session }: { session: Session }) {
   // Internal focus target: drifts slowly, actual focus index pulls toward it
   const focusTargetRef = useRef(55);
 
+  // Notifications
+  const [notifications, setNotifications] = useState<{ id: string; message: string; color: string; icon: string }[]>([]);
+  const [medReminders, setMedReminders] = useState<{ medId: string; medName: string; fireAt: number }[]>([]);
+  const lowFocusStartRef = useRef<number | null>(null);
+  const focusWasLowRef = useRef(false);
+
+  function pushNotification(message: string, color: string, icon: string) {
+    const id = Date.now().toString();
+    setNotifications(prev => [...prev, { id, message, color, icon }]);
+    setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 7000);
+  }
+
+  function dismissNotification(id: string) {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }
+
   const [focusHistory, setFocusHistory] = useState<FocusPoint[]>(() => {
     try {
       const s = localStorage.getItem("tokai_focus_history");
@@ -483,6 +499,47 @@ export default function Dashboard({ session }: { session: Session }) {
       localStorage.setItem("tokai_focus_history", JSON.stringify(focusHistory.slice(-1800)));
     } catch {}
   }, [focusHistory]);
+
+  // Focus drop monitoring
+  useEffect(() => {
+    if (!dataLoaded) return;
+    const f = neural.focusIndex;
+    if (f < 35) {
+      if (lowFocusStartRef.current === null) lowFocusStartRef.current = Date.now();
+      else if (Date.now() - lowFocusStartRef.current >= 90000 && !focusWasLowRef.current) {
+        focusWasLowRef.current = true;
+        pushNotification(
+          lang === "en" ? "Focus has been low for 90s. Consider a break or a lighter task." : "專注度已持續偏低 90 秒，建議休息或切換至輕量任務。",
+          "#f472b6", "⚡"
+        );
+      }
+    } else {
+      if (f >= 35) lowFocusStartRef.current = null;
+      if (focusWasLowRef.current && f >= 50) {
+        focusWasLowRef.current = false;
+        pushNotification(
+          lang === "en" ? "Focus recovering — you may be ready for a more demanding task." : "專注度回升，可以嘗試更高難度的任務了。",
+          "#4ade80", "✓"
+        );
+      }
+    }
+  }, [neural.focusIndex, dataLoaded]);
+
+  // Med reminder check
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      setMedReminders(prev => {
+        const fired = prev.filter(r => r.fireAt <= now);
+        fired.forEach(r => pushNotification(
+          lang === "en" ? `Reminder: ${r.medName}` : `提醒：${r.medName}`,
+          "#fbbf24", "💊"
+        ));
+        return prev.filter(r => r.fireAt > now);
+      });
+    }, 30000);
+    return () => clearInterval(id);
+  }, [lang]);
 
   // Load all user data from Supabase on mount
   useEffect(() => {
@@ -1596,9 +1653,24 @@ export default function Dashboard({ session }: { session: Session }) {
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", flexShrink: 0 }}>{med.time}</span>
                     <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, color: "#fbbf24", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{med.name}{med.dose ? ` · ${med.dose}` : ""}</span>
-                    {selectedDate === todayStr() && (
+                    {selectedDate === todayStr() && (<>
+                      {medReminders.find(r => r.medId === med.id) ? (
+                        <span onClick={e => { e.stopPropagation(); setMedReminders(p => p.filter(r => r.medId !== med.id)); }}
+                          style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#fbbf24", cursor: "pointer", flexShrink: 0, border: "1px solid rgba(251,191,36,0.4)", borderRadius: 3, padding: "1px 5px" }}>
+                          ⏰ {Math.round((medReminders.find(r => r.medId === med.id)!.fireAt - Date.now()) / 3600000)}h
+                        </span>
+                      ) : (
+                        <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                          {[1, 2, 4, 6].map(h => (
+                            <button key={h} onClick={e => { e.stopPropagation(); setMedReminders(p => [...p.filter(r => r.medId !== med.id), { medId: med.id, medName: med.name, fireAt: Date.now() + h * 3600000 }]); }}
+                              style={{ background: "none", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 3, color: "rgba(251,191,36,0.5)", fontFamily: "'Share Tech Mono', monospace", fontSize: 9, padding: "1px 4px", cursor: "pointer" }}>
+                              {h}h
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       <button onClick={e => { e.stopPropagation(); deleteMed(med.id); }} style={{ background: "none", border: "none", color: "rgba(255,100,100,0.4)", cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1, flexShrink: 0 }}>✕</button>
-                    )}
+                    </>)}
                   </div>
                   {(() => { const delta = getMedDelta(med); return delta ? (
                     <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: delta.delta > 0 ? "#4ade80" : delta.delta < 0 ? "#f472b6" : "#5a8fa8", letterSpacing: 0.5, marginTop: 3 }}>
@@ -1812,6 +1884,19 @@ export default function Dashboard({ session }: { session: Session }) {
             {t.progress} {visibleCompleted}/{visibleTasks.length} {visibleCompleted > 0 && visibleCompleted === visibleTasks.length ? t.complete : ""}
           </div>
         </aside>
+      )}
+
+      {/* ── Notification banners ── */}
+      {notifications.length > 0 && (
+        <div style={{ position: "fixed", top: 20, right: 20, zIndex: 400, display: "flex", flexDirection: "column", gap: 8, maxWidth: 360 }}>
+          {notifications.map(n => (
+            <div key={n.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "linear-gradient(135deg, #120d28, #160f30)", border: `1px solid ${n.color}44`, borderLeft: `3px solid ${n.color}`, borderRadius: 8, padding: "12px 14px", boxShadow: `0 4px 24px ${n.color}22`, animation: "slideIn 0.2s ease" }}>
+              <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{n.icon}</span>
+              <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 14, color: "#c8d8e8", lineHeight: 1.5, flex: 1 }}>{n.message}</span>
+              <button onClick={() => dismissNotification(n.id)} style={{ background: "none", border: "none", color: "rgba(90,143,168,0.5)", cursor: "pointer", fontSize: 16, padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* ── Profile modal ── */}
