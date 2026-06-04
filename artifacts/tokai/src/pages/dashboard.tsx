@@ -43,8 +43,6 @@ const T = {
     generating: "GENERATING...",
     taskDetail: "TASK DETAIL",
     deleteTask: "DELETE TASK",
-    demandLabel: "DEMAND",
-    demandLow: "LOW", demandMed: "MED", demandHigh: "HIGH",
     estTime: "Est. time", minUnit: "m",
     progress: "PROGRESS",
     complete: "✓ COMPLETE",
@@ -100,8 +98,6 @@ const T = {
     generating: "生成中...",
     taskDetail: "任務詳情",
     deleteTask: "刪除任務",
-    demandLabel: "認知負荷",
-    demandLow: "低", demandMed: "中", demandHigh: "高",
     estTime: "預估時間", minUnit: "分",
     progress: "進度",
     complete: "✓ 全部完成",
@@ -138,8 +134,7 @@ interface NeuralState {
 }
 
 interface FocusPoint { time: string; value: number; }
-type Demand = "low" | "medium" | "high";
-interface Task { id: string; title: string; description: string | null; done: boolean; demand: Demand | null; estimatedMinutes: number | null; createdAt?: string; deadline?: string; emoji?: string; focusRequired?: number; }
+interface Task { id: string; title: string; description: string | null; done: boolean; estimatedMinutes: number | null; createdAt?: string; deadline?: string; emoji?: string; focusRequired?: number; }
 
 const TASK_EMOJIS = ["📚", "✍️", "💻", "📧", "💪", "🍳", "🧹", "🎯", "🔬", "📞", "🛒", "🎨"];
 interface MedEntry { id: string; name: string; dose: string; time: string; date: string; focusTime?: string; sampleIndex: number; rating: number | null; }
@@ -147,12 +142,6 @@ type Mood = "hyperfocus" | "flow" | "focused" | "restless" | "scattered" | "anxi
 interface JournalEntry { id: string; text: string; time: string; date: string; focusIndex: number; mood: Mood[]; focusTime?: string; }
 interface MoodAssessment { mood: "positive" | "neutral" | "low"; energy: "high" | "moderate" | "low"; stress: "calm" | "mild" | "elevated"; suggestion: string; }
 
-
-function demandColor(d: Demand) {
-  if (d === "low") return "#4ade80";
-  if (d === "medium") return "#ffa040";
-  return "#f472b6";
-}
 
 function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
@@ -341,7 +330,6 @@ export default function Dashboard({ session }: { session: Session }) {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [newTask, setNewTask] = useState("");
   const [newTaskDesc, setNewTaskDesc] = useState("");
-  const [newTaskDemand, setNewTaskDemand] = useState<Demand | null>(null);
   const [newTaskTime, setNewTaskTime] = useState("");
   const [newTaskEmoji, setNewTaskEmoji] = useState("");
   const [newTaskFocusRequired, setNewTaskFocusRequired] = useState<number | null>(null);
@@ -408,7 +396,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
       const mappedTasks: Task[] = (tData ?? []).map((r: Record<string, unknown>) => ({
         id: r.id as string, title: r.title as string, description: r.description as string | null,
-        done: r.done as boolean, demand: r.demand as Demand | null,
+        done: r.done as boolean,
         estimatedMinutes: r.estimated_minutes as number | null, createdAt: r.created_at as string | undefined,
         deadline: r.deadline as string | undefined, emoji: r.emoji as string | undefined,
         focusRequired: r.focus_required as number | undefined,
@@ -429,12 +417,12 @@ export default function Dashboard({ session }: { session: Session }) {
       // Seed demo data for brand-new users
       if (mappedTasks.length === 0 && mappedJournal.length === 0) {
         const demoTasks = [
-          { id: "demo-t1", user_id: userId, title: "Write methodology section", description: "Draft the research methodology chapter for the thesis.", done: true, demand: "high", estimated_minutes: 90, created_at: "2026-05-18 08:45", emoji: "✍️" },
-          { id: "demo-t2", user_id: userId, title: "Review data analysis scripts", description: "Check the Python scripts for data processing and output errors.", done: true, demand: "medium", estimated_minutes: 60, created_at: "2026-05-18 08:45", emoji: "💻" },
-          { id: "demo-t3", user_id: userId, title: "Email supervisor — weekly update", description: null, done: true, demand: "low", estimated_minutes: 20, created_at: "2026-05-18 08:45", emoji: "📧" },
-          { id: "demo-t4", user_id: userId, title: "Read 2 papers for lit review", description: null, done: false, demand: "high", estimated_minutes: 120, created_at: "2026-05-18 14:00", emoji: "📚" },
-          { id: "demo-t5", user_id: userId, title: "Organize research notes", description: "Sort and label notes from the past two weeks of reading.", done: true, demand: "low", estimated_minutes: 20, created_at: "2026-05-16 10:30", emoji: "📚" },
-          { id: "demo-t6", user_id: userId, title: "Rest and recharge", description: "Take the afternoon off. Watch something, go for a walk.", done: true, demand: "low", estimated_minutes: null, created_at: "2026-05-16 13:00", emoji: null },
+          { id: "demo-t1", user_id: userId, title: "Write methodology section", description: "Draft the research methodology chapter for the thesis.", done: true, estimated_minutes: 90, created_at: "2026-05-18 08:45", emoji: "✍️", focus_required: 65 },
+          { id: "demo-t2", user_id: userId, title: "Review data analysis scripts", description: "Check the Python scripts for data processing and output errors.", done: true, estimated_minutes: 60, created_at: "2026-05-18 08:45", emoji: "💻", focus_required: 65 },
+          { id: "demo-t3", user_id: userId, title: "Email supervisor — weekly update", description: null, done: true, estimated_minutes: 20, created_at: "2026-05-18 08:45", emoji: "📧", focus_required: 40 },
+          { id: "demo-t4", user_id: userId, title: "Read 2 papers for lit review", description: null, done: false, estimated_minutes: 120, created_at: "2026-05-18 14:00", emoji: "📚", focus_required: 65 },
+          { id: "demo-t5", user_id: userId, title: "Organize research notes", description: "Sort and label notes from the past two weeks of reading.", done: true, estimated_minutes: 20, created_at: "2026-05-16 10:30", emoji: "📚", focus_required: 30 },
+          { id: "demo-t6", user_id: userId, title: "Rest and recharge", description: "Take the afternoon off. Watch something, go for a walk.", done: true, estimated_minutes: null, created_at: "2026-05-16 13:00", emoji: null, focus_required: null },
         ];
         const demoJournal = [
           { id: "demo-j1", user_id: userId, text: "Starting the week with a plan. Reviewed my thesis outline over coffee — feels manageable today.", time: "08:12", date: "2026-05-18", focus_index: 52.3, mood: ["focused"] },
@@ -465,7 +453,7 @@ export default function Dashboard({ session }: { session: Session }) {
             { role: "assistant", content: "That's the right call. Set a 20-minute timer and don't push past it. Organizing notes is low cognitive load and can feel satisfying when your brain needs a gentler pace.", timestamp: "10:12" },
           ]}));
         }
-        setTasks(demoTasks.map(r => ({ id: r.id, title: r.title, description: r.description, done: r.done, demand: r.demand as Demand, estimatedMinutes: r.estimated_minutes, createdAt: r.created_at, emoji: r.emoji ?? undefined })));
+        setTasks(demoTasks.map(r => ({ id: r.id, title: r.title, description: r.description, done: r.done, estimatedMinutes: r.estimated_minutes, createdAt: r.created_at, emoji: r.emoji ?? undefined, focusRequired: r.focus_required ?? undefined })));
         setJournal(demoJournal.map(r => ({ id: r.id, text: r.text, time: r.time, date: r.date, focusIndex: r.focus_index, mood: r.mood as Mood[] })));
       } else {
         setTasks(mappedTasks);
@@ -500,7 +488,6 @@ export default function Dashboard({ session }: { session: Session }) {
     const db: Record<string, unknown> = {};
     if ("done" in changes) db.done = changes.done;
     if ("emoji" in changes) db.emoji = changes.emoji ?? null;
-    if ("demand" in changes) db.demand = changes.demand ?? null;
     if ("deadline" in changes) db.deadline = changes.deadline ?? null;
     if ("focusRequired" in changes) db.focus_required = changes.focusRequired ?? null;
     if (Object.keys(db).length > 0) await supabase.from("tasks").update(db).eq("id", id);
@@ -802,18 +789,18 @@ export default function Dashboard({ session }: { session: Session }) {
       const title = newTask.trim();
       const description = newTaskDesc.trim() || null;
       const task: Task = {
-        id: Date.now().toString(), title, description, done: false, demand: newTaskDemand,
+        id: Date.now().toString(), title, description, done: false,
         estimatedMinutes: newTaskTime ? parseInt(newTaskTime) : null,
         createdAt: formatDateTime(new Date()), deadline: newTaskDeadline || undefined,
         emoji: newTaskEmoji || undefined,
         focusRequired: newTaskFocusRequired ?? estimateFocusRequired(title, description),
       };
       setTasks(prev => [...prev, task]);
-      setNewTask(""); setNewTaskDesc(""); setNewTaskDemand(null);
+      setNewTask(""); setNewTaskDesc("");
       setNewTaskTime(""); setNewTaskDeadline(""); setNewTaskEmoji(""); setNewTaskFocusRequired(null);
       await supabase.from("tasks").insert({
         id: task.id, user_id: userId, title: task.title, description: task.description,
-        done: false, demand: task.demand, estimated_minutes: task.estimatedMinutes,
+        done: false, estimated_minutes: task.estimatedMinutes,
         created_at: task.createdAt, deadline: task.deadline ?? null, emoji: task.emoji ?? null,
         focus_required: task.focusRequired ?? null,
       });
@@ -1419,7 +1406,7 @@ export default function Dashboard({ session }: { session: Session }) {
             key={selectedDate}
             selectedDate={selectedDate}
             neuralState={neural}
-            tasks={tasks.map(tk => ({ id: tk.id, title: tk.title, description: tk.description, done: tk.done, demand: tk.demand, estimatedMinutes: tk.estimatedMinutes, createdAt: tk.createdAt, deadline: tk.deadline, emoji: tk.emoji }))}
+            tasks={tasks.map(tk => ({ id: tk.id, title: tk.title, description: tk.description, done: tk.done, estimatedMinutes: tk.estimatedMinutes, createdAt: tk.createdAt, deadline: tk.deadline, emoji: tk.emoji, focusRequired: tk.focusRequired }))}
             journalEntries={journal.map(e => ({ text: e.text, time: e.time, date: e.date, focusIndex: e.focusIndex, mood: e.mood }))}
             medLog={medLog.map(m => ({ id: m.id, name: m.name, dose: m.dose, time: m.time }))}
             lang={lang}
@@ -1452,13 +1439,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   ))}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{t.demandLabel}:</span>
-                  {(["low", "medium", "high"] as Demand[]).map(d => (
-                    <button key={d} onClick={() => setNewTaskDemand(newTaskDemand === d ? null : d)} style={{ padding: "3px 10px", background: newTaskDemand === d ? demandColor(d) + "22" : "transparent", border: `1px solid ${newTaskDemand === d ? demandColor(d) : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: newTaskDemand === d ? demandColor(d) : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, cursor: "pointer", letterSpacing: 1, transition: "all 0.15s" }}>
-                      {d === "low" ? t.demandLow : d === "medium" ? t.demandMed : t.demandHigh}
-                    </button>
-                  ))}
-                  <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", letterSpacing: 1 }}>{t.estTime}:</span>
                     <input type="number" min={1} max={480} value={newTaskTime} onChange={e => setNewTaskTime(e.target.value)} placeholder="—"
                       style={{ width: 52, padding: "3px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", textAlign: "center" }} />
@@ -1482,7 +1463,6 @@ export default function Dashboard({ session }: { session: Session }) {
                         </div>
                         {task.emoji && <span style={{ fontSize: 16, flexShrink: 0, lineHeight: 1, opacity: task.done ? 0.5 : 1 }}>{task.emoji}</span>}
                         <span style={{ flex: 1, fontSize: 17, fontWeight: 600, color: task.done ? "#5a8fa8" : "#c8d8e8", textDecoration: task.done ? "line-through" : "none", minWidth: 0, wordBreak: "break-word" }}>{task.title}</span>
-                        {task.demand && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, padding: "1px 5px", border: `1px solid ${demandColor(task.demand)}`, color: demandColor(task.demand), borderRadius: 3, flexShrink: 0, letterSpacing: 1 }}>{task.demand === "low" ? t.demandLow : task.demand === "medium" ? t.demandMed : t.demandHigh}</span>}
                         {task.estimatedMinutes && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", flexShrink: 0 }}>{task.estimatedMinutes}{t.minUnit}</span>}
                       </div>
                       {task.description && <p style={{ margin: 0, marginLeft: 22, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
@@ -1552,13 +1532,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 ))}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                {(["low", "medium", "high"] as Demand[]).map(d => (
-                  <button key={d} onClick={() => setNewTaskDemand(newTaskDemand === d ? null : d)}
-                    style={{ padding: "3px 10px", background: newTaskDemand === d ? demandColor(d) + "22" : "transparent", border: `1px solid ${newTaskDemand === d ? demandColor(d) : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: newTaskDemand === d ? demandColor(d) : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, cursor: "pointer", letterSpacing: 1 }}>
-                    {d === "low" ? t.demandLow : d === "medium" ? t.demandMed : t.demandHigh}
-                  </button>
-                ))}
-                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <input type="number" min={1} max={480} value={newTaskTime} onChange={e => setNewTaskTime(e.target.value)} placeholder="—"
                     style={{ width: 52, padding: "3px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", textAlign: "center" }} />
                   <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#5a8fa8" }}>{t.minUnit}</span>
@@ -1597,7 +1571,6 @@ export default function Dashboard({ session }: { session: Session }) {
                   </div>
                   {task.emoji && <span style={{ fontSize: 17, flexShrink: 0, lineHeight: 1, opacity: task.done ? 0.5 : 1 }}>{task.emoji}</span>}
                   <span style={{ flex: 1, fontSize: 17, fontWeight: 600, color: task.done ? "#5a8fa8" : "#c8d8e8", textDecoration: task.done ? "line-through" : "none", minWidth: 0, wordBreak: "break-word" }}>{task.title}</span>
-                  {task.demand && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, padding: "1px 5px", border: `1px solid ${demandColor(task.demand)}`, color: demandColor(task.demand), borderRadius: 3, flexShrink: 0 }}>{task.demand === "low" ? t.demandLow : task.demand === "medium" ? t.demandMed : t.demandHigh}</span>}
                   {(() => { const r = focusReadiness(task.focusRequired, neural.focusIndex); return r ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, padding: "1px 5px", border: `1px solid ${r.color}`, color: r.color, borderRadius: 3, flexShrink: 0, opacity: task.done ? 0.4 : 1 }}>⚡{r.label}</span> : null; })()}
                 </div>
                 {task.description && <p style={{ margin: 0, marginLeft: 24, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
@@ -1758,25 +1731,16 @@ export default function Dashboard({ session }: { session: Session }) {
                 {generatingId === task.id ? t.generating : t.generateDesc}
               </button>
 
-              {/* Demand + time */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{t.demandLabel}:</span>
-                {(["low", "medium", "high"] as Demand[]).map(d => (
-                  <button key={d} onClick={() => updateTask(task.id, { demand: task.demand === d ? null : d })}
-                    style={{ padding: "3px 10px", background: task.demand === d ? demandColor(d) + "22" : "transparent", border: `1px solid ${task.demand === d ? demandColor(d) : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: task.demand === d ? demandColor(d) : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, cursor: "pointer", letterSpacing: 1 }}>
-                    {d === "low" ? t.demandLow : d === "medium" ? t.demandMed : t.demandHigh}
-                  </button>
-                ))}
-                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>{t.estTime}:</span>
-                  <input type="number" min={1} max={480}
-                    value={task.estimatedMinutes ?? ""}
-                    onChange={e => setTasks(p => p.map(tk => tk.id === task.id ? { ...tk, estimatedMinutes: e.target.value ? parseInt(e.target.value) : null } : tk))}
-                    placeholder="—"
-                    style={{ width: 52, padding: "3px 7px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, outline: "none", textAlign: "center" }}
-                  />
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8" }}>{t.minUnit}</span>
-                </div>
+              {/* Est time */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>{t.estTime}:</span>
+                <input type="number" min={1} max={480}
+                  value={task.estimatedMinutes ?? ""}
+                  onChange={e => setTasks(p => p.map(tk => tk.id === task.id ? { ...tk, estimatedMinutes: e.target.value ? parseInt(e.target.value) : null } : tk))}
+                  placeholder="—"
+                  style={{ width: 52, padding: "3px 7px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, outline: "none", textAlign: "center" }}
+                />
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8" }}>{t.minUnit}</span>
               </div>
 
               {/* Focus required */}
