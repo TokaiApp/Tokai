@@ -74,6 +74,57 @@ Mood check-in (AI vision scan of user's selfie taken at session start):
   }
 });
 
+router.post("/best-task", async (req, res) => {
+  try {
+    const { neuralState, tasks, userApiKey } = req.body as {
+      neuralState: { focusIndex: number; bioEnergy: number };
+      tasks: { id: string; title: string; description: string | null; done: boolean; focusRequired?: number; estimatedMinutes?: number | null }[];
+      userApiKey?: string;
+    };
+
+    const anthropic = client ?? (userApiKey ? new Anthropic({ apiKey: userApiKey }) : null);
+    if (!anthropic) {
+      res.json({ taskId: null, reason: "No API key configured." });
+      return;
+    }
+
+    const pending = tasks.filter(t => !t.done);
+    if (pending.length === 0) {
+      res.json({ taskId: null, reason: "All tasks are complete." });
+      return;
+    }
+
+    const { focusIndex, bioEnergy } = neuralState;
+    const taskList = pending.map((t, i) =>
+      `${i + 1}. [ID:${t.id}] "${t.title}"${t.focusRequired != null ? ` (min focus: ${t.focusRequired})` : ""}${t.estimatedMinutes ? ` (${t.estimatedMinutes}m)` : ""}`
+    ).join("\n");
+
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 120,
+      messages: [{
+        role: "user",
+        content: `Current focus: ${focusIndex.toFixed(1)}/100. Bio energy: ${Math.round(bioEnergy)}%.
+
+Pending tasks:
+${taskList}
+
+Reply with ONLY a JSON object: {"taskId": "<the id of the best task>", "reason": "<one short sentence why>"}
+Pick the single best task to work on right now given the user's focus level.`
+      }]
+    });
+
+    const text = (response.content[0] as { type: string; text: string }).text.trim();
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON in response");
+    const parsed = JSON.parse(match[0]);
+    res.json(parsed);
+  } catch (err) {
+    console.error("Best task error:", err);
+    res.status(500).json({ taskId: null, reason: "Could not determine best task." });
+  }
+});
+
 router.post("/mood-check", async (req, res) => {
   try {
     const { imageBase64, mimeType = "image/jpeg", userApiKey } = req.body as {

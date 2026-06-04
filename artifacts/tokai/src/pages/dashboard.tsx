@@ -356,6 +356,32 @@ export default function Dashboard({ session }: { session: Session }) {
   const [newTaskDeadline, setNewTaskDeadline] = useState("");
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => !!localStorage.getItem("tokai_disclaimer_accepted"));
 
+  // Best task
+  const [bestTask, setBestTask] = useState<{ taskId: string | null; reason: string } | null>(null);
+  const [bestTaskLoading, setBestTaskLoading] = useState(false);
+
+  async function fetchBestTask() {
+    setBestTaskLoading(true);
+    setBestTask(null);
+    try {
+      const apiKey = localStorage.getItem("tokai_anthropic_key") ?? "";
+      const res = await fetch(`${API_BASE}/api/best-task`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          neuralState: { focusIndex: neural.focusIndex, bioEnergy: neural.bioEnergy },
+          tasks: tasks.filter(t => !t.done).map(t => ({ id: t.id, title: t.title, description: t.description, done: t.done, focusRequired: t.focusRequired, estimatedMinutes: t.estimatedMinutes })),
+          userApiKey: apiKey || undefined,
+        }),
+      });
+      const data = await res.json();
+      setBestTask(data);
+    } catch {
+      setBestTask({ taskId: null, reason: "Could not reach the server." });
+    }
+    setBestTaskLoading(false);
+  }
+
   // Pomodoro
   const [pomodoroWorkMins, setPomodoroWorkMins] = useState(25);
   const [pomodoroBreakMins, setPomodoroBreakMins] = useState(5);
@@ -1602,6 +1628,32 @@ export default function Dashboard({ session }: { session: Session }) {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Best task now */}
+          <div style={{ padding: "10px 18px", borderBottom: "1px solid rgba(192,132,252,0.1)" }}>
+            <button onClick={fetchBestTask} disabled={bestTaskLoading || tasks.filter(t => !t.done).length === 0}
+              style={{ width: "100%", padding: "8px 0", background: "rgba(192,132,252,0.1)", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: bestTaskLoading ? "default" : "pointer", transition: "background 0.2s" }}
+              onMouseEnter={e => { if (!bestTaskLoading) e.currentTarget.style.background = "rgba(192,132,252,0.2)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(192,132,252,0.1)"; }}>
+              {bestTaskLoading ? "THINKING..." : "✦ BEST TASK RIGHT NOW"}
+            </button>
+            {bestTask && (
+              <div style={{ marginTop: 8, padding: "8px 10px", background: "rgba(192,132,252,0.06)", border: `1px solid ${bestTask.taskId ? "rgba(192,132,252,0.3)" : "rgba(90,143,168,0.2)"}`, borderRadius: 6 }}>
+                {bestTask.taskId && (() => {
+                  const task = tasks.find(t => t.id === bestTask.taskId);
+                  return task ? (
+                    <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
+                      onClick={() => setSelectedTaskId(task.id)}>
+                      {task.emoji && <span style={{ marginRight: 5 }}>{task.emoji}</span>}{task.title}
+                    </div>
+                  ) : null;
+                })()}
+                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.5, lineHeight: 1.5 }}>
+                  {bestTask.reason}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Task input */}
