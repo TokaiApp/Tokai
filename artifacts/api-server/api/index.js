@@ -178,6 +178,63 @@ app.post("/api/generate-description", async (req, res) => {
   }
 });
 
+app.post("/api/best-task", async (req, res) => {
+  try {
+    const { neuralState, tasks, userApiKey } = req.body;
+    const apiKey = userApiKey || process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) { res.json({ taskId: null, reason: "No API key configured." }); return; }
+
+    const pending = (tasks || []).filter(t => !t.done);
+    if (pending.length === 0) { res.json({ taskId: null, reason: "All tasks are complete." }); return; }
+
+    const client = new Anthropic({ apiKey });
+    const { focusIndex, bioEnergy } = neuralState || {};
+    const taskList = pending.map((t, i) =>
+      `${i + 1}. [ID:${t.id}] "${t.title}"${t.focusRequired != null ? ` (min focus: ${t.focusRequired})` : ""}${t.estimatedMinutes ? ` (${t.estimatedMinutes}m)` : ""}`
+    ).join("\n");
+
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 120,
+      messages: [{
+        role: "user",
+        content: `Current focus: ${(focusIndex || 0).toFixed(1)}/100. Bio energy: ${Math.round(bioEnergy || 0)}%.\n\nPending tasks:\n${taskList}\n\nReply with ONLY a JSON object: {"taskId": "<the id of the best task>", "reason": "<one short sentence why>"}\nPick the single best task to work on right now given the user's focus level.`
+      }]
+    });
+
+    const text = response.content[0].text.trim();
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON in response");
+    res.json(JSON.parse(match[0]));
+  } catch (err) {
+    console.error("Best task error:", err);
+    res.status(500).json({ taskId: null, reason: "Could not determine best task." });
+  }
+});
+
+app.post("/api/generate-profile", async (req, res) => {
+  try {
+    const { name, email, taskCount, completedCount, journalCount, medCount, userApiKey } = req.body;
+    const apiKey = userApiKey || process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) { res.status(503).json({ profile: null }); return; }
+
+    const client = new Anthropic({ apiKey });
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 200,
+      messages: [{
+        role: "user",
+        content: `Write a brief neurosupportive profile summary (2-3 sentences) for a Tokai user based on their activity data. Be encouraging, specific, and clinically neutral.\n\nUser: ${name || "Anonymous"} (${email || "unknown"})\nTasks: ${completedCount || 0} of ${taskCount || 0} completed\nJournal entries: ${journalCount || 0}\nMedications logged: ${medCount || 0}\n\nFocus on observable patterns in their productivity and self-monitoring habits. Do not mention ADHD directly.`
+      }]
+    });
+
+    res.json({ profile: response.content[0].text.trim() });
+  } catch (err) {
+    console.error("Generate profile error:", err);
+    res.status(500).json({ profile: null });
+  }
+});
+
 if (require.main === module) {
   const port = process.env.PORT || 3000;
   app.listen(port, () => console.log(`API server listening on :${port}`));
