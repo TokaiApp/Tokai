@@ -180,7 +180,7 @@ app.post("/api/generate-description", async (req, res) => {
 
 app.post("/api/best-task", async (req, res) => {
   try {
-    const { neuralState, tasks, userApiKey } = req.body;
+    const { neuralState, tasks, activeTaskId, userApiKey } = req.body;
     const apiKey = userApiKey || process.env.ANTHROPIC_API_KEY;
     if (!apiKey) { res.json({ taskId: null, reason: "No API key configured." }); return; }
 
@@ -192,13 +192,17 @@ app.post("/api/best-task", async (req, res) => {
     const taskList = pending.map((t, i) =>
       `${i + 1}. [ID:${t.id}] "${t.title}"${t.focusRequired != null ? ` (min focus: ${t.focusRequired})` : ""}${t.estimatedMinutes ? ` (${t.estimatedMinutes}m)` : ""}`
     ).join("\n");
+    const activeTask = activeTaskId ? pending.find(t => t.id === activeTaskId) : null;
+    const activeLine = activeTask
+      ? `The user is currently working on: [ID:${activeTask.id}] "${activeTask.title}".`
+      : `The user has not selected an active task yet.`;
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 120,
       messages: [{
         role: "user",
-        content: `Current focus: ${(focusIndex || 0).toFixed(1)}/100. Bio energy: ${Math.round(bioEnergy || 0)}%.\n\nPending tasks:\n${taskList}\n\nReply with ONLY a JSON object: {"taskId": "<the id of the best task>", "reason": "<one short sentence why>"}\nPick the single best task to work on right now given the user's focus level.`
+        content: `Current focus: ${(focusIndex || 0).toFixed(1)}/100. Bio energy: ${Math.round(bioEnergy || 0)}%.\n\nPending tasks:\n${taskList}\n\n${activeLine}\n\nReply with ONLY a JSON object: {"taskId": "<the id of the single best task to do right now>", "reason": "<one short sentence>"}\nPick the single best task given the user's focus level. If the task they're already working on is the best choice, return its ID and briefly affirm it. Otherwise return the better task's ID and briefly say why switching helps.`
       }]
     });
 

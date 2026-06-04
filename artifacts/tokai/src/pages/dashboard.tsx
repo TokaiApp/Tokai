@@ -77,6 +77,14 @@ const T = {
     pomoStart: "▶ START", pomoPause: "⏸ PAUSE",
     pomoWorkLabel: "WORK", pomoBreakLabel: "BREAK",
     bestTaskBtn: "✦ BEST TASK RIGHT NOW", bestTaskLoading: "THINKING...",
+    activeTaskLabel: "▶ WORKING ON",
+    activeTaskNone: "— nothing selected —",
+    recAnalyzing: "TOKAI is analyzing your state…",
+    recOnTrack: "✓ You're on the recommended task",
+    recPickPrefix: "✦ TOKAI recommends",
+    recSwitchPrefix: "✦ Consider switching to",
+    recSwitchBtn: "SWITCH →",
+    recSetActiveBtn: "I'M ON IT →",
     viewing: "VIEWING",
     pastDayReadOnly: "PAST DAY · READ ONLY",
     noTasksYet: "No tasks yet. Add one above.",
@@ -151,6 +159,14 @@ const T = {
     pomoStart: "▶ 開始", pomoPause: "⏸ 暫停",
     pomoWorkLabel: "專注時間", pomoBreakLabel: "休息時間",
     bestTaskBtn: "✦ 現在最佳任務", bestTaskLoading: "思考中...",
+    activeTaskLabel: "▶ 進行中",
+    activeTaskNone: "— 尚未選擇 —",
+    recAnalyzing: "TOKAI 正在分析你的狀態…",
+    recOnTrack: "✓ 你正在執行建議的任務",
+    recPickPrefix: "✦ TOKAI 建議",
+    recSwitchPrefix: "✦ 建議改做",
+    recSwitchBtn: "切換 →",
+    recSetActiveBtn: "開始這個 →",
     viewing: "檢視",
     pastDayReadOnly: "歷史日期 · 唯讀",
     noTasksYet: "尚無任務。請在上方新增。",
@@ -424,31 +440,74 @@ export default function Dashboard({ session }: { session: Session }) {
   const [newTaskDeadline, setNewTaskDeadline] = useState("");
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => !!localStorage.getItem("tokai_disclaimer_accepted"));
 
-  // Best task
+  // Active task (user-selected "what I'm working on") — persisted locally
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(() => {
+    try { return localStorage.getItem("tokai_active_task"); } catch { return null; }
+  });
+  function selectActiveTask(id: string | null) {
+    setActiveTaskId(id);
+    try {
+      if (id) localStorage.setItem("tokai_active_task", id);
+      else localStorage.removeItem("tokai_active_task");
+    } catch { /* ignore */ }
+  }
+
+  // AI recommendation ("what TOKAI thinks you should do") — auto-refreshed on a timer
   const [bestTask, setBestTask] = useState<{ taskId: string | null; reason: string } | null>(null);
   const [bestTaskLoading, setBestTaskLoading] = useState(false);
+  const bestTaskInFlight = useRef(false);
+  const activeTaskIdRef = useRef(activeTaskId);
+  useEffect(() => { activeTaskIdRef.current = activeTaskId; }, [activeTaskId]);
 
-  async function fetchBestTask() {
-    setBestTaskLoading(true);
-    setBestTask(null);
+  async function fetchBestTask(silent = false) {
+    const pending = tasks.filter(t => !t.done);
+    if (pending.length === 0) { setBestTask(null); return; }
+    if (bestTaskInFlight.current) return;
+    bestTaskInFlight.current = true;
+    if (!silent) setBestTaskLoading(true);
     try {
       const apiKey = localStorage.getItem("tokai_anthropic_key") ?? "";
       const res = await fetch(`${API_BASE}/api/best-task`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          neuralState: { focusIndex: neural.focusIndex, bioEnergy: neural.bioEnergy },
-          tasks: tasks.filter(t => !t.done).map(t => ({ id: t.id, title: t.title, description: t.description, done: t.done, focusRequired: t.focusRequired, estimatedMinutes: t.estimatedMinutes })),
+          neuralState: { focusIndex: neuralRef.current.focusIndex, bioEnergy: neuralRef.current.bioEnergy },
+          tasks: pending.map(t => ({ id: t.id, title: t.title, description: t.description, done: t.done, focusRequired: t.focusRequired, estimatedMinutes: t.estimatedMinutes })),
+          activeTaskId: activeTaskIdRef.current ?? undefined,
           userApiKey: apiKey || undefined,
         }),
       });
       const data = await res.json();
       setBestTask(data);
     } catch {
-      setBestTask({ taskId: null, reason: "Could not reach the server." });
+      if (!silent) setBestTask({ taskId: null, reason: "Could not reach the server." });
     }
-    setBestTaskLoading(false);
+    if (!silent) setBestTaskLoading(false);
+    bestTaskInFlight.current = false;
   }
+
+  // Keep a ref to the latest fetchBestTask so the polling interval always calls the current closure
+  const fetchBestTaskRef = useRef(fetchBestTask);
+  useEffect(() => { fetchBestTaskRef.current = fetchBestTask; });
+
+  // Drop the active selection if that task is completed or deleted
+  useEffect(() => {
+    if (activeTaskId && !tasks.some(t => t.id === activeTaskId && !t.done)) {
+      selectActiveTask(null);
+    }
+  }, [tasks, activeTaskId]);
+
+  // Auto-refresh the recommendation every 30s while there are pending tasks and the tab is visible
+  useEffect(() => {
+    if (!dataLoaded) return;
+    const hasPending = tasks.some(t => !t.done);
+    if (!hasPending) { setBestTask(null); return; }
+    fetchBestTaskRef.current(false);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") fetchBestTaskRef.current(true);
+    }, 30000);
+    return () => clearInterval(id);
+  }, [dataLoaded, tasks.some(t => !t.done)]);
 
   // Pomodoro
   const [pomodoroWorkMins, setPomodoroWorkMins] = useState(25);
@@ -1801,6 +1860,64 @@ export default function Dashboard({ session }: { session: Session }) {
                   {t.pastDayReadOnly}
                 </div>
                 )}
+
+                {/* Active task + AI recommendation (mobile) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 12 }}>
+                  <div>
+                    <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#7c3aed", letterSpacing: 1.5, marginBottom: 5 }}>{t.activeTaskLabel}</div>
+                    <select value={activeTaskId ?? ""} onChange={e => selectActiveTask(e.target.value || null)}
+                      disabled={tasks.filter(t => !t.done).length === 0}
+                      style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.35)", border: `1px solid ${activeTaskId ? "rgba(192,132,252,0.55)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: activeTaskId ? "#c8d8e8" : "#5a8fa8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
+                      <option value="">{t.activeTaskNone}</option>
+                      {tasks.filter(t => !t.done).map(tk => (
+                        <option key={tk.id} value={tk.id}>{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {tasks.some(t => !t.done) && (() => {
+                    if (!bestTask) {
+                      return (
+                        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.5, opacity: 0.8 }}>
+                          {t.recAnalyzing}
+                        </div>
+                      );
+                    }
+                    if (!bestTask.taskId) {
+                      return (
+                        <div style={{ padding: "8px 10px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(90,143,168,0.2)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.5, lineHeight: 1.5 }}>
+                          {bestTask.reason}
+                        </div>
+                      );
+                    }
+                    const recTask = tasks.find(t => t.id === bestTask.taskId);
+                    if (!recTask) return null;
+                    const onTrack = activeTaskId != null && bestTask.taskId === activeTaskId;
+                    const accent = onTrack ? "#34d399" : "#fbbf24";
+                    return (
+                      <div style={{ padding: "9px 11px", background: onTrack ? "rgba(52,211,153,0.07)" : "rgba(251,191,36,0.07)", border: `1px solid ${accent}55`, borderRadius: 6 }}>
+                        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10.5, color: accent, letterSpacing: 1, marginBottom: 5 }}>
+                          {onTrack ? t.recOnTrack : (activeTaskId ? t.recSwitchPrefix : t.recPickPrefix)}
+                        </div>
+                        {!onTrack && (
+                          <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
+                            onClick={() => setSelectedTaskId(recTask.id)}>
+                            {recTask.emoji && <span style={{ marginRight: 5 }}>{recTask.emoji}</span>}{recTask.title}
+                          </div>
+                        )}
+                        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.3, lineHeight: 1.5 }}>
+                          {bestTask.reason}
+                        </div>
+                        {!onTrack && (
+                          <button onClick={() => selectActiveTask(recTask.id)}
+                            style={{ marginTop: 7, width: "100%", padding: "6px 0", background: `${accent}1a`, border: `1px solid ${accent}66`, borderRadius: 5, color: accent, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
+                            {activeTaskId ? t.recSwitchBtn : t.recSetActiveBtn}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, overflowY: "auto", overflowX: "hidden" }}>
                   {visibleTasks.map(task => (
                     <div key={task.id} onClick={() => setSelectedTaskId(task.id)}
@@ -1859,30 +1976,64 @@ export default function Dashboard({ session }: { session: Session }) {
             </div>
           </div>
 
-          {/* Best task now */}
-          <div style={{ padding: "10px 18px", borderBottom: "1px solid rgba(192,132,252,0.1)" }}>
-            <button onClick={fetchBestTask} disabled={bestTaskLoading || tasks.filter(t => !t.done).length === 0}
-              style={{ width: "100%", padding: "8px 0", background: "rgba(192,132,252,0.1)", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: bestTaskLoading ? "default" : "pointer", transition: "background 0.2s" }}
-              onMouseEnter={e => { if (!bestTaskLoading) e.currentTarget.style.background = "rgba(192,132,252,0.2)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "rgba(192,132,252,0.1)"; }}>
-              {bestTaskLoading ? t.bestTaskLoading : t.bestTaskBtn}
-            </button>
-            {bestTask && (
-              <div style={{ marginTop: 8, padding: "8px 10px", background: "rgba(192,132,252,0.06)", border: `1px solid ${bestTask.taskId ? "rgba(192,132,252,0.3)" : "rgba(90,143,168,0.2)"}`, borderRadius: 6 }}>
-                {bestTask.taskId && (() => {
-                  const task = tasks.find(t => t.id === bestTask.taskId);
-                  return task ? (
+          {/* Active task + AI recommendation */}
+          <div style={{ padding: "12px 18px", borderBottom: "1px solid rgba(192,132,252,0.1)", display: "flex", flexDirection: "column", gap: 9 }}>
+            {/* User-selected active task */}
+            <div>
+              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#7c3aed", letterSpacing: 1.5, marginBottom: 5 }}>{t.activeTaskLabel}</div>
+              <select value={activeTaskId ?? ""} onChange={e => selectActiveTask(e.target.value || null)}
+                disabled={tasks.filter(t => !t.done).length === 0}
+                style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.35)", border: `1px solid ${activeTaskId ? "rgba(192,132,252,0.55)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: activeTaskId ? "#c8d8e8" : "#5a8fa8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
+                <option value="">{t.activeTaskNone}</option>
+                {tasks.filter(t => !t.done).map(tk => (
+                  <option key={tk.id} value={tk.id}>{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* TOKAI's recommendation, right under the active task */}
+            {tasks.some(t => !t.done) && (() => {
+              if (!bestTask) {
+                return (
+                  <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.5, opacity: 0.8 }}>
+                    {t.recAnalyzing}
+                  </div>
+                );
+              }
+              if (!bestTask.taskId) {
+                return (
+                  <div style={{ padding: "8px 10px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(90,143,168,0.2)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.5, lineHeight: 1.5 }}>
+                    {bestTask.reason}
+                  </div>
+                );
+              }
+              const recTask = tasks.find(t => t.id === bestTask.taskId);
+              if (!recTask) return null;
+              const onTrack = activeTaskId != null && bestTask.taskId === activeTaskId;
+              const accent = onTrack ? "#34d399" : "#fbbf24";
+              return (
+                <div style={{ padding: "9px 11px", background: onTrack ? "rgba(52,211,153,0.07)" : "rgba(251,191,36,0.07)", border: `1px solid ${accent}55`, borderRadius: 6 }}>
+                  <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10.5, color: accent, letterSpacing: 1, marginBottom: 5 }}>
+                    {onTrack ? t.recOnTrack : (activeTaskId ? t.recSwitchPrefix : t.recPickPrefix)}
+                  </div>
+                  {!onTrack && (
                     <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
-                      onClick={() => setSelectedTaskId(task.id)}>
-                      {task.emoji && <span style={{ marginRight: 5 }}>{task.emoji}</span>}{task.title}
+                      onClick={() => setSelectedTaskId(recTask.id)}>
+                      {recTask.emoji && <span style={{ marginRight: 5 }}>{recTask.emoji}</span>}{recTask.title}
                     </div>
-                  ) : null;
-                })()}
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.5, lineHeight: 1.5 }}>
-                  {bestTask.reason}
+                  )}
+                  <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.3, lineHeight: 1.5 }}>
+                    {bestTask.reason}
+                  </div>
+                  {!onTrack && (
+                    <button onClick={() => selectActiveTask(recTask.id)}
+                      style={{ marginTop: 7, width: "100%", padding: "5px 0", background: `${accent}1a`, border: `1px solid ${accent}66`, borderRadius: 5, color: accent, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
+                      {activeTaskId ? t.recSwitchBtn : t.recSetActiveBtn}
+                    </button>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* Task input */}

@@ -107,9 +107,10 @@ Focus on observable patterns in their productivity and self-monitoring habits. D
 
 router.post("/best-task", async (req, res) => {
   try {
-    const { neuralState, tasks, userApiKey } = req.body as {
+    const { neuralState, tasks, activeTaskId, userApiKey } = req.body as {
       neuralState: { focusIndex: number; bioEnergy: number };
       tasks: { id: string; title: string; description: string | null; done: boolean; focusRequired?: number; estimatedMinutes?: number | null }[];
+      activeTaskId?: string;
       userApiKey?: string;
     };
 
@@ -129,6 +130,10 @@ router.post("/best-task", async (req, res) => {
     const taskList = pending.map((t, i) =>
       `${i + 1}. [ID:${t.id}] "${t.title}"${t.focusRequired != null ? ` (min focus: ${t.focusRequired})` : ""}${t.estimatedMinutes ? ` (${t.estimatedMinutes}m)` : ""}`
     ).join("\n");
+    const activeTask = activeTaskId ? pending.find(t => t.id === activeTaskId) : null;
+    const activeLine = activeTask
+      ? `The user is currently working on: [ID:${activeTask.id}] "${activeTask.title}".`
+      : `The user has not selected an active task yet.`;
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -140,8 +145,10 @@ router.post("/best-task", async (req, res) => {
 Pending tasks:
 ${taskList}
 
-Reply with ONLY a JSON object: {"taskId": "<the id of the best task>", "reason": "<one short sentence why>"}
-Pick the single best task to work on right now given the user's focus level.`
+${activeLine}
+
+Reply with ONLY a JSON object: {"taskId": "<the id of the single best task to do right now>", "reason": "<one short sentence>"}
+Pick the single best task given the user's focus level. If the task they're already working on is the best choice, return its ID and briefly affirm it. Otherwise return the better task's ID and briefly say why switching helps.`
       }]
     });
 
