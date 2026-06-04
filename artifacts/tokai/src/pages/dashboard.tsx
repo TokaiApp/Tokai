@@ -1206,7 +1206,15 @@ export default function Dashboard({ session }: { session: Session }) {
               <h1 style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 52, fontWeight: 700, letterSpacing: 14, textShadow: "0 0 30px rgba(192,132,252,0.4), 0 0 60px rgba(192,132,252,0.15)", margin: 0 }}>
                 <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>AI</span>
               </h1>
-              <LangToggle lang={lang} setLang={setLang} />
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+                  style={{ padding: "6px 14px", background: "#120d28", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", outline: "none", colorScheme: "dark" }}>
+                  {availableDates.map(date => (
+                    <option key={date} value={date}>{formatDayLabel(date, lang)}</option>
+                  ))}
+                </select>
+                <LangToggle lang={lang} setLang={setLang} />
+              </div>
             </div>
           )}
 
@@ -1346,7 +1354,7 @@ export default function Dashboard({ session }: { session: Session }) {
             </Panel>
           </div>
 
-          {/* Day selector — mobile only; desktop version lives in right panel header */}
+          {/* Day selector — mobile only; desktop version lives in main header */}
           {isMobile && (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 2, flexShrink: 0 }}>{t.viewing}</span>
@@ -1700,7 +1708,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <aside style={{ width: 340, minWidth: 340, borderLeft: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflowY: "auto", background: "linear-gradient(180deg, #0c0818 0%, #0e0920 100%)" }}>
           {/* Header */}
           <div style={{ padding: "20px 18px 14px", borderBottom: "1px solid rgba(192,132,252,0.15)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <ListChecks size={18} color="#c084fc" style={{ flexShrink: 0 }} />
               <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3, flex: 1 }}>
                 {lang === "en"
@@ -1708,15 +1716,6 @@ export default function Dashboard({ session }: { session: Session }) {
                   : <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>TODO · {t.tokTodo}</span></>}
               </span>
               <InfoButton onClick={() => setInfoModal(INFO[lang].tokTodo)} />
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 2, flexShrink: 0 }}>{t.viewing}</span>
-              <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-                style={{ flex: 1, padding: "5px 10px", background: "#120d28", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", outline: "none", colorScheme: "dark" }}>
-                {availableDates.map(date => (
-                  <option key={date} value={date}>{formatDayLabel(date, lang)}</option>
-                ))}
-              </select>
             </div>
           </div>
 
