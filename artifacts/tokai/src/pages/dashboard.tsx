@@ -1208,7 +1208,7 @@ export default function Dashboard({ session }: { session: Session }) {
               </h1>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-                  style={{ padding: "6px 14px", background: "#120d28", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", outline: "none", colorScheme: "dark" }}>
+                  style={{ alignSelf: "stretch", padding: "0 14px", background: "#120d28", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", outline: "none", colorScheme: "dark" }}>
                   {availableDates.map(date => (
                     <option key={date} value={date}>{formatDayLabel(date, lang)}</option>
                   ))}
