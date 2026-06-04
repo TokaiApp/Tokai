@@ -13,7 +13,7 @@ type Lang = "en" | "zh";
 
 const T = {
   en: {
-    version: "Tokai Pre-Alpha",
+    version: "Tokai Alpha",
     systemControl: "SYSTEM CONTROL",
     liveStream: "Live Stream",
     refreshRate: "Refresh Rate (s)",
@@ -68,7 +68,7 @@ const T = {
       `Focus index is low (${f}/100). Neural noise is elevated. Recommend switching to low-cognitive tasks — organizing, reviewing notes, or short breaks. Energy at ${e}%. Allow your neural state to recover before tackling demanding work.`,
   },
   zh: {
-    version: "Tokai 預覽版",
+    version: "Tokai Alpha",
     systemControl: "系統控制",
     liveStream: "即時串流",
     refreshRate: "更新頻率（秒）",
@@ -1735,7 +1735,7 @@ export default function Dashboard({ session }: { session: Session }) {
             <p style={{ margin: 0, fontSize: 15, color: "#c8d8e8", lineHeight: 1.7, fontFamily: "'Rajdhani', sans-serif" }}>
               {lang === "zh"
                 ? <>Tokai 是一款<strong style={{ color: "#c084fc" }}>研究原型</strong>，並非醫療裝置。Pre-alpha 版本中的神經指標均為模擬數值。本應用程式不用於診斷、治療或提供任何 ADHD 或其他疾病的臨床建議。</>
-                : <>Tokai is a <strong style={{ color: "#c084fc" }}>research prototype</strong> and is not a medical device. Neural metrics in this pre-alpha version are simulated. This app is not intended to diagnose, treat, or provide clinical guidance for ADHD or any other condition.</>}
+                : <>Tokai is a <strong style={{ color: "#c084fc" }}>research prototype</strong> and is not a medical device. Neural metrics in this alpha version are simulated. This app is not intended to diagnose, treat, or provide clinical guidance for ADHD or any other condition.</>}
             </p>
             <p style={{ margin: 0, fontSize: 15, color: "#c8d8e8", lineHeight: 1.7, fontFamily: "'Rajdhani', sans-serif" }}>
               {lang === "zh"
