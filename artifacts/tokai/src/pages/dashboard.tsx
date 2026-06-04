@@ -357,17 +357,20 @@ export default function Dashboard({ session }: { session: Session }) {
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => !!localStorage.getItem("tokai_disclaimer_accepted"));
 
   // Pomodoro
-  const POMO_WORK = 25 * 60;
-  const POMO_SHORT = 5 * 60;
-  const POMO_LONG = 15 * 60;
+  const [pomodoroWorkMins, setPomodoroWorkMins] = useState(25);
+  const [pomodoroBreakMins, setPomodoroBreakMins] = useState(5);
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
   const [pomodoroPhase, setPomodoroPhase] = useState<"work" | "break">("work");
-  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState(POMO_WORK);
+  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState(25 * 60);
   const [pomodoroCount, setPomodoroCount] = useState(0);
   const pomodoroPhaseRef = useRef<"work" | "break">("work");
   const pomodoroCountRef = useRef(0);
+  const pomodoroWorkRef = useRef(25 * 60);
+  const pomodoroBreakRef = useRef(5 * 60);
   useEffect(() => { pomodoroPhaseRef.current = pomodoroPhase; }, [pomodoroPhase]);
   useEffect(() => { pomodoroCountRef.current = pomodoroCount; }, [pomodoroCount]);
+  useEffect(() => { pomodoroWorkRef.current = pomodoroWorkMins * 60; }, [pomodoroWorkMins]);
+  useEffect(() => { pomodoroBreakRef.current = pomodoroBreakMins * 60; }, [pomodoroBreakMins]);
   useEffect(() => {
     if (!pomodoroRunning) return;
     const id = setInterval(() => {
@@ -380,12 +383,12 @@ export default function Dashboard({ session }: { session: Session }) {
           setPomodoroPhase("break");
           pomodoroPhaseRef.current = "break";
           setPomodoroRunning(false);
-          return next % 4 === 0 ? POMO_LONG : POMO_SHORT;
+          return next % 4 === 0 ? pomodoroBreakRef.current * 3 : pomodoroBreakRef.current;
         } else {
           setPomodoroPhase("work");
           pomodoroPhaseRef.current = "work";
           setPomodoroRunning(false);
-          return POMO_WORK;
+          return pomodoroWorkRef.current;
         }
       });
     }, 1000);
@@ -938,30 +941,43 @@ export default function Dashboard({ session }: { session: Session }) {
         {/* Pomodoro Timer */}
         <div>
           <SectionLabel>POMODORO</SectionLabel>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 2, color: pomodoroPhase === "work" ? "#c084fc" : "#6ee7b7" }}>
               {pomodoroPhase === "work" ? "FOCUS" : pomodoroCount % 4 === 0 ? "LONG BREAK" : "BREAK"}
             </span>
             <div style={{ display: "flex", gap: 5 }}>
               {[0,1,2,3].map(i => (
-                <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: i < (pomodoroCount % 4) ? "#c084fc" : "rgba(192,132,252,0.2)", transition: "background 0.3s" }} />
+                <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: i < (pomodoroCount % 4) ? "#c084fc" : "rgba(192,132,252,0.2)", transition: "background 0.3s" }} />
               ))}
             </div>
           </div>
-          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 38, color: "#c8d8e8", textAlign: "center", letterSpacing: 6, marginBottom: 12, textShadow: pomodoroRunning ? "0 0 20px rgba(192,132,252,0.4)" : "none", transition: "text-shadow 0.3s" }}>
+          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 26, color: "#c8d8e8", textAlign: "center", letterSpacing: 5, marginBottom: 10, textShadow: pomodoroRunning ? "0 0 16px rgba(192,132,252,0.4)" : "none", transition: "text-shadow 0.3s" }}>
             {String(Math.floor(pomodoroTimeLeft / 60)).padStart(2, "0")}:{String(pomodoroTimeLeft % 60).padStart(2, "0")}
           </div>
+          {!pomodoroRunning && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>WORK</span>
+              <input type="number" min={1} max={90} value={pomodoroWorkMins}
+                onChange={e => { const v = Math.max(1, Math.min(90, parseInt(e.target.value) || 1)); setPomodoroWorkMins(v); if (pomodoroPhase === "work") setPomodoroTimeLeft(v * 60); }}
+                style={{ width: 42, padding: "2px 5px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, outline: "none", textAlign: "center" }} />
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>BREAK</span>
+              <input type="number" min={1} max={30} value={pomodoroBreakMins}
+                onChange={e => { const v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); setPomodoroBreakMins(v); if (pomodoroPhase === "break") setPomodoroTimeLeft(v * 60); }}
+                style={{ width: 36, padding: "2px 5px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#6ee7b7", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, outline: "none", textAlign: "center" }} />
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.5)" }}>min</span>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8 }}>
             <button
               onClick={() => setPomodoroRunning(r => !r)}
-              style={{ flex: 1, padding: "8px 0", background: pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)", border: "1px solid rgba(192,132,252,0.5)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer", transition: "background 0.2s" }}
+              style={{ flex: 1, padding: "7px 0", background: pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)", border: "1px solid rgba(192,132,252,0.5)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer", transition: "background 0.2s" }}
               onMouseEnter={e => (e.currentTarget.style.background = "rgba(192,132,252,0.28)")}
               onMouseLeave={e => (e.currentTarget.style.background = pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)")}>
               {pomodoroRunning ? "⏸ PAUSE" : "▶ START"}
             </button>
             <button
-              onClick={() => { setPomodoroRunning(false); setPomodoroPhase("work"); pomodoroPhaseRef.current = "work"; setPomodoroTimeLeft(POMO_WORK); setPomodoroCount(0); pomodoroCountRef.current = 0; }}
-              style={{ padding: "8px 12px", background: "transparent", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 14, cursor: "pointer", transition: "all 0.2s" }}
+              onClick={() => { setPomodoroRunning(false); setPomodoroPhase("work"); pomodoroPhaseRef.current = "work"; setPomodoroTimeLeft(pomodoroWorkMins * 60); setPomodoroCount(0); pomodoroCountRef.current = 0; }}
+              style={{ padding: "7px 12px", background: "transparent", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 14, cursor: "pointer", transition: "all 0.2s" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(192,132,252,0.5)"; e.currentTarget.style.color = "#c084fc"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(192,132,252,0.25)"; e.currentTarget.style.color = "#5a8fa8"; }}>
               ↺
