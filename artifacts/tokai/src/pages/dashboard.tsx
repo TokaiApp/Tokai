@@ -771,11 +771,12 @@ export default function Dashboard({ session }: { session: Session }) {
 
   const prevJournalLenRef = useRef(0);
   useEffect(() => {
+    if (!dataLoaded) { prevJournalLenRef.current = journal.length; return; }
     if (journal.length > prevJournalLenRef.current) {
       journalBottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
     prevJournalLenRef.current = journal.length;
-  }, [journal]);
+  }, [journal, dataLoaded]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
