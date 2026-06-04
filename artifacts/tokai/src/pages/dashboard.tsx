@@ -66,6 +66,7 @@ const T = {
       `Neural baseline is ${noise}. Conditions are favorable for sustained cognitive work. Focus is moderate (${f}/100). Consider chunking tasks into 20-minute intervals. Biological energy is ${eLevel} (${e}%). Leverage this window for complex problem-solving.`,
     insightLow: (f: string, e: string) =>
       `Focus index is low (${f}/100). Neural noise is elevated. Recommend switching to low-cognitive tasks — organizing, reviewing notes, or short breaks. Energy at ${e}%. Allow your neural state to recover before tackling demanding work.`,
+    goLive: "▶▶ LIVE",
     signOut: "SIGN OUT",
     developedBy: "Developed by",
     pomodoro: "POMODORO",
@@ -136,6 +137,7 @@ const T = {
       `神經基線${noise}。認知工作條件良好，專注度中等（${f}/100）。建議以 20 分鐘為單元分解任務。生理能量${eLevel}（${e}%），適合持續的問題求解工作。`,
     insightLow: (f: string, e: string) =>
       `專注指數偏低（${f}/100），神經噪訊較高。建議切換至低認知負荷任務——整理資料、回顧筆記或短暫休息。能量水平 ${e}%，待神經狀態恢復後再處理高難度工作。`,
+    goLive: "▶▶ 即時",
     signOut: "登出",
     developedBy: "開發者",
     pomodoro: "番茄鐘",
@@ -1279,7 +1281,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   ))}
                   <button onClick={goToLive} title="Jump to live"
                     style={{ padding: "5px 14px", background: isLive ? "rgba(192,132,252,0.2)" : "rgba(192,132,252,0.07)", border: `1px solid ${isLive ? "rgba(192,132,252,0.7)" : "rgba(192,132,252,0.25)"}`, borderRadius: 4, color: isLive ? "#c084fc" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 14, cursor: "pointer", letterSpacing: 1, lineHeight: 1.6, transition: "all 0.2s" }}>
-                    ▶▶ LIVE
+                    {t.goLive}
                   </button>
                 </div>
               </div>
