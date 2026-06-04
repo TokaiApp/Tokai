@@ -139,8 +139,7 @@ interface NeuralState {
 
 interface FocusPoint { time: string; value: number; }
 type Demand = "low" | "medium" | "high";
-type FocusRequired = "low" | "moderate" | "high";
-interface Task { id: string; title: string; description: string | null; done: boolean; demand: Demand | null; estimatedMinutes: number | null; createdAt?: string; deadline?: string; emoji?: string; focusRequired?: FocusRequired; }
+interface Task { id: string; title: string; description: string | null; done: boolean; demand: Demand | null; estimatedMinutes: number | null; createdAt?: string; deadline?: string; emoji?: string; focusRequired?: number; }
 
 const TASK_EMOJIS = ["📚", "✍️", "💻", "📧", "💪", "🍳", "🧹", "🎯", "🔬", "📞", "🛒", "🎨"];
 interface MedEntry { id: string; name: string; dose: string; time: string; date: string; focusTime?: string; sampleIndex: number; rating: number | null; }
@@ -194,26 +193,19 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
-function estimateFocusRequired(title: string, description: string | null): FocusRequired {
+function estimateFocusRequired(title: string, description: string | null): number {
   const text = (title + " " + (description ?? "")).toLowerCase();
   const high = ["math", "calculus", "algebra", "physics", "chemistry", "study", "homework", "assignment", "exam", "test", "essay", "thesis", "dissertation", "research", "analyze", "analysis", "code", "program", "debug", "develop", "design", "write", "draft", "read", "review", "report", "project", "solve", "problem", "chapter", "lecture", "learn"];
   const low = ["medication", "meds", "medicine", "pill", "vitamin", "supplement", "clean", "laundry", "dishes", "wash", "shower", "bath", "groceries", "grocery", "shop", "eat", "lunch", "dinner", "breakfast", "snack", "walk", "stretch", "rest", "sleep", "nap", "call", "text", "message", "reply", "water", "hydrate"];
-  if (high.some(k => text.includes(k))) return "high";
-  if (low.some(k => text.includes(k))) return "low";
-  return "moderate";
+  if (high.some(k => text.includes(k))) return 65;
+  if (low.some(k => text.includes(k))) return 20;
+  return 40;
 }
 
-function focusReadiness(required: FocusRequired | undefined, currentFocus: number): { color: string; label: string } | null {
-  if (!required) return null;
-  const thresholds: Record<FocusRequired, [number, number]> = {
-    low:      [25, 10],
-    moderate: [48, 32],
-    high:     [66, 48],
-  };
-  const labels: Record<FocusRequired, string> = { low: "LOW", moderate: "MOD", high: "HIGH" };
-  const [good, marginal] = thresholds[required];
-  const color = currentFocus >= good ? "#4ade80" : currentFocus >= marginal ? "#fbbf24" : "#f472b6";
-  return { color, label: labels[required] };
+function focusReadiness(required: number | undefined, currentFocus: number): { color: string; label: string } | null {
+  if (required == null) return null;
+  const color = currentFocus >= required ? "#4ade80" : currentFocus >= required - 15 ? "#fbbf24" : "#f472b6";
+  return { color, label: `${required}+` };
 }
 
 const INFO = {
@@ -352,7 +344,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [newTaskDemand, setNewTaskDemand] = useState<Demand | null>(null);
   const [newTaskTime, setNewTaskTime] = useState("");
   const [newTaskEmoji, setNewTaskEmoji] = useState("");
-  const [newTaskFocusRequired, setNewTaskFocusRequired] = useState<FocusRequired | null>(null);
+  const [newTaskFocusRequired, setNewTaskFocusRequired] = useState<number | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -419,7 +411,7 @@ export default function Dashboard({ session }: { session: Session }) {
         done: r.done as boolean, demand: r.demand as Demand | null,
         estimatedMinutes: r.estimated_minutes as number | null, createdAt: r.created_at as string | undefined,
         deadline: r.deadline as string | undefined, emoji: r.emoji as string | undefined,
-        focusRequired: r.focus_required as FocusRequired | undefined,
+        focusRequired: r.focus_required as number | undefined,
       }));
       const mappedMeds: MedEntry[] = (mData ?? []).map((r: Record<string, unknown>) => ({
         id: r.id as string, name: r.name as string, dose: r.dose as string,
@@ -1572,20 +1564,13 @@ export default function Dashboard({ session }: { session: Session }) {
                   <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#5a8fa8" }}>{t.minUnit}</span>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>⚡ FOCUS:</span>
-                {(["low", "moderate", "high"] as FocusRequired[]).map(f => {
-                  const colors = { low: "#4ade80", moderate: "#fbbf24", high: "#f472b6" };
-                  const c = colors[f];
-                  const active = newTaskFocusRequired === f;
-                  return (
-                    <button key={f} onClick={() => setNewTaskFocusRequired(active ? null : f)}
-                      style={{ padding: "3px 9px", background: active ? c + "22" : "transparent", border: `1px solid ${active ? c : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: active ? c : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, cursor: "pointer", letterSpacing: 1 }}>
-                      {f === "low" ? "LOW" : f === "moderate" ? "MOD" : "HIGH"}
-                    </button>
-                  );
-                })}
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.4)", marginLeft: 2 }}>auto if blank</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>⚡ MIN FOCUS:</span>
+                <input type="number" min={0} max={100} value={newTaskFocusRequired ?? ""}
+                  onChange={e => setNewTaskFocusRequired(e.target.value ? Math.min(100, Math.max(0, parseInt(e.target.value))) : null)}
+                  placeholder="auto"
+                  style={{ width: 58, padding: "3px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", textAlign: "center" }} />
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.4)" }}>/ 100  (auto if blank)</span>
               </div>
             </>) : (
               <div style={{ padding: "6px 0", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 1 }}>
@@ -1796,19 +1781,14 @@ export default function Dashboard({ session }: { session: Session }) {
 
               {/* Focus required */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>⚡ {lang === "en" ? "FOCUS REQ:" : "專注需求:"}</span>
-                {(["low", "moderate", "high"] as FocusRequired[]).map(f => {
-                  const colors = { low: "#4ade80", moderate: "#fbbf24", high: "#f472b6" };
-                  const c = colors[f];
-                  const active = task.focusRequired === f;
-                  return (
-                    <button key={f} onClick={() => updateTask(task.id, { focusRequired: active ? undefined : f })}
-                      style={{ padding: "3px 10px", background: active ? c + "22" : "transparent", border: `1px solid ${active ? c : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: active ? c : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, cursor: "pointer", letterSpacing: 1 }}>
-                      {f === "low" ? "LOW" : f === "moderate" ? "MODERATE" : "HIGH"}
-                    </button>
-                  );
-                })}
-                {task.focusRequired && (() => { const r = focusReadiness(task.focusRequired, neural.focusIndex); return r ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: r.color, letterSpacing: 1 }}>{r.color === "#4ade80" ? "✓ READY" : r.color === "#fbbf24" ? "~ MARGINAL" : "✗ NOT YET"}</span> : null; })()}
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>⚡ {lang === "en" ? "MIN FOCUS:" : "最低專注:"}</span>
+                <input type="number" min={0} max={100}
+                  value={task.focusRequired ?? ""}
+                  onChange={e => setTasks(p => p.map(tk => tk.id === task.id ? { ...tk, focusRequired: e.target.value ? Math.min(100, Math.max(0, parseInt(e.target.value))) : undefined } : tk))}
+                  placeholder="0–100"
+                  style={{ width: 64, padding: "3px 7px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, outline: "none", textAlign: "center" }} />
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8" }}>/ 100</span>
+                {task.focusRequired != null && (() => { const r = focusReadiness(task.focusRequired, neural.focusIndex); return r ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: r.color, letterSpacing: 1 }}>{r.color === "#4ade80" ? "✓ READY" : r.color === "#fbbf24" ? "~ MARGINAL" : "✗ NOT YET"}</span> : null; })()}
               </div>
 
               {/* Deadline */}
