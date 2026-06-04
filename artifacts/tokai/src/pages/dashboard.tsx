@@ -77,14 +77,14 @@ const T = {
     pomoStart: "▶ START", pomoPause: "⏸ PAUSE",
     pomoWorkLabel: "WORK", pomoBreakLabel: "BREAK",
     bestTaskBtn: "✦ BEST TASK RIGHT NOW", bestTaskLoading: "THINKING...",
-    activeTaskLabel: "▶ WORKING ON",
+    activeTaskLabel: "▶ ACTIVE TASK",
     activeTaskNone: "— nothing selected —",
+    recommendedTaskLabel: "✦ RECOMMENDED TASK",
     recAnalyzing: "TOKAI is analyzing your state…",
-    recOnTrack: "✓ You're on the recommended task",
-    recPickPrefix: "✦ TOKAI recommends",
-    recSwitchPrefix: "✦ Consider switching to",
+    recOnTrack: "✓ Matches your active task",
     recSwitchBtn: "SWITCH →",
     recSetActiveBtn: "I'M ON IT →",
+    dragToReorder: "Drag to reorder",
     viewing: "VIEWING",
     pastDayReadOnly: "PAST DAY · READ ONLY",
     noTasksYet: "No tasks yet. Add one above.",
@@ -159,14 +159,14 @@ const T = {
     pomoStart: "▶ 開始", pomoPause: "⏸ 暫停",
     pomoWorkLabel: "專注時間", pomoBreakLabel: "休息時間",
     bestTaskBtn: "✦ 現在最佳任務", bestTaskLoading: "思考中...",
-    activeTaskLabel: "▶ 進行中",
+    activeTaskLabel: "▶ 進行中任務",
     activeTaskNone: "— 尚未選擇 —",
+    recommendedTaskLabel: "✦ 建議任務",
     recAnalyzing: "TOKAI 正在分析你的狀態…",
-    recOnTrack: "✓ 你正在執行建議的任務",
-    recPickPrefix: "✦ TOKAI 建議",
-    recSwitchPrefix: "✦ 建議改做",
+    recOnTrack: "✓ 與進行中任務相符",
     recSwitchBtn: "切換 →",
     recSetActiveBtn: "開始這個 →",
+    dragToReorder: "拖曳以重新排序",
     viewing: "檢視",
     pastDayReadOnly: "歷史日期 · 唯讀",
     noTasksYet: "尚無任務。請在上方新增。",
@@ -191,7 +191,7 @@ interface NeuralState {
 }
 
 interface FocusPoint { time: string; value: number; }
-interface Task { id: string; title: string; description: string | null; done: boolean; estimatedMinutes: number | null; createdAt?: string; deadline?: string; emoji?: string; focusRequired?: number; }
+interface Task { id: string; title: string; description: string | null; done: boolean; estimatedMinutes: number | null; createdAt?: string; deadline?: string; emoji?: string; focusRequired?: number; position?: number; }
 
 const TASK_EMOJIS = ["📚", "✍️", "💻", "📧", "💪", "🍳", "🧹", "🎯", "🔬", "📞", "🛒", "🎨"];
 interface MedEntry { id: string; name: string; dose: string; time: string; date: string; focusTime?: string; sampleIndex: number; rating: number | null; }
@@ -440,16 +440,47 @@ export default function Dashboard({ session }: { session: Session }) {
   const [newTaskDeadline, setNewTaskDeadline] = useState("");
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => !!localStorage.getItem("tokai_disclaimer_accepted"));
 
-  // Active task (user-selected "what I'm working on") — persisted locally
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(() => {
-    try { return localStorage.getItem("tokai_active_task"); } catch { return null; }
-  });
+  // Active task (user-selected "what I'm working on") — synced to profiles.active_task_id
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   function selectActiveTask(id: string | null) {
     setActiveTaskId(id);
-    try {
-      if (id) localStorage.setItem("tokai_active_task", id);
-      else localStorage.removeItem("tokai_active_task");
-    } catch { /* ignore */ }
+    supabase.from("profiles").update({ active_task_id: id }).eq("user_id", userId);
+  }
+
+  // Manual task ordering (drag / arrows to reorder) — synced to tasks.position
+  const [dragTaskId, setDragTaskId] = useState<string | null>(null);
+
+  // Persist a new full ordering: assign each id its index as position and save changed rows
+  function applyOrder(idOrder: string[]) {
+    const changed: { id: string; position: number }[] = [];
+    const next = tasks.map(tk => {
+      const i = idOrder.indexOf(tk.id);
+      if (i >= 0 && tk.position !== i) changed.push({ id: tk.id, position: i });
+      return i >= 0 ? { ...tk, position: i } : tk;
+    });
+    setTasks(next);
+    changed.forEach(c => { supabase.from("tasks").update({ position: c.position }).eq("id", c.id); });
+  }
+
+  // Move a task up (-1) or down (+1) one slot
+  function moveTask(id: string, dir: -1 | 1) {
+    const ids = orderedVisibleTasks.map(tk => tk.id);
+    const from = ids.indexOf(id);
+    const to = from + dir;
+    if (from < 0 || to < 0 || to >= ids.length) return;
+    [ids[from], ids[to]] = [ids[to], ids[from]];
+    applyOrder(ids);
+  }
+
+  // Drop the dragged task at the target task's slot
+  function reorderTask(dragId: string, targetId: string) {
+    if (dragId === targetId) return;
+    const ids = orderedVisibleTasks.map(tk => tk.id);
+    const from = ids.indexOf(dragId), to = ids.indexOf(targetId);
+    if (from < 0 || to < 0) return;
+    ids.splice(from, 1);
+    ids.splice(to, 0, dragId);
+    applyOrder(ids);
   }
 
   // AI recommendation ("what TOKAI thinks you should do") — auto-refreshed on a timer
@@ -634,6 +665,7 @@ export default function Dashboard({ session }: { session: Session }) {
         estimatedMinutes: r.estimated_minutes as number | null, createdAt: r.created_at as string | undefined,
         deadline: r.deadline as string | undefined, emoji: r.emoji as string | undefined,
         focusRequired: r.focus_required as number | undefined,
+        position: r.position != null ? Number(r.position) : undefined,
       }));
       const mappedMeds: MedEntry[] = (mData ?? []).map((r: Record<string, unknown>) => ({
         id: r.id as string, name: r.name as string, dose: r.dose as string,
@@ -651,12 +683,12 @@ export default function Dashboard({ session }: { session: Session }) {
       // Seed demo data for brand-new users
       if (mappedTasks.length === 0 && mappedJournal.length === 0) {
         const demoTasks = [
-          { id: "demo-t1", user_id: userId, title: "Write methodology section", description: "Draft the research methodology chapter for the thesis.", done: true, estimated_minutes: 90, created_at: "2026-05-18 08:45", emoji: "✍️", focus_required: 65 },
-          { id: "demo-t2", user_id: userId, title: "Review data analysis scripts", description: "Check the Python scripts for data processing and output errors.", done: true, estimated_minutes: 60, created_at: "2026-05-18 08:45", emoji: "💻", focus_required: 65 },
-          { id: "demo-t3", user_id: userId, title: "Email supervisor — weekly update", description: null, done: true, estimated_minutes: 20, created_at: "2026-05-18 08:45", emoji: "📧", focus_required: 40 },
-          { id: "demo-t4", user_id: userId, title: "Read 2 papers for lit review", description: null, done: false, estimated_minutes: 120, created_at: "2026-05-18 14:00", emoji: "📚", focus_required: 65 },
-          { id: "demo-t5", user_id: userId, title: "Organize research notes", description: "Sort and label notes from the past two weeks of reading.", done: true, estimated_minutes: 20, created_at: "2026-05-16 10:30", emoji: "📚", focus_required: 30 },
-          { id: "demo-t6", user_id: userId, title: "Rest and recharge", description: "Take the afternoon off. Watch something, go for a walk.", done: true, estimated_minutes: null, created_at: "2026-05-16 13:00", emoji: null, focus_required: null },
+          { id: "demo-t1", user_id: userId, title: "Write methodology section", description: "Draft the research methodology chapter for the thesis.", done: true, estimated_minutes: 90, created_at: "2026-05-18 08:45", emoji: "✍️", focus_required: 65, position: 0 },
+          { id: "demo-t2", user_id: userId, title: "Review data analysis scripts", description: "Check the Python scripts for data processing and output errors.", done: true, estimated_minutes: 60, created_at: "2026-05-18 08:45", emoji: "💻", focus_required: 65, position: 1 },
+          { id: "demo-t3", user_id: userId, title: "Email supervisor — weekly update", description: null, done: true, estimated_minutes: 20, created_at: "2026-05-18 08:45", emoji: "📧", focus_required: 40, position: 2 },
+          { id: "demo-t4", user_id: userId, title: "Read 2 papers for lit review", description: null, done: false, estimated_minutes: 120, created_at: "2026-05-18 14:00", emoji: "📚", focus_required: 65, position: 3 },
+          { id: "demo-t5", user_id: userId, title: "Organize research notes", description: "Sort and label notes from the past two weeks of reading.", done: true, estimated_minutes: 20, created_at: "2026-05-16 10:30", emoji: "📚", focus_required: 30, position: 4 },
+          { id: "demo-t6", user_id: userId, title: "Rest and recharge", description: "Take the afternoon off. Watch something, go for a walk.", done: true, estimated_minutes: null, created_at: "2026-05-16 13:00", emoji: null, focus_required: null, position: 5 },
         ];
         const demoJournal = [
           { id: "demo-j1", user_id: userId, text: "Starting the week with a plan. Reviewed my thesis outline over coffee — feels manageable today.", time: "08:12", date: "2026-05-18", focus_index: 52.3, mood: ["focused"] },
@@ -687,7 +719,7 @@ export default function Dashboard({ session }: { session: Session }) {
             { role: "assistant", content: "That's the right call. Set a 20-minute timer and don't push past it. Organizing notes is low cognitive load and can feel satisfying when your brain needs a gentler pace.", timestamp: "10:12" },
           ]}));
         }
-        setTasks(demoTasks.map(r => ({ id: r.id, title: r.title, description: r.description, done: r.done, estimatedMinutes: r.estimated_minutes, createdAt: r.created_at, emoji: r.emoji ?? undefined, focusRequired: r.focus_required ?? undefined })));
+        setTasks(demoTasks.map(r => ({ id: r.id, title: r.title, description: r.description, done: r.done, estimatedMinutes: r.estimated_minutes, createdAt: r.created_at, emoji: r.emoji ?? undefined, focusRequired: r.focus_required ?? undefined, position: r.position })));
         setJournal(demoJournal.map(r => ({ id: r.id, text: r.text, time: r.time, date: r.date, focusIndex: r.focus_index, mood: r.mood as Mood[] })));
       } else {
         setTasks(mappedTasks);
@@ -697,6 +729,7 @@ export default function Dashboard({ session }: { session: Session }) {
       // Profile
       if (profileData) {
         setProfile({ name: profileData.name ?? "", bciDevice: profileData.bci_device, subscriptionTier: profileData.subscription_tier, tokens: profileData.tokens, aiProfile: profileData.ai_profile ?? null });
+        if (profileData.active_task_id) setActiveTaskId(profileData.active_task_id as string);
       } else {
         const defaultName = (session.user.user_metadata?.full_name as string) ?? "";
         await supabase.from("profiles").insert({ user_id: userId, name: defaultName, bci_device: "none", subscription_tier: "free", tokens: 100 });
@@ -1091,12 +1124,14 @@ export default function Dashboard({ session }: { session: Session }) {
     if (e.key === "Enter" && newTask.trim()) {
       const title = newTask.trim();
       const description = newTaskDesc.trim() || null;
+      const nextPosition = tasks.reduce((max, tk) => tk.position != null && tk.position > max ? tk.position : max, -1) + 1;
       const task: Task = {
         id: Date.now().toString(), title, description, done: false,
         estimatedMinutes: newTaskTime ? parseInt(newTaskTime) : null,
         createdAt: formatDateTime(new Date()), deadline: newTaskDeadline || undefined,
         emoji: newTaskEmoji || undefined,
         focusRequired: newTaskFocusRequired ?? estimateFocusRequired(title, description),
+        position: nextPosition,
       };
       setTasks(prev => [...prev, task]);
       setNewTask(""); setNewTaskDesc("");
@@ -1105,7 +1140,7 @@ export default function Dashboard({ session }: { session: Session }) {
         id: task.id, user_id: userId, title: task.title, description: task.description,
         done: false, estimated_minutes: task.estimatedMinutes,
         created_at: task.createdAt, deadline: task.deadline ?? null, emoji: task.emoji ?? null,
-        focus_required: task.focusRequired ?? null,
+        focus_required: task.focusRequired ?? null, position: task.position,
       });
     }
   }
@@ -1132,6 +1167,17 @@ export default function Dashboard({ session }: { session: Session }) {
   const visibleTasks = selectedDate === todayStr()
     ? tasks
     : tasks.filter(task => task.createdAt?.startsWith(selectedDate));
+  // Order by tasks.position; tasks without a position (pre-migration / brand new) fall back to creation order
+  const orderedVisibleTasks = useMemo(
+    () => [...visibleTasks].sort((a, b) => {
+      if (a.position != null && b.position != null) return a.position - b.position;
+      if (a.position != null) return -1;
+      if (b.position != null) return 1;
+      return (a.createdAt ?? "").localeCompare(b.createdAt ?? "");
+    }),
+    [visibleTasks]
+  );
+  const canReorder = selectedDate === todayStr();
   const visibleMedLog = medLog.filter(m => (m.date ?? todayStr()) === selectedDate);
   const visibleCompleted = visibleTasks.filter(t => t.done).length;
   const sessionElapsed = Math.floor((now.getTime() - sessionStart.current.getTime()) / 1000);
@@ -1896,18 +1942,20 @@ export default function Dashboard({ session }: { session: Session }) {
                     return (
                       <div style={{ padding: "9px 11px", background: onTrack ? "rgba(52,211,153,0.07)" : "rgba(251,191,36,0.07)", border: `1px solid ${accent}55`, borderRadius: 6 }}>
                         <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10.5, color: accent, letterSpacing: 1, marginBottom: 5 }}>
-                          {onTrack ? t.recOnTrack : (activeTaskId ? t.recSwitchPrefix : t.recPickPrefix)}
+                          {t.recommendedTaskLabel}
                         </div>
-                        {!onTrack && (
-                          <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
-                            onClick={() => setSelectedTaskId(recTask.id)}>
-                            {recTask.emoji && <span style={{ marginRight: 5 }}>{recTask.emoji}</span>}{recTask.title}
-                          </div>
-                        )}
+                        <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
+                          onClick={() => setSelectedTaskId(recTask.id)}>
+                          {recTask.emoji && <span style={{ marginRight: 5 }}>{recTask.emoji}</span>}{recTask.title}
+                        </div>
                         <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.3, lineHeight: 1.5 }}>
                           {bestTask.reason}
                         </div>
-                        {!onTrack && (
+                        {onTrack ? (
+                          <div style={{ marginTop: 7, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: accent, letterSpacing: 0.5 }}>
+                            {t.recOnTrack}
+                          </div>
+                        ) : (
                           <button onClick={() => selectActiveTask(recTask.id)}
                             style={{ marginTop: 7, width: "100%", padding: "6px 0", background: `${accent}1a`, border: `1px solid ${accent}66`, borderRadius: 5, color: accent, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
                             {activeTaskId ? t.recSwitchBtn : t.recSetActiveBtn}
@@ -1919,21 +1967,30 @@ export default function Dashboard({ session }: { session: Session }) {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, overflowY: "auto", overflowX: "hidden" }}>
-                  {visibleTasks.map(task => (
+                  {orderedVisibleTasks.map((task, idx) => (
                     <div key={task.id} onClick={() => setSelectedTaskId(task.id)}
                       style={{ display: "flex", flexDirection: "column", padding: "8px 10px", background: "rgba(0,0,0,0.2)", borderRadius: 4, border: "1px solid rgba(192,132,252,0.1)", gap: 5, minWidth: 0, cursor: "pointer", transition: "border-color 0.15s, background 0.15s" }}
                       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(192,132,252,0.35)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(192,132,252,0.05)"; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(192,132,252,0.1)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(0,0,0,0.2)"; }}>
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 6, minWidth: 0 }}>
+                        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, fontWeight: 700, color: task.done ? "rgba(124,58,237,0.4)" : "#7c3aed", flexShrink: 0, marginTop: 3, minWidth: 15, textAlign: "right" }}>{idx + 1}</span>
                         <div onClick={e => e.stopPropagation()}>
                           <input type="checkbox" checked={task.done} onChange={() => updateTask(task.id, { done: !task.done })} style={{ accentColor: "#c084fc", cursor: "pointer", flexShrink: 0, marginTop: 3 }} />
                         </div>
                         {task.emoji && <span style={{ fontSize: 16, flexShrink: 0, lineHeight: 1, opacity: task.done ? 0.5 : 1 }}>{task.emoji}</span>}
                         <span style={{ flex: 1, fontSize: 17, fontWeight: 600, color: task.done ? "#5a8fa8" : "#c8d8e8", textDecoration: task.done ? "line-through" : "none", minWidth: 0, wordBreak: "break-word" }}>{task.title}</span>
                         {task.estimatedMinutes && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", flexShrink: 0 }}>{task.estimatedMinutes}{t.minUnit}</span>}
+                        {canReorder && (
+                          <div onClick={e => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", gap: 1, flexShrink: 0 }}>
+                            <button onClick={() => moveTask(task.id, -1)} disabled={idx === 0}
+                              style={{ background: "none", border: "none", padding: 0, lineHeight: 0.8, fontSize: 11, color: idx === 0 ? "rgba(192,132,252,0.2)" : "#c084fc", cursor: idx === 0 ? "default" : "pointer" }}>▲</button>
+                            <button onClick={() => moveTask(task.id, 1)} disabled={idx === orderedVisibleTasks.length - 1}
+                              style={{ background: "none", border: "none", padding: 0, lineHeight: 0.8, fontSize: 11, color: idx === orderedVisibleTasks.length - 1 ? "rgba(192,132,252,0.2)" : "#c084fc", cursor: idx === orderedVisibleTasks.length - 1 ? "default" : "pointer" }}>▼</button>
+                          </div>
+                        )}
                       </div>
-                      {task.description && <p style={{ margin: 0, marginLeft: 22, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
-                      {task.deadline && <span style={{ marginLeft: 22, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)", letterSpacing: 1 }}>{t.dueLabel} {task.deadline}</span>}
+                      {task.description && <p style={{ margin: 0, marginLeft: 37, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
+                      {task.deadline && <span style={{ marginLeft: 37, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)", letterSpacing: 1 }}>{t.dueLabel} {task.deadline}</span>}
                     </div>
                   ))}
                 </div>
@@ -2014,18 +2071,20 @@ export default function Dashboard({ session }: { session: Session }) {
               return (
                 <div style={{ padding: "9px 11px", background: onTrack ? "rgba(52,211,153,0.07)" : "rgba(251,191,36,0.07)", border: `1px solid ${accent}55`, borderRadius: 6 }}>
                   <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10.5, color: accent, letterSpacing: 1, marginBottom: 5 }}>
-                    {onTrack ? t.recOnTrack : (activeTaskId ? t.recSwitchPrefix : t.recPickPrefix)}
+                    {t.recommendedTaskLabel}
                   </div>
-                  {!onTrack && (
-                    <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
-                      onClick={() => setSelectedTaskId(recTask.id)}>
-                      {recTask.emoji && <span style={{ marginRight: 5 }}>{recTask.emoji}</span>}{recTask.title}
-                    </div>
-                  )}
+                  <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
+                    onClick={() => setSelectedTaskId(recTask.id)}>
+                    {recTask.emoji && <span style={{ marginRight: 5 }}>{recTask.emoji}</span>}{recTask.title}
+                  </div>
                   <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 0.3, lineHeight: 1.5 }}>
                     {bestTask.reason}
                   </div>
-                  {!onTrack && (
+                  {onTrack ? (
+                    <div style={{ marginTop: 7, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: accent, letterSpacing: 0.5 }}>
+                      {t.recOnTrack}
+                    </div>
+                  ) : (
                     <button onClick={() => selectActiveTask(recTask.id)}
                       style={{ marginTop: 7, width: "100%", padding: "5px 0", background: `${accent}1a`, border: `1px solid ${accent}66`, borderRadius: 5, color: accent, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
                       {activeTaskId ? t.recSwitchBtn : t.recSetActiveBtn}
@@ -2078,12 +2137,19 @@ export default function Dashboard({ session }: { session: Session }) {
                 {t.noTasksYet}
               </p>
             )}
-            {visibleTasks.map(task => (
+            {orderedVisibleTasks.map((task, idx) => (
               <div key={task.id} onClick={() => setSelectedTaskId(task.id)}
-                style={{ display: "flex", flexDirection: "column", padding: "9px 11px", background: "rgba(0,0,0,0.2)", borderRadius: 6, border: "1px solid rgba(192,132,252,0.1)", gap: 5, cursor: "pointer", transition: "border-color 0.15s, background 0.15s" }}
+                draggable={canReorder}
+                onDragStart={canReorder ? (() => setDragTaskId(task.id)) : undefined}
+                onDragOver={canReorder ? (e => e.preventDefault()) : undefined}
+                onDrop={canReorder ? (() => { if (dragTaskId) reorderTask(dragTaskId, task.id); setDragTaskId(null); }) : undefined}
+                onDragEnd={() => setDragTaskId(null)}
+                style={{ display: "flex", flexDirection: "column", padding: "9px 11px", background: "rgba(0,0,0,0.2)", borderRadius: 6, border: "1px solid rgba(192,132,252,0.1)", gap: 5, cursor: "pointer", transition: "border-color 0.15s, background 0.15s", opacity: dragTaskId === task.id ? 0.4 : 1 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(192,132,252,0.35)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(192,132,252,0.05)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(192,132,252,0.1)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(0,0,0,0.2)"; }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 7, minWidth: 0 }}>
+                  {canReorder && <span title={t.dragToReorder} style={{ flexShrink: 0, marginTop: 1, color: "rgba(192,132,252,0.45)", cursor: "grab", fontSize: 13, lineHeight: 1.3, userSelect: "none" }}>⠿</span>}
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, fontWeight: 700, color: task.done ? "rgba(124,58,237,0.4)" : "#7c3aed", flexShrink: 0, marginTop: 3, minWidth: 16, textAlign: "right" }}>{idx + 1}</span>
                   <div onClick={e => e.stopPropagation()}>
                     <input type="checkbox" checked={task.done} onChange={() => updateTask(task.id, { done: !task.done })} style={{ accentColor: "#c084fc", cursor: "pointer", flexShrink: 0, marginTop: 3 }} />
                   </div>
@@ -2091,9 +2157,9 @@ export default function Dashboard({ session }: { session: Session }) {
                   <span style={{ flex: 1, fontSize: 17, fontWeight: 600, color: task.done ? "#5a8fa8" : "#c8d8e8", textDecoration: task.done ? "line-through" : "none", minWidth: 0, wordBreak: "break-word" }}>{task.title}</span>
                   {(() => { const r = focusReadiness(task.focusRequired, neural.focusIndex); return r ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, padding: "1px 5px", border: `1px solid ${r.color}`, color: r.color, borderRadius: 3, flexShrink: 0, opacity: task.done ? 0.4 : 1 }}>⚡{r.label}</span> : null; })()}
                 </div>
-                {task.description && <p style={{ margin: 0, marginLeft: 24, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
-                {task.deadline && <span style={{ marginLeft: 24, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)" }}>{t.dueLabel} {task.deadline}</span>}
-                {task.estimatedMinutes && <span style={{ marginLeft: 24, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.6)" }}>{task.estimatedMinutes}{t.minUnit}</span>}
+                {task.description && <p style={{ margin: 0, marginLeft: 47, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
+                {task.deadline && <span style={{ marginLeft: 47, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)" }}>{t.dueLabel} {task.deadline}</span>}
+                {task.estimatedMinutes && <span style={{ marginLeft: 47, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.6)" }}>{task.estimatedMinutes}{t.minUnit}</span>}
               </div>
             ))}
           </div>
