@@ -1493,12 +1493,12 @@ export default function Dashboard({ session }: { session: Session }) {
 
       {/* ── TokTodo right panel (desktop only) ── */}
       {!isMobile && (
-        <aside style={{ width: 300, minWidth: 300, borderLeft: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflowY: "auto", background: "linear-gradient(180deg, #0c0818 0%, #0e0920 100%)" }}>
+        <aside style={{ width: 340, minWidth: 340, borderLeft: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflowY: "auto", background: "linear-gradient(180deg, #0c0818 0%, #0e0920 100%)" }}>
           {/* Header */}
-          <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid rgba(192,132,252,0.15)" }}>
+          <div style={{ padding: "20px 18px 14px", borderBottom: "1px solid rgba(192,132,252,0.15)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <ListChecks size={16} color="#c084fc" style={{ flexShrink: 0 }} />
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, fontWeight: 700, letterSpacing: 3, flex: 1 }}>
+              <ListChecks size={18} color="#c084fc" style={{ flexShrink: 0 }} />
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3, flex: 1 }}>
                 {lang === "en"
                   ? <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>TODO</span></>
                   : <><span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>TODO · {t.tokTodo}</span></>}
@@ -1506,9 +1506,9 @@ export default function Dashboard({ session }: { session: Session }) {
               <InfoButton onClick={() => setInfoModal(INFO[lang].tokTodo)} />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2, flexShrink: 0 }}>{lang === "en" ? "VIEWING" : "檢視"}</span>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 2, flexShrink: 0 }}>{lang === "en" ? "VIEWING" : "檢視"}</span>
               <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-                style={{ flex: 1, padding: "4px 10px", background: "#120d28", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, letterSpacing: 1, cursor: "pointer", outline: "none", colorScheme: "dark" }}>
+                style={{ flex: 1, padding: "5px 10px", background: "#120d28", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", outline: "none", colorScheme: "dark" }}>
                 {availableDates.map(date => (
                   <option key={date} value={date}>{formatDayLabel(date, lang)}</option>
                 ))}
@@ -1517,67 +1517,67 @@ export default function Dashboard({ session }: { session: Session }) {
           </div>
 
           {/* Task input */}
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(192,132,252,0.1)" }}>
+          <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(192,132,252,0.1)" }}>
             {selectedDate === todayStr() ? (<>
               <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={addTask} placeholder={t.taskPlaceholder}
-                style={{ width: "100%", padding: "7px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: "4px 4px 0 0", color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, boxSizing: "border-box", outline: "none" }} />
+                style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: "4px 4px 0 0", color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, boxSizing: "border-box", outline: "none" }} />
               <input value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)} placeholder={t.descPlaceholder}
-                style={{ width: "100%", padding: "5px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.2)", borderTop: "none", borderRadius: "0 0 4px 4px", color: "#7a9ab8", fontFamily: "'Rajdhani', sans-serif", fontSize: 14, marginBottom: 8, boxSizing: "border-box", outline: "none", fontStyle: "italic" }} />
+                style={{ width: "100%", padding: "6px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.2)", borderTop: "none", borderRadius: "0 0 4px 4px", color: "#7a9ab8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, marginBottom: 8, boxSizing: "border-box", outline: "none", fontStyle: "italic" }} />
               <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 8, flexWrap: "wrap" }}>
                 {TASK_EMOJIS.map(e => (
                   <button key={e} onClick={() => setNewTaskEmoji(newTaskEmoji === e ? "" : e)}
-                    style={{ fontSize: 16, lineHeight: 1, padding: "2px 4px", background: newTaskEmoji === e ? "rgba(192,132,252,0.2)" : "transparent", border: `1px solid ${newTaskEmoji === e ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.12)"}`, borderRadius: 4, cursor: "pointer" }}>{e}</button>
+                    style={{ fontSize: 18, lineHeight: 1, padding: "3px 5px", background: newTaskEmoji === e ? "rgba(192,132,252,0.2)" : "transparent", border: `1px solid ${newTaskEmoji === e ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.12)"}`, borderRadius: 4, cursor: "pointer" }}>{e}</button>
                 ))}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
                 {(["low", "medium", "high"] as Demand[]).map(d => (
                   <button key={d} onClick={() => setNewTaskDemand(newTaskDemand === d ? null : d)}
-                    style={{ padding: "2px 8px", background: newTaskDemand === d ? demandColor(d) + "22" : "transparent", border: `1px solid ${newTaskDemand === d ? demandColor(d) : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: newTaskDemand === d ? demandColor(d) : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, cursor: "pointer", letterSpacing: 1 }}>
+                    style={{ padding: "3px 10px", background: newTaskDemand === d ? demandColor(d) + "22" : "transparent", border: `1px solid ${newTaskDemand === d ? demandColor(d) : "rgba(192,132,252,0.2)"}`, borderRadius: 3, color: newTaskDemand === d ? demandColor(d) : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, cursor: "pointer", letterSpacing: 1 }}>
                     {d === "low" ? t.demandLow : d === "medium" ? t.demandMed : t.demandHigh}
                   </button>
                 ))}
                 <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
                   <input type="number" min={1} max={480} value={newTaskTime} onChange={e => setNewTaskTime(e.target.value)} placeholder="—"
-                    style={{ width: 44, padding: "2px 5px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, outline: "none", textAlign: "center" }} />
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8" }}>{t.minUnit}</span>
+                    style={{ width: 52, padding: "3px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", textAlign: "center" }} />
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#5a8fa8" }}>{t.minUnit}</span>
                 </div>
               </div>
             </>) : (
-              <div style={{ padding: "6px 0", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 1 }}>
+              <div style={{ padding: "6px 0", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 1 }}>
                 {lang === "en" ? "PAST DAY · READ ONLY" : "歷史日期 · 唯讀"}
               </div>
             )}
           </div>
 
           {/* Task list */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px", display: "flex", flexDirection: "column", gap: 7 }}>
             {visibleTasks.length === 0 && (
-              <p style={{ margin: 0, fontSize: 13, color: "rgba(90,143,168,0.5)", fontFamily: "'Share Tech Mono', monospace", letterSpacing: 0.5, lineHeight: 1.6 }}>
+              <p style={{ margin: 0, fontSize: 14, color: "rgba(90,143,168,0.5)", fontFamily: "'Share Tech Mono', monospace", letterSpacing: 0.5, lineHeight: 1.6 }}>
                 {lang === "en" ? "No tasks yet. Add one above." : "尚無任務。"}
               </p>
             )}
             {visibleTasks.map(task => (
               <div key={task.id} onClick={() => setSelectedTaskId(task.id)}
-                style={{ display: "flex", flexDirection: "column", padding: "8px 10px", background: "rgba(0,0,0,0.2)", borderRadius: 6, border: "1px solid rgba(192,132,252,0.1)", gap: 4, cursor: "pointer", transition: "border-color 0.15s, background 0.15s" }}
+                style={{ display: "flex", flexDirection: "column", padding: "9px 11px", background: "rgba(0,0,0,0.2)", borderRadius: 6, border: "1px solid rgba(192,132,252,0.1)", gap: 5, cursor: "pointer", transition: "border-color 0.15s, background 0.15s" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(192,132,252,0.35)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(192,132,252,0.05)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(192,132,252,0.1)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(0,0,0,0.2)"; }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 6, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 7, minWidth: 0 }}>
                   <div onClick={e => e.stopPropagation()}>
                     <input type="checkbox" checked={task.done} onChange={() => updateTask(task.id, { done: !task.done })} style={{ accentColor: "#c084fc", cursor: "pointer", flexShrink: 0, marginTop: 3 }} />
                   </div>
-                  {task.emoji && <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1, opacity: task.done ? 0.5 : 1 }}>{task.emoji}</span>}
-                  <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: task.done ? "#5a8fa8" : "#c8d8e8", textDecoration: task.done ? "line-through" : "none", minWidth: 0, wordBreak: "break-word" }}>{task.title}</span>
-                  {task.demand && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, padding: "1px 4px", border: `1px solid ${demandColor(task.demand)}`, color: demandColor(task.demand), borderRadius: 3, flexShrink: 0 }}>{task.demand === "low" ? t.demandLow : task.demand === "medium" ? t.demandMed : t.demandHigh}</span>}
+                  {task.emoji && <span style={{ fontSize: 17, flexShrink: 0, lineHeight: 1, opacity: task.done ? 0.5 : 1 }}>{task.emoji}</span>}
+                  <span style={{ flex: 1, fontSize: 17, fontWeight: 600, color: task.done ? "#5a8fa8" : "#c8d8e8", textDecoration: task.done ? "line-through" : "none", minWidth: 0, wordBreak: "break-word" }}>{task.title}</span>
+                  {task.demand && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, padding: "1px 5px", border: `1px solid ${demandColor(task.demand)}`, color: demandColor(task.demand), borderRadius: 3, flexShrink: 0 }}>{task.demand === "low" ? t.demandLow : task.demand === "medium" ? t.demandMed : t.demandHigh}</span>}
                 </div>
-                {task.description && <p style={{ margin: 0, marginLeft: 22, fontSize: 13, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
-                {task.deadline && <span style={{ marginLeft: 22, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(251,191,36,0.7)" }}>{lang === "en" ? "DUE" : "截止"} {task.deadline}</span>}
-                {task.estimatedMinutes && <span style={{ marginLeft: 22, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.6)" }}>{task.estimatedMinutes}{t.minUnit}</span>}
+                {task.description && <p style={{ margin: 0, marginLeft: 24, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
+                {task.deadline && <span style={{ marginLeft: 24, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)" }}>{lang === "en" ? "DUE" : "截止"} {task.deadline}</span>}
+                {task.estimatedMinutes && <span style={{ marginLeft: 24, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.6)" }}>{task.estimatedMinutes}{t.minUnit}</span>}
               </div>
             ))}
           </div>
 
           {/* Progress footer */}
-          <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(192,132,252,0.1)", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#5a8fa8", letterSpacing: 1 }}>
+          <div style={{ padding: "13px 18px", borderTop: "1px solid rgba(192,132,252,0.1)", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", letterSpacing: 1 }}>
             {t.progress} {visibleCompleted}/{visibleTasks.length} {visibleCompleted > 0 && visibleCompleted === visibleTasks.length ? t.complete : ""}
           </div>
         </aside>
