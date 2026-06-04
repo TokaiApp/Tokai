@@ -194,7 +194,7 @@ function estimateFocusRequired(title: string, description: string | null): numbe
 function focusReadiness(required: number | undefined, currentFocus: number): { color: string; label: string } | null {
   if (required == null) return null;
   const color = currentFocus >= required ? "#4ade80" : currentFocus >= required - 15 ? "#fbbf24" : "#f472b6";
-  return { color, label: `${required}+` };
+  return { color, label: required >= 100 ? "100" : `${required}+` };
 }
 
 const INFO = {
@@ -355,6 +355,42 @@ export default function Dashboard({ session }: { session: Session }) {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [newTaskDeadline, setNewTaskDeadline] = useState("");
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => !!localStorage.getItem("tokai_disclaimer_accepted"));
+
+  // Pomodoro
+  const POMO_WORK = 25 * 60;
+  const POMO_SHORT = 5 * 60;
+  const POMO_LONG = 15 * 60;
+  const [pomodoroRunning, setPomodoroRunning] = useState(false);
+  const [pomodoroPhase, setPomodoroPhase] = useState<"work" | "break">("work");
+  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState(POMO_WORK);
+  const [pomodoroCount, setPomodoroCount] = useState(0);
+  const pomodoroPhaseRef = useRef<"work" | "break">("work");
+  const pomodoroCountRef = useRef(0);
+  useEffect(() => { pomodoroPhaseRef.current = pomodoroPhase; }, [pomodoroPhase]);
+  useEffect(() => { pomodoroCountRef.current = pomodoroCount; }, [pomodoroCount]);
+  useEffect(() => {
+    if (!pomodoroRunning) return;
+    const id = setInterval(() => {
+      setPomodoroTimeLeft(t => {
+        if (t > 1) return t - 1;
+        if (pomodoroPhaseRef.current === "work") {
+          const next = pomodoroCountRef.current + 1;
+          setPomodoroCount(next);
+          pomodoroCountRef.current = next;
+          setPomodoroPhase("break");
+          pomodoroPhaseRef.current = "break";
+          setPomodoroRunning(false);
+          return next % 4 === 0 ? POMO_LONG : POMO_SHORT;
+        } else {
+          setPomodoroPhase("work");
+          pomodoroPhaseRef.current = "work";
+          setPomodoroRunning(false);
+          return POMO_WORK;
+        }
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [pomodoroRunning]);
   const [infoModal, setInfoModal] = useState<{ title: string; body: string } | null>(null);
   const [moodAssessment, setMoodAssessment] = useState<MoodAssessment | null>(null);
   const [moodCapturedUrl, setMoodCapturedUrl] = useState<string | null>(null);
@@ -897,6 +933,40 @@ export default function Dashboard({ session }: { session: Session }) {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Pomodoro Timer */}
+        <div>
+          <SectionLabel>POMODORO</SectionLabel>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 2, color: pomodoroPhase === "work" ? "#c084fc" : "#6ee7b7" }}>
+              {pomodoroPhase === "work" ? "FOCUS" : pomodoroCount % 4 === 0 ? "LONG BREAK" : "BREAK"}
+            </span>
+            <div style={{ display: "flex", gap: 5 }}>
+              {[0,1,2,3].map(i => (
+                <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: i < (pomodoroCount % 4) ? "#c084fc" : "rgba(192,132,252,0.2)", transition: "background 0.3s" }} />
+              ))}
+            </div>
+          </div>
+          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 38, color: "#c8d8e8", textAlign: "center", letterSpacing: 6, marginBottom: 12, textShadow: pomodoroRunning ? "0 0 20px rgba(192,132,252,0.4)" : "none", transition: "text-shadow 0.3s" }}>
+            {String(Math.floor(pomodoroTimeLeft / 60)).padStart(2, "0")}:{String(pomodoroTimeLeft % 60).padStart(2, "0")}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => setPomodoroRunning(r => !r)}
+              style={{ flex: 1, padding: "8px 0", background: pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)", border: "1px solid rgba(192,132,252,0.5)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer", transition: "background 0.2s" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(192,132,252,0.28)")}
+              onMouseLeave={e => (e.currentTarget.style.background = pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)")}>
+              {pomodoroRunning ? "⏸ PAUSE" : "▶ START"}
+            </button>
+            <button
+              onClick={() => { setPomodoroRunning(false); setPomodoroPhase("work"); pomodoroPhaseRef.current = "work"; setPomodoroTimeLeft(POMO_WORK); setPomodoroCount(0); pomodoroCountRef.current = 0; }}
+              style={{ padding: "8px 12px", background: "transparent", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 14, cursor: "pointer", transition: "all 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(192,132,252,0.5)"; e.currentTarget.style.color = "#c084fc"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(192,132,252,0.25)"; e.currentTarget.style.color = "#5a8fa8"; }}>
+              ↺
+            </button>
+          </div>
         </div>
 
         <div>
