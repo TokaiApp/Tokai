@@ -306,6 +306,7 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
   return (
     <button
       onClick={() => setLang(lang === "en" ? "zh" : "en")}
+      onMouseDown={e => e.preventDefault()}
       style={{ display: "flex", alignItems: "center", gap: 0, background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.3)", borderRadius: 6, overflow: "hidden", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: 15, letterSpacing: 1 }}
     >
       <span style={{ width: 48, textAlign: "center", padding: "6px 0", display: "inline-block", color: lang === "en" ? "#c084fc" : "#5a8fa8", fontWeight: lang === "en" ? 700 : 400, background: lang === "en" ? "rgba(192,132,252,0.15)" : "transparent", transition: "all 0.2s" }}>EN</span>
@@ -768,8 +769,12 @@ export default function Dashboard({ session }: { session: Session }) {
     });
   }
 
+  const prevJournalLenRef = useRef(0);
   useEffect(() => {
-    journalBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (journal.length > prevJournalLenRef.current) {
+      journalBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevJournalLenRef.current = journal.length;
   }, [journal]);
 
   useEffect(() => {
