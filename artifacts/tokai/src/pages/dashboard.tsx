@@ -1069,12 +1069,6 @@ export default function Dashboard({ session }: { session: Session }) {
     el.scrollLeft = el.scrollWidth;
   }, [focusHistory, isLive, chartWrapWidth]);
 
-  function scrollChart(delta: number) {
-    const el = chartScrollRef.current;
-    if (!el) return;
-    el.scrollLeft += delta;
-  }
-
   // Smooth "page" scroll for the horizontal card/widget rows (dir: -1 left, +1 right)
   function scrollBox(ref: React.RefObject<HTMLDivElement | null>, dir: -1 | 1) {
     const el = ref.current;
@@ -1672,14 +1666,14 @@ export default function Dashboard({ session }: { session: Session }) {
                 <InfoButton onClick={() => setInfoModal(INFO[lang].focusStream)} />
               </div>
               <div ref={chartWrapRef} style={{ width: "100%", position: "relative" }}>
-                <div ref={chartScrollRef} style={{ width: chartWrapWidth, height: 168, overflowX: "scroll", overflowY: "hidden" }}
+                <div ref={chartScrollRef} style={{ width: chartWrapWidth, height: 140, overflowX: "scroll", overflowY: "hidden" }}
                   onScroll={e => {
                     const el = e.currentTarget;
                     const atRight = el.scrollWidth - el.scrollLeft - el.clientWidth < 80;
                     if (!atRight) setIsLive(false);
                   }}>
-                  <div style={{ width: chartWidth, height: 168, position: "relative" }}>
-                    <LineChart width={chartWidth} height={168} data={focusHistory} margin={{ top: 8, right: 16, bottom: 18, left: 0 }}>
+                  <div style={{ width: chartWidth, height: 140, position: "relative" }}>
+                    <LineChart width={chartWidth} height={140} data={focusHistory} margin={{ top: 8, right: 16, bottom: 18, left: 0 }}>
                       <XAxis dataKey="time" tickFormatter={(v: string) => v.slice(0, 5)} tick={{ fill: "#5a8fa8", fontSize: 12, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} interval={xInterval} />
                       <YAxis domain={[0, 100]} tick={{ fill: "#5a8fa8", fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} ticks={[0, 20, 40, 60, 80, 100]} width={32} />
                       <ReferenceLine y={60} stroke="rgba(255,80,80,0.35)" strokeDasharray="4 4" />
@@ -1702,7 +1696,7 @@ export default function Dashboard({ session }: { session: Session }) {
                             if (idx < 0) return null;
                             const x = getX(idx);
                             return (
-                              <div key={med.id} style={{ position: "absolute", left: x, top: 8, height: 142, width: 0, borderLeft: "1.5px dashed rgba(251,191,36,0.9)", pointerEvents: "none" }}>
+                              <div key={med.id} style={{ position: "absolute", left: x, top: 8, height: 114, width: 0, borderLeft: "1.5px dashed rgba(251,191,36,0.9)", pointerEvents: "none" }}>
                                 <span style={{ position: "absolute", top: 2, left: 3, fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "#fbbf24", whiteSpace: "nowrap", background: "rgba(12,8,24,0.75)", padding: "0 2px" }}>
                                   {med.name.length > 10 ? med.name.slice(0, 10) + "…" : med.name}
                                 </span>
@@ -1714,7 +1708,7 @@ export default function Dashboard({ session }: { session: Session }) {
                             if (idx < 0) return null;
                             const x = getX(idx);
                             return (
-                              <div key={"note_" + entry.id} style={{ position: "absolute", left: x, top: 8, height: 142, width: 0, borderLeft: "1.5px dashed rgba(100,220,180,0.75)", pointerEvents: "none" }}>
+                              <div key={"note_" + entry.id} style={{ position: "absolute", left: x, top: 8, height: 114, width: 0, borderLeft: "1.5px dashed rgba(100,220,180,0.75)", pointerEvents: "none" }}>
                                 <span style={{ position: "absolute", top: 2, right: 3, fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "#6ee7b7", whiteSpace: "nowrap" }}>✎</span>
                               </div>
                             );
@@ -1724,23 +1718,14 @@ export default function Dashboard({ session }: { session: Session }) {
                     })()}
                   </div>
                 </div>
-                {/* Scroll controls */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, marginTop: 6 }}>
-                  {[
-                    { label: "◀◀", delta: -999999, title: "Scroll to start" },
-                    { label: "◀", delta: -200, title: "Scroll left" },
-                    { label: "▶", delta: 200, title: "Scroll right" },
-                  ].map(({ label, delta, title }) => (
-                    <button key={label} onClick={() => scrollChart(delta)} title={title}
-                      style={{ padding: "5px 14px", background: "rgba(192,132,252,0.07)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 4, color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 14, cursor: "pointer", lineHeight: 1.6 }}>
-                      {label}
-                    </button>
-                  ))}
-                  <button onClick={goToLive} title="Jump to live"
-                    style={{ padding: "5px 14px", background: isLive ? "rgba(192,132,252,0.2)" : "rgba(192,132,252,0.07)", border: `1px solid ${isLive ? "rgba(192,132,252,0.7)" : "rgba(192,132,252,0.25)"}`, borderRadius: 4, color: isLive ? "#c084fc" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 14, cursor: "pointer", letterSpacing: 1, lineHeight: 1.6, transition: "all 0.2s" }}>
-                    {t.goLive}
-                  </button>
-                </div>
+                {/* Side-overlay scroll arrows (match the metric/widget rows) */}
+                <button onClick={() => scrollBox(chartScrollRef, -1)} title={lang === "en" ? "Scroll left" : "向左捲動"} style={scrollArrowStyle("left")}>◀</button>
+                <button onClick={() => scrollBox(chartScrollRef, 1)} title={lang === "en" ? "Scroll right" : "向右捲動"} style={scrollArrowStyle("right")}>▶</button>
+                {/* Jump-to-live (corner overlay) */}
+                <button onClick={goToLive} title="Jump to live"
+                  style={{ position: "absolute", bottom: 6, right: 8, zIndex: 3, padding: "3px 11px", background: isLive ? "rgba(192,132,252,0.25)" : "rgba(12,8,24,0.85)", border: `1px solid ${isLive ? "rgba(192,132,252,0.7)" : "rgba(192,132,252,0.35)"}`, borderRadius: 5, color: isLive ? "#c084fc" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer", transition: "all 0.2s" }}>
+                  {t.goLive}
+                </button>
               </div>
             </div>
           </div>
