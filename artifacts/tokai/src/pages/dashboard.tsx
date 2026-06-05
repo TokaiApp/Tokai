@@ -595,20 +595,75 @@ export default function Dashboard({ session }: { session: Session }) {
   }, [dataLoaded, tasks.some(t => !t.done)]);
 
   // Pomodoro
-  const [pomodoroWorkMins, setPomodoroWorkMins] = useState(25);
-  const [pomodoroBreakMins, setPomodoroBreakMins] = useState(5);
+  const savedTimer = (() => { try { return JSON.parse(localStorage.getItem("tokai_timer_state") || "null"); } catch { return null; } })();
+  const [pomodoroWorkMins, setPomodoroWorkMins] = useState<number>(savedTimer?.workMins ?? 25);
+  const [pomodoroBreakMins, setPomodoroBreakMins] = useState<number>(savedTimer?.breakMins ?? 5);
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
-  const [pomodoroPhase, setPomodoroPhase] = useState<"work" | "break">("work");
-  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState(25 * 60);
-  const [pomodoroCount, setPomodoroCount] = useState(0);
-  const pomodoroPhaseRef = useRef<"work" | "break">("work");
-  const pomodoroCountRef = useRef(0);
-  const pomodoroWorkRef = useRef(25 * 60);
-  const pomodoroBreakRef = useRef(5 * 60);
+  const [pomodoroPhase, setPomodoroPhase] = useState<"work" | "break">(savedTimer?.phase === "break" ? "break" : "work");
+  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState<number>(savedTimer?.timeLeft ?? 25 * 60);
+  const [pomodoroCount, setPomodoroCount] = useState<number>(savedTimer?.count ?? 0);
+  const [pomodoroAutoContinue, setPomodoroAutoContinue] = useState<boolean>(() => localStorage.getItem("tokai_timer_autocontinue") === "1");
+  const [pomodoroSound, setPomodoroSound] = useState<boolean>(() => localStorage.getItem("tokai_timer_sound") !== "0");
+  const [focusSessions, setFocusSessions] = useState<{ date: string; taskId: string | null; taskTitle: string | null; minutes: number; time: string }[]>(() => {
+    try { return JSON.parse(localStorage.getItem("tokai_focus_sessions") || "[]"); } catch { return []; }
+  });
+  const pomodoroPhaseRef = useRef<"work" | "break">(savedTimer?.phase === "break" ? "break" : "work");
+  const pomodoroCountRef = useRef<number>(savedTimer?.count ?? 0);
+  const pomodoroWorkRef = useRef((savedTimer?.workMins ?? 25) * 60);
+  const pomodoroBreakRef = useRef((savedTimer?.breakMins ?? 5) * 60);
+  const pomodoroAutoContinueRef = useRef(pomodoroAutoContinue);
+  const pomodoroSoundRef = useRef(pomodoroSound);
+  const activeTaskRef = useRef<{ id: string; title: string } | null>(null);
   useEffect(() => { pomodoroPhaseRef.current = pomodoroPhase; }, [pomodoroPhase]);
   useEffect(() => { pomodoroCountRef.current = pomodoroCount; }, [pomodoroCount]);
   useEffect(() => { pomodoroWorkRef.current = pomodoroWorkMins * 60; }, [pomodoroWorkMins]);
   useEffect(() => { pomodoroBreakRef.current = pomodoroBreakMins * 60; }, [pomodoroBreakMins]);
+  useEffect(() => { pomodoroAutoContinueRef.current = pomodoroAutoContinue; try { localStorage.setItem("tokai_timer_autocontinue", pomodoroAutoContinue ? "1" : "0"); } catch { /* ignore */ } }, [pomodoroAutoContinue]);
+  useEffect(() => { pomodoroSoundRef.current = pomodoroSound; try { localStorage.setItem("tokai_timer_sound", pomodoroSound ? "1" : "0"); } catch { /* ignore */ } }, [pomodoroSound]);
+  useEffect(() => { const at = activeTaskId ? tasks.find(tk => tk.id === activeTaskId) : null; activeTaskRef.current = at ? { id: at.id, title: at.title } : null; }, [activeTaskId, tasks]);
+  // Persist timer runtime + settings; restored paused on reload
+  useEffect(() => {
+    try { localStorage.setItem("tokai_timer_state", JSON.stringify({ phase: pomodoroPhase, timeLeft: pomodoroTimeLeft, count: pomodoroCount, workMins: pomodoroWorkMins, breakMins: pomodoroBreakMins })); } catch { /* ignore */ }
+  }, [pomodoroPhase, pomodoroTimeLeft, pomodoroCount, pomodoroWorkMins, pomodoroBreakMins]);
+  // Show the countdown in the browser tab title while running; restore the base title otherwise
+  const baseTitleRef = useRef<string>("");
+  useEffect(() => { if (!baseTitleRef.current) baseTitleRef.current = document.title || "Tokai"; }, []);
+  useEffect(() => {
+    if (pomodoroRunning) {
+      document.title = `${String(Math.floor(pomodoroTimeLeft / 60)).padStart(2, "0")}:${String(pomodoroTimeLeft % 60).padStart(2, "0")} · ${pomodoroPhase === "work" ? (lang === "en" ? "Focus" : "專注") : (lang === "en" ? "Break" : "休息")}`;
+    } else if (baseTitleRef.current) {
+      document.title = baseTitleRef.current;
+    }
+  }, [pomodoroRunning, pomodoroTimeLeft, pomodoroPhase, lang]);
+  function playChime() {
+    if (!pomodoroSoundRef.current) return;
+    try {
+      const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+      const ctx = new AC();
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination); o.type = "sine"; o.frequency.value = 660;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+      o.start(); o.stop(ctx.currentTime + 0.42); o.onended = () => ctx.close();
+    } catch { /* ignore */ }
+  }
+  function logFocusSession(minutes: number) {
+    const at = activeTaskRef.current;
+    setFocusSessions(prev => {
+      const next = [...prev, { date: todayStr(), taskId: at?.id ?? null, taskTitle: at?.title ?? null, minutes, time: formatTime(new Date()) }].slice(-500);
+      try { localStorage.setItem("tokai_focus_sessions", JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }
+  function extendTimer(secs: number) { setPomodoroTimeLeft(t => Math.min(t + secs, 99 * 60 + 59)); }
+  function breakEarly() {
+    logFocusSession(Math.max(1, Math.round((pomodoroWorkRef.current - pomodoroTimeLeft) / 60)));
+    const n = pomodoroCountRef.current + 1; setPomodoroCount(n); pomodoroCountRef.current = n;
+    setPomodoroPhase("break"); pomodoroPhaseRef.current = "break";
+    setPomodoroTimeLeft(n % 4 === 0 ? pomodoroBreakRef.current * 3 : pomodoroBreakRef.current);
+    playChime();
+  }
   useEffect(() => {
     if (!pomodoroRunning) return;
     const id = setInterval(() => {
@@ -620,13 +675,17 @@ export default function Dashboard({ session }: { session: Session }) {
           pomodoroCountRef.current = next;
           setPomodoroPhase("break");
           pomodoroPhaseRef.current = "break";
-          setPomodoroRunning(false);
-          pushNotification(lang === "en" ? "Focus block done — time for a break." : "專注時段結束 — 該休息了。", "#6ee7b7", "☕");
+          if (!pomodoroAutoContinueRef.current) setPomodoroRunning(false);
+          logFocusSession(Math.round(pomodoroWorkRef.current / 60));
+          playChime();
+          const at = activeTaskRef.current;
+          pushNotification((lang === "en" ? "Focus block done — time for a break." : "專注時段結束 — 該休息了。") + (at ? ` · ${at.title}` : ""), "#6ee7b7", "☕");
           return next % 4 === 0 ? pomodoroBreakRef.current * 3 : pomodoroBreakRef.current;
         } else {
           setPomodoroPhase("work");
           pomodoroPhaseRef.current = "work";
-          setPomodoroRunning(false);
+          if (!pomodoroAutoContinueRef.current) setPomodoroRunning(false);
+          playChime();
           pushNotification(lang === "en" ? "Break over — back to focus." : "休息結束 — 回到專注。", "#c084fc", "⚡");
           return pomodoroWorkRef.current;
         }
@@ -1330,8 +1389,46 @@ export default function Dashboard({ session }: { session: Session }) {
       out.push({ icon: "📈", text: en ? `This session's focus peaked at ${peak}/100.` : `本次階段專注峰值 ${peak}/100。` });
     }
 
+    // 7. TokTimer focus blocks today
+    const todayBlocks = focusSessions.filter(s => s.date === todayStr());
+    if (todayBlocks.length >= 1) {
+      const mins = todayBlocks.reduce((a, s) => a + s.minutes, 0);
+      out.push({ icon: "⏱", text: en ? `${todayBlocks.length} focus block${todayBlocks.length > 1 ? "s" : ""} today — ${mins} min focused.` : `今天完成 ${todayBlocks.length} 個專注時段 — 共 ${mins} 分鐘。` });
+    }
+
+    // 8. Where your focus time goes (by task)
+    const byTask: Record<string, number> = {};
+    for (const s of focusSessions) if (s.taskTitle) byTask[s.taskTitle] = (byTask[s.taskTitle] || 0) + s.minutes;
+    const topTask = Object.entries(byTask).sort((a, b) => b[1] - a[1])[0];
+    if (topTask && topTask[1] >= 25) out.push({ icon: "🎯", text: en ? `Most focus time goes to "${topTask[0]}" (${topTask[1]} min).` : `最多專注時間花在「${topTask[0]}」（${topTask[1]} 分鐘）。` });
+
+    // 9. When you run focus blocks
+    if (focusSessions.length >= 4) {
+      const periods = [
+        { en: "the morning", zh: "早上", lo: 5, hi: 11 },
+        { en: "around midday", zh: "中午", lo: 11, hi: 14 },
+        { en: "the afternoon", zh: "下午", lo: 14, hi: 18 },
+        { en: "the evening", zh: "晚上", lo: 18, hi: 23 },
+        { en: "late at night", zh: "深夜", lo: 23, hi: 29 },
+      ];
+      const counts: Record<number, number> = {};
+      for (const s of focusSessions) {
+        let h = parseInt((s.time ?? "").slice(0, 2)); if (isNaN(h)) continue; if (h < 5) h += 24;
+        const pi = periods.findIndex(p => h >= p.lo && h < p.hi); if (pi >= 0) counts[pi] = (counts[pi] || 0) + 1;
+      }
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+      if (top && Number(top[1]) >= 2) { const p = periods[Number(top[0])]; out.push({ icon: "🗓", text: en ? `You run most focus blocks in ${p.en}.` : `你多數的專注時段在${p.zh}。` }); }
+    }
+
     return out;
-  }, [journal, tasks, medLog, focusHistory, lang]);
+  }, [journal, tasks, medLog, focusHistory, focusSessions, lang]);
+
+  // TokTimer derived values
+  const activeTask = activeTaskId ? (tasks.find(t => t.id === activeTaskId) ?? null) : null;
+  const todaySessions = focusSessions.filter(s => s.date === todayStr());
+  const todayFocusMin = todaySessions.reduce((a, s) => a + s.minutes, 0);
+  const timerInFlow = pomodoroRunning && pomodoroPhase === "work" && neural.focusIndex > 65;
+  const timerLowFocus = pomodoroRunning && pomodoroPhase === "work" && neural.focusIndex < 35;
   const visibleMedLog = medLog.filter(m => (m.date ?? todayStr()) === selectedDate);
   const visibleCompleted = visibleTasks.filter(t => t.done).length;
   const sessionElapsed = Math.floor((now.getTime() - sessionStart.current.getTime()) / 1000);
@@ -1467,7 +1564,13 @@ export default function Dashboard({ session }: { session: Session }) {
                   <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "#5a8fa8", letterSpacing: 1, marginTop: 2 }}>{t.version}</div>
                 </div>
               </a>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {pomodoroRunning && (
+                  <button onClick={() => widgetScrollRef.current?.scrollTo({ left: 0, behavior: "smooth" })} title={lang === "en" ? "TokTimer" : "前往 TokTimer"}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", background: pomodoroPhase === "work" ? "rgba(192,132,252,0.12)" : "rgba(110,231,183,0.12)", border: `1px solid ${pomodoroPhase === "work" ? "rgba(192,132,252,0.5)" : "rgba(110,231,183,0.5)"}`, borderRadius: 5, color: pomodoroPhase === "work" ? "#c084fc" : "#6ee7b7", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
+                    ⏱ {String(Math.floor(pomodoroTimeLeft / 60)).padStart(2, "0")}:{String(pomodoroTimeLeft % 60).padStart(2, "0")}
+                  </button>
+                )}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8" }}>{t.liveStream}</span>
                   <Toggle checked={liveStream} onChange={setLiveStream} />
@@ -1514,6 +1617,12 @@ export default function Dashboard({ session }: { session: Session }) {
                 <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>AI</span>
               </h1>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {pomodoroRunning && (
+                  <button onClick={() => widgetScrollRef.current?.scrollTo({ left: 0, behavior: "smooth" })} title={lang === "en" ? "Go to TokTimer" : "前往 TokTimer"}
+                    style={{ display: "flex", alignItems: "center", gap: 6, alignSelf: "stretch", padding: "0 12px", background: pomodoroPhase === "work" ? "rgba(192,132,252,0.12)" : "rgba(110,231,183,0.12)", border: `1px solid ${pomodoroPhase === "work" ? "rgba(192,132,252,0.5)" : "rgba(110,231,183,0.5)"}`, borderRadius: 6, color: pomodoroPhase === "work" ? "#c084fc" : "#6ee7b7", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer" }}>
+                    ⏱ {String(Math.floor(pomodoroTimeLeft / 60)).padStart(2, "0")}:{String(pomodoroTimeLeft % 60).padStart(2, "0")}
+                  </button>
+                )}
                 <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
                   style={{ alignSelf: "stretch", padding: "0 14px", background: "#120d28", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", outline: "none", colorScheme: "dark" }}>
                   {availableDates.map(date => (
@@ -1715,10 +1824,19 @@ export default function Dashboard({ session }: { session: Session }) {
               </span>
               <InfoButton onClick={() => setInfoModal(INFO[lang].tokTimer)} />
             </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 20, padding: "20px 24px" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 3, color: pomodoroPhase === "work" ? "#c084fc" : "#6ee7b7" }}>
-                  {pomodoroPhase === "work" ? t.pomoFocus : pomodoroCount % 4 === 0 ? t.pomoLongBreak : t.pomoBreak}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 13, padding: "16px 22px", overflowY: "auto" }}>
+              {/* Working on (active task) */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, maxWidth: "100%" }}>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#7c3aed", letterSpacing: 1.5, flexShrink: 0 }}>{lang === "en" ? "WORKING ON" : "進行中"}</span>
+                {activeTask
+                  ? <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 210 }}>{activeTask.emoji ? activeTask.emoji + " " : ""}{activeTask.title}</span>
+                  : <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.6)" }}>{lang === "en" ? "— none —" : "— 無 —"}</span>}
+              </div>
+
+              {/* Phase + cycle dots */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 3, color: timerInFlow ? "#fbbf24" : (pomodoroPhase === "work" ? "#c084fc" : "#6ee7b7"), transition: "color 0.3s" }}>
+                  {timerInFlow ? (lang === "en" ? "🔥 IN FLOW" : "🔥 心流") : (pomodoroPhase === "work" ? t.pomoFocus : pomodoroCount % 4 === 0 ? t.pomoLongBreak : t.pomoBreak)}
                 </span>
                 <div style={{ display: "flex", gap: 7 }}>
                   {[0,1,2,3].map(i => (
@@ -1726,10 +1844,39 @@ export default function Dashboard({ session }: { session: Session }) {
                   ))}
                 </div>
               </div>
-              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 56, color: "#c8d8e8", textAlign: "center", letterSpacing: 4, lineHeight: 1, textShadow: pomodoroRunning ? "0 0 22px rgba(192,132,252,0.45)" : "none", transition: "text-shadow 0.3s" }}>
+
+              {/* Countdown */}
+              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 54, color: "#c8d8e8", textAlign: "center", letterSpacing: 4, lineHeight: 1, textShadow: pomodoroRunning ? "0 0 22px rgba(192,132,252,0.45)" : "none", transition: "text-shadow 0.3s" }}>
                 {String(Math.floor(pomodoroTimeLeft / 60)).padStart(2, "0")}:{String(pomodoroTimeLeft % 60).padStart(2, "0")}
               </div>
-              {!pomodoroRunning && (
+
+              {/* Focus-aware: low-focus early-break prompt */}
+              {timerLowFocus && (
+                <button onClick={breakEarly}
+                  style={{ padding: "6px 12px", background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.5)", borderRadius: 6, color: "#fbbf24", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 0.5, cursor: "pointer" }}>
+                  ⚠ {lang === "en" ? `Focus low (${neural.focusIndex.toFixed(0)}) — break early?` : `專注偏低（${neural.focusIndex.toFixed(0)}）— 提早休息？`}
+                </button>
+              )}
+
+              {/* Extend (while a work block runs) */}
+              {pomodoroRunning && pomodoroPhase === "work" && (
+                <button onClick={() => extendTimer(5 * 60)}
+                  style={{ padding: "5px 12px", background: timerInFlow ? "rgba(251,191,36,0.14)" : "transparent", border: `1px solid ${timerInFlow ? "rgba(251,191,36,0.5)" : "rgba(192,132,252,0.3)"}`, borderRadius: 6, color: timerInFlow ? "#fbbf24" : "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
+                  +5 {lang === "en" ? "min" : "分"}
+                </button>
+              )}
+
+              {/* Settings (only when stopped) */}
+              {!pomodoroRunning && (<>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[[25, 5], [50, 10], [90, 20]].map(([w, b]) => {
+                    const on = pomodoroWorkMins === w && pomodoroBreakMins === b;
+                    return (
+                      <button key={w} onClick={() => { setPomodoroWorkMins(w); setPomodoroBreakMins(b); setPomodoroTimeLeft((pomodoroPhase === "work" ? w : b) * 60); }}
+                        style={{ padding: "4px 9px", background: on ? "rgba(192,132,252,0.2)" : "transparent", border: `1px solid ${on ? "rgba(192,132,252,0.6)" : "rgba(192,132,252,0.2)"}`, borderRadius: 5, color: on ? "#c084fc" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, cursor: "pointer" }}>{w}/{b}</button>
+                    );
+                  })}
+                </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>{t.pomoWorkLabel}</span>
                   <input type="number" min={1} max={90} value={pomodoroWorkMins}
@@ -1741,7 +1888,19 @@ export default function Dashboard({ session }: { session: Session }) {
                     style={{ width: 40, padding: "3px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#6ee7b7", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", textAlign: "center" }} />
                   <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)" }}>min</span>
                 </div>
-              )}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button onClick={() => setPomodoroAutoContinue(v => !v)}
+                    style={{ padding: "4px 10px", background: pomodoroAutoContinue ? "rgba(192,132,252,0.18)" : "transparent", border: `1px solid ${pomodoroAutoContinue ? "rgba(192,132,252,0.55)" : "rgba(192,132,252,0.2)"}`, borderRadius: 5, color: pomodoroAutoContinue ? "#c084fc" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 0.5, cursor: "pointer" }}>
+                    ↻ {lang === "en" ? "auto-continue" : "自動接續"} {pomodoroAutoContinue ? "ON" : "OFF"}
+                  </button>
+                  <button onClick={() => setPomodoroSound(v => !v)} title={lang === "en" ? "Sound" : "音效"}
+                    style={{ padding: "4px 9px", background: "transparent", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 5, fontSize: 13, cursor: "pointer", lineHeight: 1 }}>
+                    {pomodoroSound ? "🔔" : "🔕"}
+                  </button>
+                </div>
+              </>)}
+
+              {/* Start/pause + reset */}
               <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 280 }}>
                 <button onClick={() => setPomodoroRunning(r => !r)}
                   style={{ flex: 1, padding: "10px 0", background: pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)", border: "1px solid rgba(192,132,252,0.5)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: "pointer", transition: "background 0.2s" }}
@@ -1755,6 +1914,11 @@ export default function Dashboard({ session }: { session: Session }) {
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(192,132,252,0.25)"; e.currentTarget.style.color = "#5a8fa8"; }}>
                   ↺
                 </button>
+              </div>
+
+              {/* Today's focus blocks */}
+              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>
+                {lang === "en" ? `TODAY · ${todaySessions.length} block${todaySessions.length === 1 ? "" : "s"} · ${todayFocusMin} min` : `今天 · ${todaySessions.length} 段 · ${todayFocusMin} 分鐘`}
               </div>
             </div>
           </div>
