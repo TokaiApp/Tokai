@@ -571,6 +571,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [bestTask, setBestTask] = useState<{ taskId: string | null; reason: string } | null>(null);
   const [bestTaskLoading, setBestTaskLoading] = useState(false);
   const bestTaskInFlight = useRef(false);
+  const lastRecFocusRef = useRef(0);
   const activeTaskIdRef = useRef(activeTaskId);
   useEffect(() => { activeTaskIdRef.current = activeTaskId; }, [activeTaskId]);
 
@@ -579,6 +580,7 @@ export default function Dashboard({ session }: { session: Session }) {
     if (pending.length === 0) { setBestTask(null); return; }
     if (bestTaskInFlight.current) return;
     bestTaskInFlight.current = true;
+    lastRecFocusRef.current = neuralRef.current.focusIndex;
     if (!silent) setBestTaskLoading(true);
     try {
       const apiKey = localStorage.getItem("tokai_anthropic_key") ?? "";
@@ -613,17 +615,20 @@ export default function Dashboard({ session }: { session: Session }) {
     }
   }, [tasks, activeTaskId]);
 
-  // Auto-refresh the recommendation every 30s while there are pending tasks and the tab is visible
+  // Refresh the recommendation only when it could actually change — on load, when the set of
+  // pending tasks changes, or when focus shifts meaningfully. (No blind polling: saves API cost.)
+  const pendingKey = tasks.filter(t => !t.done).map(t => t.id).sort().join(",");
   useEffect(() => {
     if (!dataLoaded) return;
-    const hasPending = tasks.some(t => !t.done);
-    if (!hasPending) { setBestTask(null); return; }
+    if (!pendingKey) { setBestTask(null); return; }
     fetchBestTaskRef.current(false);
-    const id = setInterval(() => {
-      if (document.visibilityState === "visible") fetchBestTaskRef.current(true);
-    }, 30000);
-    return () => clearInterval(id);
-  }, [dataLoaded, tasks.some(t => !t.done)]);
+  }, [dataLoaded, pendingKey]);
+  useEffect(() => {
+    if (!dataLoaded || !pendingKey) return;
+    if (Math.abs(neural.focusIndex - lastRecFocusRef.current) >= 15) {
+      fetchBestTaskRef.current(true);
+    }
+  }, [neural.focusIndex, dataLoaded, pendingKey]);
 
   // Pomodoro
   const savedTimer = (() => { try { return JSON.parse(localStorage.getItem("tokai_timer_state") || "null"); } catch { return null; } })();
