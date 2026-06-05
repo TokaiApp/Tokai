@@ -6,6 +6,20 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 
+// Turn an Anthropic SDK error into a short, user-facing reason.
+function aiErrorReason(err) {
+  const status = err && err.status;
+  const raw = String((err && err.error && err.error.error && err.error.error.message) || (err && err.message) || "");
+  if (status === 401) return "AI key is invalid or revoked.";
+  if (status === 403) return "AI key isn't permitted to use this model.";
+  if (status === 429) return "AI rate limit reached — try again in a moment.";
+  if (status === 400 && /credit balance|too low|billing|quota/i.test(raw)) return "AI unavailable — Anthropic credit balance is too low.";
+  if (status === 400) return raw ? `AI rejected the request: ${raw.slice(0, 140)}` : "AI rejected the request.";
+  if (status === 404) return "AI model not found for this account.";
+  if (status === 503 || status === 529 || status === 500) return "AI service is overloaded — try again shortly.";
+  return raw ? `AI error: ${raw.slice(0, 140)}` : "Could not reach the AI service.";
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
@@ -212,7 +226,7 @@ app.post("/api/best-task", async (req, res) => {
     res.json(JSON.parse(match[0]));
   } catch (err) {
     console.error("Best task error:", err);
-    res.status(500).json({ taskId: null, reason: "Could not determine best task." });
+    res.status(500).json({ taskId: null, reason: aiErrorReason(err) });
   }
 });
 

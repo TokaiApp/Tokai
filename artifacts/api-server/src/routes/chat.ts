@@ -8,6 +8,21 @@ if (process.env.ANTHROPIC_API_KEY) {
   client = new Anthropic();
 }
 
+// Turn an Anthropic SDK error into a short, user-facing reason.
+function aiErrorReason(err: unknown): string {
+  const e = err as { status?: number; message?: string; error?: { error?: { message?: string } } };
+  const status = e?.status;
+  const raw = String(e?.error?.error?.message ?? e?.message ?? "");
+  if (status === 401) return "AI key is invalid or revoked.";
+  if (status === 403) return "AI key isn't permitted to use this model.";
+  if (status === 429) return "AI rate limit reached — try again in a moment.";
+  if (status === 400 && /credit balance|too low|billing|quota/i.test(raw)) return "AI unavailable — Anthropic credit balance is too low.";
+  if (status === 400) return raw ? `AI rejected the request: ${raw.slice(0, 140)}` : "AI rejected the request.";
+  if (status === 404) return "AI model not found for this account.";
+  if (status === 503 || status === 529 || status === 500) return "AI service is overloaded — try again shortly.";
+  return raw ? `AI error: ${raw.slice(0, 140)}` : "Could not reach the AI service.";
+}
+
 router.post("/chat", async (req, res) => {
   try {
     const { messages, neuralState, moodAssessment } = req.body as {
@@ -159,7 +174,7 @@ Pick the single best task given the user's focus level. If the task they're alre
     res.json(parsed);
   } catch (err) {
     console.error("Best task error:", err);
-    res.status(500).json({ taskId: null, reason: "Could not determine best task." });
+    res.status(500).json({ taskId: null, reason: aiErrorReason(err) });
   }
 });
 
