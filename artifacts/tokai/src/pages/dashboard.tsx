@@ -364,6 +364,13 @@ export default function Dashboard({ session }: { session: Session }) {
   const [lang, setLang] = useState<Lang>("en");
   const t = T[lang];
 
+  // Accessibility: high-legibility reading font (swaps Rajdhani → Lexend; mono labels unchanged)
+  const [highLegibility, setHighLegibility] = useState(() => localStorage.getItem("tokai_legible") === "1");
+  useEffect(() => {
+    document.documentElement.dataset.legible = highLegibility ? "1" : "";
+    try { localStorage.setItem("tokai_legible", highLegibility ? "1" : "0"); } catch { /* ignore */ }
+  }, [highLegibility]);
+
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -1466,7 +1473,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const xInterval = Math.max(0, Math.round(60 / refreshRate) - 1);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "linear-gradient(135deg, #0c0818 0%, #100a25 50%, #080614 100%)", fontFamily: "'Rajdhani', sans-serif", color: "#c8d8e8" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "linear-gradient(135deg, #0c0818 0%, #100a25 50%, #080614 100%)", fontFamily: "var(--font-body)", color: "#c8d8e8" }}>
 
       {/* ── Sidebar (desktop only) ── */}
       <aside style={{ width: 240, minWidth: 240, borderRight: "1px solid rgba(192,132,252,0.15)", display: isMobile ? "none" : "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh" }}>
@@ -1845,7 +1852,7 @@ export default function Dashboard({ session }: { session: Session }) {
               <div style={{ display: "flex", alignItems: "center", gap: 6, maxWidth: "100%" }}>
                 <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#7c3aed", letterSpacing: 1.5, flexShrink: 0 }}>{lang === "en" ? "WORKING ON" : "進行中"}</span>
                 {activeTask
-                  ? <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 210 }}>{activeTask.emoji ? activeTask.emoji + " " : ""}{activeTask.title}</span>
+                  ? <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 210 }}>{activeTask.emoji ? activeTask.emoji + " " : ""}{activeTask.title}</span>
                   : <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.6)" }}>{lang === "en" ? "— none —" : "— 無 —"}</span>}
               </div>
 
@@ -1953,7 +1960,7 @@ export default function Dashboard({ session }: { session: Session }) {
             {/* Neural Insight — pinned, always visible */}
             <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(192,132,252,0.1)", background: "rgba(192,132,252,0.02)", flexShrink: 0, display: "flex", alignItems: "flex-start", gap: 8 }}>
               <Brain size={14} color="rgba(192,132,252,0.5)" style={{ flexShrink: 0, marginTop: 3 }} />
-              <p style={{ margin: 0, fontSize: 15, color: "rgba(200,216,232,0.7)", lineHeight: 1.6, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif" }}>
+              <p style={{ margin: 0, fontSize: 15, color: "rgba(200,216,232,0.7)", lineHeight: 1.6, fontStyle: "italic", fontFamily: "var(--font-body)" }}>
                 "{getInsight()}"
               </p>
             </div>
@@ -1975,7 +1982,7 @@ export default function Dashboard({ session }: { session: Session }) {
                       </span>
                     ))}
                   </div>
-                  <span style={{ fontSize: 13, color: "rgba(200,216,232,0.7)", fontFamily: "'Rajdhani', sans-serif", fontStyle: "italic" }}>{moodAssessment.suggestion}</span>
+                  <span style={{ fontSize: 13, color: "rgba(200,216,232,0.7)", fontFamily: "var(--font-body)", fontStyle: "italic" }}>{moodAssessment.suggestion}</span>
                 </div>
                 <button onClick={() => { setMoodAssessment(null); setMoodCapturedUrl(null); }} style={{ background: "none", border: "none", color: "rgba(90,143,168,0.5)", cursor: "pointer", fontSize: 18, padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
               </div>
@@ -1996,7 +2003,7 @@ export default function Dashboard({ session }: { session: Session }) {
                         value={editNoteText}
                         onChange={e => setEditNoteText(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveNoteEdit(entry.id); } if (e.key === "Escape") setEditingNoteId(null); }}
-                        style={{ width: "100%", minHeight: 60, padding: "4px 0", background: "transparent", border: "none", borderBottom: "1px solid rgba(192,132,252,0.4)", color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, outline: "none", resize: "none", boxSizing: "border-box" }}
+                        style={{ width: "100%", minHeight: 60, padding: "4px 0", background: "transparent", border: "none", borderBottom: "1px solid rgba(192,132,252,0.4)", color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", resize: "none", boxSizing: "border-box" }}
                       />
                       <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                         <button onClick={() => saveNoteEdit(entry.id)} style={{ background: "none", border: "none", color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, cursor: "pointer", padding: 0, letterSpacing: 1 }}>SAVE</button>
@@ -2022,7 +2029,7 @@ export default function Dashboard({ session }: { session: Session }) {
                         })()}
                         <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(192,132,252,0.3)", marginLeft: "auto" }}>✎</span>
                       </div>
-                      <p style={{ margin: 0, fontSize: 16, color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", lineHeight: 1.5 }}>{entry.text}</p>
+                      <p style={{ margin: 0, fontSize: 16, color: "#c8d8e8", fontFamily: "var(--font-body)", lineHeight: 1.5 }}>{entry.text}</p>
                     </div>
                   ))
                 })()}
@@ -2048,7 +2055,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   onChange={e => setJournalInput(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && addJournalEntry()}
                   placeholder={t.notePlaceholder}
-                  style={{ flex: 1, padding: "8px 12px", background: "rgba(0,0,0,0.35)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, outline: "none", transition: "border-color 0.2s", minWidth: 0 }}
+                  style={{ flex: 1, padding: "8px 12px", background: "rgba(0,0,0,0.35)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", transition: "border-color 0.2s", minWidth: 0 }}
                   onFocus={e => (e.target.style.borderColor = "rgba(192,132,252,0.5)")}
                   onBlur={e => (e.target.style.borderColor = "rgba(192,132,252,0.2)")}
                 />
@@ -2122,11 +2129,11 @@ export default function Dashboard({ session }: { session: Session }) {
               {selectedDate === todayStr() ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <input value={newMedName} onChange={e => setNewMedName(e.target.value)} onKeyDown={e => e.key === "Enter" && logMed()} placeholder={t.medNamePlaceholder}
-                    style={{ width: "100%", padding: "7px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, outline: "none", boxSizing: "border-box" }}
+                    style={{ width: "100%", padding: "7px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", boxSizing: "border-box" }}
                     onFocus={e => (e.target.style.borderColor = "rgba(251,191,36,0.5)")} onBlur={e => (e.target.style.borderColor = "rgba(251,191,36,0.2)")} />
                   <div style={{ display: "flex", gap: 6 }}>
                     <input value={newMedDose} onChange={e => setNewMedDose(e.target.value)} onKeyDown={e => e.key === "Enter" && logMed()} placeholder={t.medDosePlaceholder}
-                      style={{ flex: 1, padding: "7px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, outline: "none", minWidth: 0 }}
+                      style={{ flex: 1, padding: "7px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", minWidth: 0 }}
                       onFocus={e => (e.target.style.borderColor = "rgba(251,191,36,0.5)")} onBlur={e => (e.target.style.borderColor = "rgba(251,191,36,0.2)")} />
                     <input type="time" value={newMedTime} onChange={e => setNewMedTime(e.target.value)}
                       style={{ width: 88, padding: "7px 8px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 6, color: newMedTime ? "#fbbf24" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, outline: "none", colorScheme: "dark", flexShrink: 0 }}
@@ -2213,7 +2220,7 @@ export default function Dashboard({ session }: { session: Session }) {
               ) : insights.map((ins, i) => (
                 <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "9px 11px", background: "rgba(192,132,252,0.05)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 8 }}>
                   <span style={{ fontSize: 16, lineHeight: 1.3, flexShrink: 0 }}>{ins.icon}</span>
-                  <span style={{ fontSize: 15, color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", lineHeight: 1.45 }}>{ins.text}</span>
+                  <span style={{ fontSize: 15, color: "#c8d8e8", fontFamily: "var(--font-body)", lineHeight: 1.45 }}>{ins.text}</span>
                 </div>
               ))}
             </div>
@@ -2245,9 +2252,9 @@ export default function Dashboard({ session }: { session: Session }) {
                   <button onClick={closeTaskForm} style={{ background: "none", border: "none", color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>{t.addTaskClose}</button>
                 </div>
                 <input value={newTask} autoFocus onChange={e => setNewTask(e.target.value)} onKeyDown={addTask} placeholder={t.taskPlaceholder}
-                  style={{ width: "100%", padding: "6px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: "4px 4px 0 0", color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, boxSizing: "border-box", outline: "none" }} />
+                  style={{ width: "100%", padding: "6px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: "4px 4px 0 0", color: "#c8d8e8", fontFamily: "var(--font-body)", fontSize: 16, boxSizing: "border-box", outline: "none" }} />
                 <input value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)} placeholder={t.descPlaceholder}
-                  style={{ width: "100%", padding: "5px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.2)", borderTop: "none", borderRadius: "0 0 4px 4px", color: "#7a9ab8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, marginBottom: 8, boxSizing: "border-box", outline: "none", fontStyle: "italic" }} />
+                  style={{ width: "100%", padding: "5px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.2)", borderTop: "none", borderRadius: "0 0 4px 4px", color: "#7a9ab8", fontFamily: "var(--font-body)", fontSize: 15, marginBottom: 8, boxSizing: "border-box", outline: "none", fontStyle: "italic" }} />
                 <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
                   {TASK_EMOJIS.map(e => (
                     <button key={e} onClick={() => setNewTaskEmoji(newTaskEmoji === e ? "" : e)}
@@ -2279,7 +2286,7 @@ export default function Dashboard({ session }: { session: Session }) {
                     <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#7c3aed", letterSpacing: 1.5, marginBottom: 5 }}>{t.activeTaskLabel}</div>
                     <select value={activeTaskId ?? ""} onChange={e => selectActiveTask(e.target.value || null)}
                       disabled={tasks.filter(t => !t.done).length === 0}
-                      style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.35)", border: `1px solid ${activeTaskId ? "rgba(192,132,252,0.55)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: activeTaskId ? "#c8d8e8" : "#5a8fa8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
+                      style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.35)", border: `1px solid ${activeTaskId ? "rgba(192,132,252,0.55)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: activeTaskId ? "#c8d8e8" : "#5a8fa8", fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
                       <option value="">{t.activeTaskNone}</option>
                       {tasks.filter(t => !t.done).map(tk => { const n = taskNumberById.get(tk.id); return (
                         <option key={tk.id} value={tk.id}>{n ? `${n}. ` : ""}{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
@@ -2310,7 +2317,7 @@ export default function Dashboard({ session }: { session: Session }) {
                         <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10.5, color: "#c084fc", letterSpacing: 1, marginBottom: 5 }}>
                           {t.recommendedTaskLabel}
                         </div>
-                        <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
+                        <div style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
                           onClick={() => setSelectedTaskId(recTask.id)}>
                           {recNum && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, fontWeight: 700, color: "#7c3aed", marginRight: 6 }}>{recNum}.</span>}
                           {recTask.emoji && <span style={{ marginRight: 5 }}>{recTask.emoji}</span>}{recTask.title}
@@ -2356,7 +2363,7 @@ export default function Dashboard({ session }: { session: Session }) {
                           </div>
                         )}
                       </div>
-                      {task.description && <p style={{ margin: 0, marginLeft: 37, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
+                      {task.description && <p style={{ margin: 0, marginLeft: 37, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "var(--font-body)", wordBreak: "break-word" }}>{task.description}</p>}
                       {task.deadline && <span style={{ marginLeft: 37, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)", letterSpacing: 1 }}>{t.dueLabel} {task.deadline}</span>}
                     </div>
                   ))}
@@ -2407,7 +2414,7 @@ export default function Dashboard({ session }: { session: Session }) {
               <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#7c3aed", letterSpacing: 1.5, marginBottom: 5 }}>{t.activeTaskLabel}</div>
               <select value={activeTaskId ?? ""} onChange={e => selectActiveTask(e.target.value || null)}
                 disabled={tasks.filter(t => !t.done).length === 0}
-                style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.35)", border: `1px solid ${activeTaskId ? "rgba(192,132,252,0.55)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: activeTaskId ? "#c8d8e8" : "#5a8fa8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
+                style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.35)", border: `1px solid ${activeTaskId ? "rgba(192,132,252,0.55)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: activeTaskId ? "#c8d8e8" : "#5a8fa8", fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
                 <option value="">{t.activeTaskNone}</option>
                 {tasks.filter(t => !t.done).map(tk => { const n = taskNumberById.get(tk.id); return (
                   <option key={tk.id} value={tk.id}>{n ? `${n}. ` : ""}{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
@@ -2440,7 +2447,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10.5, color: "#c084fc", letterSpacing: 1, marginBottom: 5 }}>
                     {t.recommendedTaskLabel}
                   </div>
-                  <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
+                  <div style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8", marginBottom: 4, cursor: "pointer" }}
                     onClick={() => setSelectedTaskId(recTask.id)}>
                     {recNum && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, fontWeight: 700, color: "#7c3aed", marginRight: 6 }}>{recNum}.</span>}
                     {recTask.emoji && <span style={{ marginRight: 5 }}>{recTask.emoji}</span>}{recTask.title}
@@ -2470,9 +2477,9 @@ export default function Dashboard({ session }: { session: Session }) {
                 <button onClick={closeTaskForm} style={{ background: "none", border: "none", color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>{t.addTaskClose}</button>
               </div>
               <input value={newTask} autoFocus onChange={e => setNewTask(e.target.value)} onKeyDown={addTask} placeholder={t.taskPlaceholder}
-                style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: "4px 4px 0 0", color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, boxSizing: "border-box", outline: "none" }} />
+                style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: "4px 4px 0 0", color: "#c8d8e8", fontFamily: "var(--font-body)", fontSize: 16, boxSizing: "border-box", outline: "none" }} />
               <input value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)} placeholder={t.descPlaceholder}
-                style={{ width: "100%", padding: "6px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.2)", borderTop: "none", borderRadius: "0 0 4px 4px", color: "#7a9ab8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, marginBottom: 8, boxSizing: "border-box", outline: "none", fontStyle: "italic" }} />
+                style={{ width: "100%", padding: "6px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.2)", borderTop: "none", borderRadius: "0 0 4px 4px", color: "#7a9ab8", fontFamily: "var(--font-body)", fontSize: 15, marginBottom: 8, boxSizing: "border-box", outline: "none", fontStyle: "italic" }} />
               <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 8, flexWrap: "wrap" }}>
                 {TASK_EMOJIS.map(e => (
                   <button key={e} onClick={() => setNewTaskEmoji(newTaskEmoji === e ? "" : e)}
@@ -2535,7 +2542,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   <span style={{ flex: 1, fontSize: 17, fontWeight: 600, color: task.done ? "#5a8fa8" : "#c8d8e8", textDecoration: task.done ? "line-through" : "none", minWidth: 0, wordBreak: "break-word" }}>{task.title}</span>
                   {(() => { const r = focusReadiness(task.focusRequired, neural.focusIndex); return r ? <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, padding: "1px 5px", border: `1px solid ${r.color}`, color: r.color, borderRadius: 3, flexShrink: 0, opacity: task.done ? 0.4 : 1 }}>⚡{r.label}</span> : null; })()}
                 </div>
-                {task.description && <p style={{ margin: 0, marginLeft: 47, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "'Rajdhani', sans-serif", wordBreak: "break-word" }}>{task.description}</p>}
+                {task.description && <p style={{ margin: 0, marginLeft: 47, fontSize: 14, color: "#5a8fa8", lineHeight: 1.5, fontStyle: "italic", fontFamily: "var(--font-body)", wordBreak: "break-word" }}>{task.description}</p>}
                 {task.deadline && <span style={{ marginLeft: 47, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(251,191,36,0.7)" }}>{t.dueLabel} {task.deadline}</span>}
                 {task.estimatedMinutes && <span style={{ marginLeft: 47, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.6)" }}>{task.estimatedMinutes}{t.minUnit}</span>}
               </div>
@@ -2589,7 +2596,7 @@ export default function Dashboard({ session }: { session: Session }) {
           {notifications.map(n => (
             <div key={n.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "linear-gradient(135deg, #120d28, #160f30)", border: `1px solid ${n.color}44`, borderLeft: `3px solid ${n.color}`, borderRadius: 8, padding: "12px 14px", boxShadow: `0 4px 24px ${n.color}22`, animation: "slideIn 0.2s ease" }}>
               <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{n.icon}</span>
-              <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 14, color: "#c8d8e8", lineHeight: 1.5, flex: 1 }}>{n.message}</span>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "#c8d8e8", lineHeight: 1.5, flex: 1 }}>{n.message}</span>
               <button onClick={() => dismissNotification(n.id)} style={{ background: "none", border: "none", color: "rgba(90,143,168,0.5)", cursor: "pointer", fontSize: 16, padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
             </div>
           ))}
@@ -2616,7 +2623,7 @@ export default function Dashboard({ session }: { session: Session }) {
               <input value={profile.name} onChange={e => setProfile(p => p ? { ...p, name: e.target.value } : p)}
                 onBlur={() => saveProfile({ name: profile.name })}
                 placeholder={lang === "en" ? "Your name..." : "你的名字..."}
-                style={{ padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, outline: "none" }} />
+                style={{ padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#c8d8e8", fontFamily: "var(--font-body)", fontSize: 16, outline: "none" }} />
             </div>
 
             {/* Email */}
@@ -2640,6 +2647,19 @@ export default function Dashboard({ session }: { session: Session }) {
                 <option value="emotiv">Emotiv EPOC X</option>
                 <option value="other">{lang === "en" ? "Other" : "其他"}</option>
               </select>
+            </div>
+
+            {/* Accessibility */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "ACCESSIBILITY" : "無障礙"}</span>
+              <button onClick={() => setHighLegibility(v => !v)}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 12px", background: highLegibility ? "rgba(192,132,252,0.12)" : "rgba(0,0,0,0.25)", border: `1px solid ${highLegibility ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, cursor: "pointer", textAlign: "left" }}>
+                <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8" }}>{lang === "en" ? "High-legibility font" : "高易讀字體"}</span>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.7)", letterSpacing: 0.3 }}>{lang === "en" ? "Swaps reading text to Lexend (keeps the mono labels)" : "將閱讀文字換成 Lexend（保留等寬標籤）"}</span>
+                </span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: highLegibility ? "#c084fc" : "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{highLegibility ? "ON" : "OFF"}</span>
+              </button>
             </div>
 
             {/* Subscription */}
@@ -2676,7 +2696,7 @@ export default function Dashboard({ session }: { session: Session }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "AI PROFILE SUMMARY" : "AI 個人摘要"}</span>
               {profile.aiProfile ? (
-                <div style={{ padding: "10px 12px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 6, fontFamily: "'Rajdhani', sans-serif", fontSize: 15, color: "#c8d8e8", lineHeight: 1.6, fontStyle: "italic" }}>
+                <div style={{ padding: "10px 12px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 6, fontFamily: "var(--font-body)", fontSize: 15, color: "#c8d8e8", lineHeight: 1.6, fontStyle: "italic" }}>
                   {profile.aiProfile}
                 </div>
               ) : (
@@ -2701,12 +2721,12 @@ export default function Dashboard({ session }: { session: Session }) {
             <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#c084fc", letterSpacing: 3, borderBottom: "1px solid rgba(192,132,252,0.2)", paddingBottom: 10 }}>
               TOKAI · {lang === "zh" ? "使用聲明" : "DISCLAIMER"}
             </div>
-            <p style={{ margin: 0, fontSize: 15, color: "#c8d8e8", lineHeight: 1.7, fontFamily: "'Rajdhani', sans-serif" }}>
+            <p style={{ margin: 0, fontSize: 15, color: "#c8d8e8", lineHeight: 1.7, fontFamily: "var(--font-body)" }}>
               {lang === "zh"
                 ? <>Tokai 是一款<strong style={{ color: "#c084fc" }}>研究原型</strong>，並非醫療裝置。Pre-alpha 版本中的神經指標均為模擬數值。本應用程式不用於診斷、治療或提供任何 ADHD 或其他疾病的臨床建議。</>
                 : <>Tokai is a <strong style={{ color: "#c084fc" }}>research prototype</strong> and is not a medical device. Neural metrics in this alpha version are simulated. This app is not intended to diagnose, treat, or provide clinical guidance for ADHD or any other condition.</>}
             </p>
-            <p style={{ margin: 0, fontSize: 15, color: "#c8d8e8", lineHeight: 1.7, fontFamily: "'Rajdhani', sans-serif" }}>
+            <p style={{ margin: 0, fontSize: 15, color: "#c8d8e8", lineHeight: 1.7, fontFamily: "var(--font-body)" }}>
               {lang === "zh"
                 ? "你的資料儲存於本機裝置。若提供 API 金鑰，TokAgent 將透過 Anthropic API 使用你的資料生成回應。"
                 : "Your data is stored locally on your device. TokAgent may use your data to generate responses via the Anthropic API if an API key is provided."}
@@ -2733,7 +2753,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 {lang === "en" ? "MOOD CHECK-IN" : "情緒掃描"}
               </span>
             </div>
-            <p style={{ margin: 0, fontSize: 15, color: "#c8d8e8", lineHeight: 1.7, fontFamily: "'Rajdhani', sans-serif" }}>
+            <p style={{ margin: 0, fontSize: 15, color: "#c8d8e8", lineHeight: 1.7, fontFamily: "var(--font-body)" }}>
               {lang === "en"
                 ? "Tokai will analyze a photo to assess your mood and energy state, then personalize your task session accordingly."
                 : "Tokai 將分析一張照片來評估你的情緒與能量狀態，並據此個人化你的任務工作階段。"}
@@ -2776,7 +2796,7 @@ export default function Dashboard({ session }: { session: Session }) {
               <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#c084fc", letterSpacing: 3, flex: 1 }}>{infoModal.title}</span>
               <button onClick={() => setInfoModal(null)} style={{ background: "none", border: "none", color: "#5a8fa8", cursor: "pointer", fontSize: 22, padding: 0, lineHeight: 1 }}>×</button>
             </div>
-            <p style={{ margin: 0, fontSize: 15, color: "#c8d8e8", lineHeight: 1.7, fontFamily: "'Rajdhani', sans-serif" }}>
+            <p style={{ margin: 0, fontSize: 15, color: "#c8d8e8", lineHeight: 1.7, fontFamily: "var(--font-body)" }}>
               {infoModal.body}
             </p>
           </div>
@@ -2806,7 +2826,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 <input
                   value={task.title}
                   onChange={e => setTasks(p => p.map(t => t.id === task.id ? { ...t, title: e.target.value } : t))}
-                  style={{ flex: 1, padding: "6px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", fontSize: 20, fontWeight: 600, boxSizing: "border-box", outline: "none", textDecoration: task.done ? "line-through" : "none" }}
+                  style={{ flex: 1, padding: "6px 10px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#c8d8e8", fontFamily: "var(--font-body)", fontSize: 20, fontWeight: 600, boxSizing: "border-box", outline: "none", textDecoration: task.done ? "line-through" : "none" }}
                 />
               </div>
 
@@ -2826,7 +2846,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 onChange={e => setTasks(p => p.map(t => t.id === task.id ? { ...t, description: e.target.value || null } : t))}
                 placeholder={t.descPlaceholder}
                 rows={3}
-                style={{ width: "100%", padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#7a9ab8", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, fontStyle: "italic", resize: "vertical", boxSizing: "border-box", outline: "none", lineHeight: 1.5 }}
+                style={{ width: "100%", padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#7a9ab8", fontFamily: "var(--font-body)", fontSize: 15, fontStyle: "italic", resize: "vertical", boxSizing: "border-box", outline: "none", lineHeight: 1.5 }}
               />
 
               {/* Generate button */}

@@ -301,7 +301,7 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
             )}
             {messages.map((msg, i) => (
               <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
-                <div style={{ maxWidth: "72%", padding: "10px 14px", borderRadius: msg.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: msg.role === "user" ? "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.12))" : "rgba(192,132,252,0.06)", border: `1px solid ${msg.role === "user" ? "rgba(124,58,237,0.35)" : "rgba(192,132,252,0.18)"}`, fontSize: 17, color: "#d0e8f8", lineHeight: 1.6, fontFamily: "'Rajdhani', sans-serif" }}>
+                <div style={{ maxWidth: "72%", padding: "10px 14px", borderRadius: msg.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: msg.role === "user" ? "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.12))" : "rgba(192,132,252,0.06)", border: `1px solid ${msg.role === "user" ? "rgba(124,58,237,0.35)" : "rgba(192,132,252,0.18)"}`, fontSize: 17, color: "#d0e8f8", lineHeight: 1.6, fontFamily: "var(--font-body)" }}>
                   {msg.role === "assistant" && (
                     <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#c084fc", letterSpacing: 2, marginBottom: 5 }}>{t.label}</div>
                   )}
@@ -327,7 +327,7 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
           {isToday ? (
             <div style={{ padding: "12px 20px", borderTop: "1px solid rgba(192,132,252,0.15)", display: "flex", gap: 10, background: "rgba(0,0,0,0.15)" }}>
               <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder={t.placeholder}
-                style={{ flex: 1, padding: "9px 14px", background: "rgba(0,0,0,0.35)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Rajdhani', sans-serif", fontSize: 16, outline: "none", transition: "border-color 0.2s" }}
+                style={{ flex: 1, padding: "9px 14px", background: "rgba(0,0,0,0.35)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 16, outline: "none", transition: "border-color 0.2s" }}
                 onFocus={e => (e.target.style.borderColor = "rgba(192,132,252,0.5)")}
                 onBlur={e => (e.target.style.borderColor = "rgba(192,132,252,0.2)")}
               />
