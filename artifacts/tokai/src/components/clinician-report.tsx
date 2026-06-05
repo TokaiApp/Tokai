@@ -49,6 +49,26 @@ export default function ClinicianReport({ name, email, lang = "en", journal, med
   const t = UI[lang];
   const [days, setDays] = useState<number>(30); // 0 = all
 
+  // Print from a clean static popup so the live-updating dashboard can't disrupt the PDF capture.
+  function printReport() {
+    const node = document.getElementById("clinician-report");
+    if (!node) return;
+    const w = window.open("", "tokai-report", "width=920,height=1000");
+    if (!w) { window.print(); return; } // popup blocked → fall back to in-page print
+    w.document.write(
+      `<!DOCTYPE html><html lang="${lang}"><head><meta charset="utf-8" />` +
+      `<title>Tokai — ${t.title}</title>` +
+      `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>` +
+      `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">` +
+      `<style>html,body{margin:0;background:#fff;font-family:'Inter',system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}@page{margin:1.4cm;}#clinician-report{box-shadow:none!important;border-radius:0!important;}</style>` +
+      `</head><body>${node.outerHTML}</body></html>`
+    );
+    w.document.close();
+    const go = () => { try { w.focus(); w.print(); } catch { /* ignore */ } };
+    w.onload = go;
+    setTimeout(go, 500); // fallback if onload already fired
+  }
+
   const from = useMemo(() => days === 0 ? "0000-00-00" : new Date(Date.now() - days * 86400000).toISOString().slice(0, 10), [days]);
   const inRange = (d?: string) => !!d && d.slice(0, 10) >= from;
 
@@ -91,7 +111,7 @@ export default function ClinicianReport({ name, email, lang = "en", journal, med
           ))}
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button onClick={() => window.print()} style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid #c084fc", background: "#7c3aed", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t.print}</button>
+          <button onClick={printReport} style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid #c084fc", background: "#7c3aed", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t.print}</button>
           <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 13, cursor: "pointer" }}>{t.close}</button>
         </div>
       </div>
