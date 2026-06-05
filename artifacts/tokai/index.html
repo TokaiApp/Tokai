@@ -13,6 +13,15 @@
          Mono labels keep their own family for the techy brand look. */
       :root { --font-body: 'Rajdhani', sans-serif; }
       html[data-legible="1"] { --font-body: 'Lexend', 'Atkinson Hyperlegible', sans-serif; }
+      /* Reduce motion: near-instant transitions/animations + no smooth scrolling */
+      html[data-reduce-motion="1"] *,
+      html[data-reduce-motion="1"] *::before,
+      html[data-reduce-motion="1"] *::after {
+        transition-duration: 0.001ms !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
     </style>
   </head>
   <body>

@@ -371,6 +371,27 @@ export default function Dashboard({ session }: { session: Session }) {
     try { localStorage.setItem("tokai_legible", highLegibility ? "1" : "0"); } catch { /* ignore */ }
   }, [highLegibility]);
 
+  // Accessibility: reduce motion (transitions/animations/smooth-scroll), default to the OS preference
+  const [reduceMotion, setReduceMotion] = useState(() => {
+    const saved = localStorage.getItem("tokai_reduce_motion");
+    if (saved != null) return saved === "1";
+    try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.reduceMotion = reduceMotion ? "1" : "";
+    try { localStorage.setItem("tokai_reduce_motion", reduceMotion ? "1" : "0"); } catch { /* ignore */ }
+  }, [reduceMotion]);
+
+  // Accessibility: text scale (whole-UI zoom; px sizes are hardcoded so this mirrors browser zoom)
+  const [textScale, setTextScale] = useState<number>(() => {
+    const v = parseFloat(localStorage.getItem("tokai_text_scale") || "1");
+    return [0.9, 1, 1.15, 1.3].includes(v) ? v : 1;
+  });
+  useEffect(() => {
+    (document.documentElement.style as CSSStyleDeclaration & { zoom?: string }).zoom = textScale === 1 ? "" : String(textScale);
+    try { localStorage.setItem("tokai_text_scale", String(textScale)); } catch { /* ignore */ }
+  }, [textScale]);
+
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -2660,6 +2681,23 @@ export default function Dashboard({ session }: { session: Session }) {
                 </span>
                 <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: highLegibility ? "#c084fc" : "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{highLegibility ? "ON" : "OFF"}</span>
               </button>
+              <button onClick={() => setReduceMotion(v => !v)}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 12px", background: reduceMotion ? "rgba(192,132,252,0.12)" : "rgba(0,0,0,0.25)", border: `1px solid ${reduceMotion ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, cursor: "pointer", textAlign: "left" }}>
+                <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8" }}>{lang === "en" ? "Reduce motion" : "減少動態效果"}</span>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.7)", letterSpacing: 0.3 }}>{lang === "en" ? "Minimizes transitions, animations, and smooth scrolling" : "減少過渡、動畫與平滑捲動"}</span>
+                </span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: reduceMotion ? "#c084fc" : "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{reduceMotion ? "ON" : "OFF"}</span>
+              </button>
+              <div style={{ padding: "9px 12px", background: "rgba(0,0,0,0.25)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, display: "flex", flexDirection: "column", gap: 7 }}>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8" }}>{lang === "en" ? "Text size" : "文字大小"}</span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {([[0.9, lang === "en" ? "S" : "小"], [1, lang === "en" ? "M" : "中"], [1.15, lang === "en" ? "L" : "大"], [1.3, "XL"]] as [number, string][]).map(([v, label]) => (
+                    <button key={v} onClick={() => setTextScale(v)}
+                      style={{ flex: 1, padding: "6px 0", background: textScale === v ? "rgba(192,132,252,0.2)" : "transparent", border: `1px solid ${textScale === v ? "rgba(192,132,252,0.6)" : "rgba(192,132,252,0.2)"}`, borderRadius: 5, color: textScale === v ? "#c084fc" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer" }}>{label}</button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Subscription */}
@@ -2728,8 +2766,8 @@ export default function Dashboard({ session }: { session: Session }) {
             </p>
             <p style={{ margin: 0, fontSize: 15, color: "#c8d8e8", lineHeight: 1.7, fontFamily: "var(--font-body)" }}>
               {lang === "zh"
-                ? "你的資料儲存於本機裝置。若提供 API 金鑰，TokAgent 將透過 Anthropic API 使用你的資料生成回應。"
-                : "Your data is stored locally on your device. TokAgent may use your data to generate responses via the Anthropic API if an API key is provided."}
+                ? "你的任務、日誌與個人檔案儲存在你的私人 Tokai 帳戶中（透過列級安全性逐一隔離）；API 金鑰與對話紀錄留在你的瀏覽器。使用 AI 功能時，相關資料會傳送至 Anthropic API 以生成回應。"
+                : "Your tasks, journal, and profile are kept in your private Tokai account (isolated per user via row-level security); your API key and chat history stay in your browser. When you use AI features, the relevant data is sent to Anthropic's API to generate a response."}
             </p>
             <button
               onClick={() => { localStorage.setItem("tokai_disclaimer_accepted", "1"); setDisclaimerAccepted(true); }}
