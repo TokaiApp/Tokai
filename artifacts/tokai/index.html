@@ -22,6 +22,15 @@
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
       }
+      /* Clinician report: print only the report, on white, ignoring app theme + text-scale zoom */
+      @media print {
+        html { zoom: 1 !important; }
+        body * { visibility: hidden !important; }
+        #clinician-report, #clinician-report * { visibility: visible !important; }
+        #clinician-report { position: absolute !important; left: 0; top: 0; width: 100%; }
+        .no-print { display: none !important; }
+        @page { margin: 1.5cm; }
+      }
     </style>
   </head>
   <body>

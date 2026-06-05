@@ -6,6 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, ReferenceLine,
 } from "recharts";
 import AgentChat from "@/components/agent-chat";
+import ClinicianReport from "@/components/clinician-report";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
@@ -359,6 +360,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const userId = session.user.id;
   const [profile, setProfile] = useState<{ name: string; bciDevice: string; subscriptionTier: string; tokens: number; aiProfile: string | null } | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [profileGenerating, setProfileGenerating] = useState(false);
   const tokEn = profile?.tokens ?? 100;
   const [lang, setLang] = useState<Lang>("en");
@@ -2587,7 +2589,6 @@ export default function Dashboard({ session }: { session: Session }) {
             <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>AGENT</span>
           </span>
           <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#5a8fa8" }}>
-            <span>{lang === "en" ? "FOCUS" : "專注"} {neural.focusIndex.toFixed(1)}</span>
             <span style={{ color: "#c084fc" }}>{lang === "en" ? "ASK →" : "詢問 →"}</span>
           </span>
         </button>
@@ -2610,6 +2611,21 @@ export default function Dashboard({ session }: { session: Session }) {
           />
         </div>
       </>)}
+
+      {/* ── Clinician report ── */}
+      {showReport && profile && (
+        <ClinicianReport
+          name={profile.name}
+          email={session.user.email ?? ""}
+          lang={lang}
+          journal={journal.map(e => ({ date: e.date, time: e.time, text: e.text, focusIndex: e.focusIndex, mood: e.mood }))}
+          meds={medLog.map(m => { const d = getMedDelta(m); return { date: m.date ?? todayStr(), time: m.time, name: m.name, dose: m.dose, delta: d?.delta ?? null, deltaMin: d?.minutes ?? null }; })}
+          tasks={tasks.map(tk => ({ title: tk.title, done: tk.done, createdAt: tk.createdAt, focusRequired: tk.focusRequired, estimatedMinutes: tk.estimatedMinutes }))}
+          sessions={focusSessions.map(s => ({ date: s.date, time: s.time, taskTitle: s.taskTitle, minutes: s.minutes }))}
+          insights={insights}
+          onClose={() => setShowReport(false)}
+        />
+      )}
 
       {/* ── Notification banners ── */}
       {notifications.length > 0 && (
@@ -2698,6 +2714,19 @@ export default function Dashboard({ session }: { session: Session }) {
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* Clinician report */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "SHARE" : "分享"}</span>
+              <button onClick={() => { setShowProfileModal(false); setShowReport(true); }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "rgba(124,58,237,0.15)", border: "1px solid rgba(192,132,252,0.5)", borderRadius: 6, cursor: "pointer", textAlign: "left" }}>
+                <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8" }}>{lang === "en" ? "Clinician report" : "臨床報告"}</span>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.7)", letterSpacing: 0.3 }}>{lang === "en" ? "Printable focus, medication & activity summary to share" : "可列印的專注、用藥與活動摘要，方便分享"}</span>
+                </span>
+                <span style={{ fontSize: 16, color: "#c084fc", flexShrink: 0 }}>📄</span>
+              </button>
             </div>
 
             {/* Subscription */}
