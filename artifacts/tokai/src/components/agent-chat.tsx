@@ -95,7 +95,7 @@ const STORAGE_KEY = "tokai_anthropic_key";
 const CHAT_KEY_PREFIX = "tokai_chat";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
-export default function AgentChat({ neuralState, tasks, journalEntries = [], medLog = [], lang = "en", isMobile = false, selectedDate, onInfo, moodAssessment }: {
+export default function AgentChat({ neuralState, tasks, journalEntries = [], medLog = [], lang = "en", isMobile = false, selectedDate, onInfo, onClose, moodAssessment }: {
   neuralState: NeuralState;
   tasks: Task[];
   journalEntries?: JournalEntry[];
@@ -104,6 +104,7 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
   isMobile?: boolean;
   selectedDate?: string;
   onInfo?: () => void;
+  onClose?: () => void;
   moodAssessment?: MoodAssessment;
 }) {
   const t = UI[lang];
@@ -113,10 +114,6 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
 
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem(STORAGE_KEY) ?? "");
   const [keyInput, setKeyInput] = useState("");
-  const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem("tokai_agent_collapsed") === "1");
-  function toggleCollapsed() {
-    setCollapsed(c => { const next = !c; try { localStorage.setItem("tokai_agent_collapsed", next ? "1" : "0"); } catch { /* ignore */ } return next; });
-  }
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const s = localStorage.getItem(chatKey);
@@ -219,7 +216,7 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
   }
 
   const S = {
-    wrap: { background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: collapsed ? "auto" : 480 } as React.CSSProperties,
+    wrap: { background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: onClose ? "12px 12px 0 0" : 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: onClose ? "100%" : 480 } as React.CSSProperties,
     header: { padding: "12px 20px", borderBottom: "1px solid rgba(192,132,252,0.15)", display: "flex", alignItems: "center", gap: 10, background: "rgba(192,132,252,0.03)" } as React.CSSProperties,
   };
 
@@ -227,27 +224,23 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
     <div style={S.wrap}>
       {/* Header */}
       <div style={S.header}>
-        <div onClick={toggleCollapsed} title={collapsed ? (lang === "en" ? "Expand" : "展開") : (lang === "en" ? "Collapse" : "收合")}
-          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", minWidth: 0 }}>
-          <span style={{ color: "rgba(192,132,252,0.7)", fontSize: 12, lineHeight: 1, flexShrink: 0, transform: collapsed ? "none" : "rotate(90deg)", transition: "transform 0.15s" }}>▸</span>
-          <Bot size={16} color="#c084fc" style={{ flexShrink: 0 }} />
-          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3, whiteSpace: "nowrap" }}>
-            <span style={{ color: "#7c3aed" }}>TOK</span>
-            <span style={{ color: "#c084fc" }}>{lang === "en" ? "AGENT · TASK PLANNER" : "AGENT · 任務規劃"}</span>
-          </span>
-        </div>
+        <Bot size={16} color="#c084fc" style={{ flexShrink: 0 }} />
+        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3 }}>
+          <span style={{ color: "#7c3aed" }}>TOK</span>
+          <span style={{ color: "#c084fc" }}>{lang === "en" ? "AGENT · TASK PLANNER" : "AGENT · 任務規劃"}</span>
+        </span>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#5a8fa8" }}>
-          {!collapsed && isMobile && <>
+          {isMobile && <>
             <span>{t.focus} {neuralState.focusIndex.toFixed(1)}/100</span>
             <span>{t.energy} {Math.round(neuralState.bioEnergy)}%</span>
             <span>{t.noise} {Math.round(neuralState.neuralNoise)} μV²</span>
           </>}
-          {!collapsed && apiKey && isToday && (
+          {apiKey && isToday && (
             <button onClick={resetChat} style={{ background: "none", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 4, color: "#5a8fa8", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, padding: "4px 10px", letterSpacing: 1 }}>
               {lang === "en" ? "RESET CHAT" : "重置對話"}
             </button>
           )}
-          {!collapsed && apiKey && (
+          {apiKey && (
             <button onClick={clearKey} style={{ background: "none", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 4, color: "#5a8fa8", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, padding: "4px 10px", letterSpacing: 1 }}>
               {t.clearKey}
             </button>
@@ -260,10 +253,18 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
               ?
             </button>
           )}
+          {onClose && (
+            <button onClick={onClose} title={lang === "en" ? "Close" : "關閉"}
+              style={{ background: "none", border: "1px solid rgba(192,132,252,0.25)", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, padding: 0, lineHeight: 1, flexShrink: 0 }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(192,132,252,0.6)"; (e.currentTarget as HTMLButtonElement).style.color = "#c084fc"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(192,132,252,0.25)"; (e.currentTarget as HTMLButtonElement).style.color = "#5a8fa8"; }}>
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
-      {!collapsed && (!apiKey ? (
+      {!apiKey ? (
         <div style={{ flex: 1, padding: "28px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#c084fc", letterSpacing: 2 }}>{t.keyPromptTitle}</div>
           <p style={{ fontSize: 15, color: "#5a8fa8", lineHeight: 1.6, margin: 0 }}>{t.keyPromptDesc}</p>
@@ -342,7 +343,7 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
             </div>
           )}
         </div>
-      ))}
+      )}
     </div>
   );
 }

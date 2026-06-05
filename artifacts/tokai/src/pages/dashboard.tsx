@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { Github, Activity, BookOpen, ListChecks, Pill, Brain, Crosshair, Zap, Waves, BarChart2, Clock, Camera } from "lucide-react";
+import { Github, Activity, BookOpen, ListChecks, Pill, Brain, Crosshair, Zap, Waves, BarChart2, Clock, Camera, Bot } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, ReferenceLine,
 } from "recharts";
@@ -437,6 +437,13 @@ export default function Dashboard({ session }: { session: Session }) {
   const [newTaskEmoji, setNewTaskEmoji] = useState("");
   const [newTaskFocusRequired, setNewTaskFocusRequired] = useState<number | null>(null);
   const [taskFormOpen, setTaskFormOpen] = useState(false);
+  const [agentDockOpen, setAgentDockOpen] = useState(false);
+  useEffect(() => {
+    if (!agentDockOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setAgentDockOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [agentDockOpen]);
   function closeTaskForm() {
     setTaskFormOpen(false);
     setNewTask(""); setNewTaskDesc(""); setNewTaskTime(""); setNewTaskDeadline(""); setNewTaskEmoji(""); setNewTaskFocusRequired(null);
@@ -1427,7 +1434,7 @@ export default function Dashboard({ session }: { session: Session }) {
         )}
 
         {/* Content area */}
-        <div style={{ padding: isMobile ? "16px" : "24px 28px", display: "flex", flexDirection: "column", gap: 20, flex: 1 }}>
+        <div style={{ padding: isMobile ? "16px" : "24px 28px", paddingBottom: isMobile ? 74 : 70, display: "flex", flexDirection: "column", gap: 20, flex: 1 }}>
 
           {/* Desktop header */}
           {!isMobile && (
@@ -1887,19 +1894,7 @@ export default function Dashboard({ session }: { session: Session }) {
           </div>
           </div>
 
-          {/* TokAgent */}
-          <AgentChat
-            key={selectedDate}
-            selectedDate={selectedDate}
-            neuralState={neural}
-            tasks={tasks.map(tk => ({ id: tk.id, title: tk.title, description: tk.description, done: tk.done, estimatedMinutes: tk.estimatedMinutes, createdAt: tk.createdAt, deadline: tk.deadline, emoji: tk.emoji, focusRequired: tk.focusRequired }))}
-            journalEntries={journal.map(e => ({ text: e.text, time: e.time, date: e.date, focusIndex: e.focusIndex, mood: e.mood }))}
-            medLog={medLog.map(m => ({ id: m.id, name: m.name, dose: m.dose, time: m.time }))}
-            lang={lang}
-            isMobile={isMobile}
-            onInfo={() => setInfoModal(INFO[lang].tokAgent)}
-            moodAssessment={moodAssessment ?? undefined}
-          />
+          {/* TokAgent now lives in the fixed bottom dock (see end of component) */}
 
           {/* TokDo — mobile only; desktop version lives in right panel */}
           {isMobile && (
@@ -2221,6 +2216,40 @@ export default function Dashboard({ session }: { session: Session }) {
           </div>
         </aside>
       )}
+
+      {/* ── TokAgent bottom dock ── */}
+      {!agentDockOpen && (
+        <button onClick={() => setAgentDockOpen(true)}
+          style={{ position: "fixed", left: isMobile ? 0 : 240, right: isMobile ? 0 : 340, bottom: 0, zIndex: 150, height: 46, display: "flex", alignItems: "center", gap: 12, padding: "0 18px", background: "linear-gradient(180deg, #140d2e, #0c0818)", borderTop: "1px solid rgba(192,132,252,0.5)", boxShadow: "0 -6px 24px rgba(0,0,0,0.4)", cursor: "pointer" }}>
+          <span style={{ fontSize: 12, color: "rgba(192,132,252,0.8)" }}>▴</span>
+          <Bot size={15} color="#c084fc" style={{ flexShrink: 0 }} />
+          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, fontWeight: 700, letterSpacing: 3 }}>
+            <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>AGENT</span>
+          </span>
+          <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#5a8fa8" }}>
+            <span>{lang === "en" ? "FOCUS" : "專注"} {neural.focusIndex.toFixed(1)}</span>
+            <span style={{ color: "#c084fc" }}>{lang === "en" ? "ASK →" : "詢問 →"}</span>
+          </span>
+        </button>
+      )}
+      {agentDockOpen && (<>
+        <div onClick={() => setAgentDockOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 140 }} />
+        <div style={{ position: "fixed", left: isMobile ? 0 : 240, right: isMobile ? 0 : 340, bottom: 0, zIndex: 150, height: "min(72vh, 580px)", padding: isMobile ? 0 : "0 16px", boxSizing: "border-box" }}>
+          <AgentChat
+            key={selectedDate}
+            selectedDate={selectedDate}
+            neuralState={neural}
+            tasks={tasks.map(tk => ({ id: tk.id, title: tk.title, description: tk.description, done: tk.done, estimatedMinutes: tk.estimatedMinutes, createdAt: tk.createdAt, deadline: tk.deadline, emoji: tk.emoji, focusRequired: tk.focusRequired }))}
+            journalEntries={journal.map(e => ({ text: e.text, time: e.time, date: e.date, focusIndex: e.focusIndex, mood: e.mood }))}
+            medLog={medLog.map(m => ({ id: m.id, name: m.name, dose: m.dose, time: m.time }))}
+            lang={lang}
+            isMobile={isMobile}
+            onInfo={() => setInfoModal(INFO[lang].tokAgent)}
+            onClose={() => setAgentDockOpen(false)}
+            moodAssessment={moodAssessment ?? undefined}
+          />
+        </div>
+      </>)}
 
       {/* ── Notification banners ── */}
       {notifications.length > 0 && (
