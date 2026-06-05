@@ -1075,6 +1075,20 @@ export default function Dashboard({ session }: { session: Session }) {
     el.scrollLeft += delta;
   }
 
+  // Smooth "page" scroll for the horizontal card/widget rows (dir: -1 left, +1 right)
+  function scrollBox(ref: React.RefObject<HTMLDivElement | null>, dir: -1 | 1) {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: "smooth" });
+  }
+  const scrollArrowStyle = (side: "left" | "right"): React.CSSProperties => ({
+    position: "absolute", top: "50%", transform: "translateY(-50%)", [side]: 6, zIndex: 3,
+    width: 32, height: 32, borderRadius: "50%", border: "1px solid rgba(192,132,252,0.45)",
+    background: "rgba(12,8,24,0.9)", color: "#c084fc", cursor: "pointer", display: "flex",
+    alignItems: "center", justifyContent: "center", fontSize: 13, padding: 0,
+    boxShadow: "0 2px 12px rgba(0,0,0,0.5)",
+  });
+
   function goToLive() {
     const el = chartScrollRef.current;
     if (!el) return;
@@ -1638,6 +1652,8 @@ export default function Dashboard({ session }: { session: Session }) {
             {/* Fade hints — appear only when there are more cards in that direction */}
             {metricFade.left && <div style={{ position: "absolute", left: 0, top: 0, bottom: 4, width: 48, background: "linear-gradient(to left, transparent, rgba(8,6,20,0.85))", pointerEvents: "none" }} />}
             {metricFade.right && <div style={{ position: "absolute", right: 0, top: 0, bottom: 4, width: 48, background: "linear-gradient(to right, transparent, rgba(8,6,20,0.85))", pointerEvents: "none" }} />}
+            {metricFade.left && <button onClick={() => scrollBox(metricScrollRef, -1)} title={lang === "en" ? "Scroll left" : "向左捲動"} style={scrollArrowStyle("left")}>◀</button>}
+            {metricFade.right && <button onClick={() => scrollBox(metricScrollRef, 1)} title={lang === "en" ? "Scroll right" : "向右捲動"} style={scrollArrowStyle("right")}>▶</button>}
           </div>
 
           {/* Focus stream — full width */}
@@ -2031,6 +2047,8 @@ export default function Dashboard({ session }: { session: Session }) {
           {/* Fade hints — appear only when there are more widgets in that direction */}
           {widgetFade.left && <div style={{ position: "absolute", left: 0, top: 0, bottom: 4, width: 48, background: "linear-gradient(to left, transparent, rgba(8,6,20,0.85))", pointerEvents: "none" }} />}
           {widgetFade.right && <div style={{ position: "absolute", right: 0, top: 0, bottom: 4, width: 48, background: "linear-gradient(to right, transparent, rgba(8,6,20,0.85))", pointerEvents: "none" }} />}
+          {widgetFade.left && <button onClick={() => scrollBox(widgetScrollRef, -1)} title={lang === "en" ? "Scroll left" : "向左捲動"} style={scrollArrowStyle("left")}>◀</button>}
+          {widgetFade.right && <button onClick={() => scrollBox(widgetScrollRef, 1)} title={lang === "en" ? "Scroll right" : "向右捲動"} style={scrollArrowStyle("right")}>▶</button>}
           </div>
 
           {/* TokAgent now lives in the fixed bottom dock (see end of component) */}
