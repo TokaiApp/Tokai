@@ -54,6 +54,7 @@ const T = {
     medEmpty: "No entries logged yet. Log a medication or supplement to see how it affects your focus.",
     medAt: "at",
     tokNote: "TOKNOTE · JOURNAL",
+    insightsEmpty: "Keep logging journal entries, tasks, and meds — observations appear here as patterns emerge.",
     notePlaceholder: "Write a note... (Enter to save)",
     noteEmpty: "No journal entries yet. Write a note to capture your thoughts alongside your focus data.",
     noteFocusLabel: "Focus",
@@ -137,6 +138,7 @@ const T = {
     medEmpty: "尚無紀錄。記錄藥物或補充品以觀察其對專注度的影響。",
     medAt: "於",
     tokNote: "TOKNOTE · 日誌",
+    insightsEmpty: "持續記錄日誌、任務與用藥 — 當規律浮現時，觀察將顯示於此。",
     notePlaceholder: "寫筆記... (Enter 儲存)",
     noteEmpty: "尚無日誌紀錄。記下你的想法，與專注數據一起追蹤。",
     noteFocusLabel: "專注",
@@ -265,6 +267,7 @@ const INFO = {
     focusWindow: { title: "FOCUS WINDOW", body: "Predicted time remaining in your current focus state, based on recent trend data. Requires at least 6 samples to calculate. Use this to decide whether to start a long task or wrap up." },
     focusStream: { title: "REAL-TIME FOCUS STREAM", body: "A scrollable real-time chart of your Focus Index over time. Reference lines show your 5-minute average, session average, and day average. Yellow vertical lines mark when you logged a medication or supplement." },
     tokNote: { title: "TOKNOTE", body: "An ADHD-friendly journal. Each entry is automatically stamped with the date, time, and your Focus Index at that moment. Use it to track patterns between how you feel and how your brain is actually performing." },
+    tokInsights: { title: "TOKINSIGHTS", body: "Automatic observations computed from your own history — when you focus best, which moods track your focus, task completion, and what you log. Everything is calculated on your device; nothing is sent to a server. The more you log, the sharper it gets." },
     tokAgent: { title: "TOKAGENT", body: "Your AI task planning assistant, powered by Claude (Anthropic). TokAgent reads your live neural metrics, full task list, journal entries, and medication log to recommend which tasks to tackle based on your current cognitive state." },
     tokTodo: { title: "TOKDO", body: "A task manager built around cognitive demand. Tag tasks as Low, Medium, or High demand so TokAgent can match them to your focus level. Add time estimates and deadlines for realistic planning. Tasks are organized by day." },
     tokMed: { title: "TOKMED", body: "Log medications, supplements, and stimulants like coffee. Tokai tracks how your Focus Index changes in the 15–30 minutes after each entry, giving you real data on what affects your brain." },
@@ -280,6 +283,7 @@ const INFO = {
     focusWindow: { title: "專注窗口", body: "根據近期趨勢預測目前專注狀態的剩餘時間，至少需要 6 個樣本。可用來判斷是否適合開始長時間任務。" },
     focusStream: { title: "即時專注串流", body: "即時顯示專注指數的可捲動折線圖。參考線分別代表 5 分鐘均值、階段均值與當日均值。黃色垂直線標記你記錄藥物或補充品的時間點。" },
     tokNote: { title: "TOKNOTE", body: "ADHD 友善日誌。每則條目自動標記日期、時間與當下的專注指數，幫助你追蹤感受與大腦實際表現之間的規律。" },
+    tokInsights: { title: "TOKINSIGHTS", body: "根據你自身歷史自動計算的觀察 — 你何時最專注、哪些情緒對應較高專注、任務完成度與記錄習慣。全部在你的裝置上計算，不會傳送到伺服器。記錄越多，洞察越準確。" },
     tokAgent: { title: "TOKAGENT", body: "由 Claude（Anthropic）驅動的 AI 任務規劃助手。TokAgent 讀取你的即時神經指標、任務清單、日誌與藥物紀錄，根據當前認知狀態推薦最適合的任務。" },
     tokTodo: { title: "TOKDO", body: "以認知負荷為核心設計的任務管理器。為每個任務標記低、中、高需求，讓 TokAgent 能配對你的專注程度。加入預估時間與截止日期，制定更切實際的計畫。" },
     tokMed: { title: "TOKMED", body: "記錄藥物、補充品與咖啡等影響專注的物質。Tokai 追蹤記錄後 15–30 分鐘內專注指數的變化，為你提供有效成分的實際數據。" },
@@ -391,6 +395,23 @@ export default function Dashboard({ session }: { session: Session }) {
       const left = el.scrollLeft > 4;
       const right = el.scrollWidth - el.scrollLeft - el.clientWidth > 4;
       setMetricFade(prev => (prev.left === left && prev.right === right) ? prev : { left, right });
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => { el.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
+  }, [isMobile]);
+
+  // Scroll-aware fade hints for the widget row (TokNote · TokMed · TokInsights)
+  const widgetScrollRef = useRef<HTMLDivElement>(null);
+  const [widgetFade, setWidgetFade] = useState({ left: false, right: false });
+  useEffect(() => {
+    const el = widgetScrollRef.current;
+    if (!el) return;
+    const update = () => {
+      const left = el.scrollLeft > 4;
+      const right = el.scrollWidth - el.scrollLeft - el.clientWidth > 4;
+      setWidgetFade(prev => (prev.left === left && prev.right === right) ? prev : { left, right });
     };
     update();
     el.addEventListener("scroll", update, { passive: true });
@@ -1215,6 +1236,90 @@ export default function Dashboard({ session }: { session: Session }) {
     orderedVisibleTasks.forEach((tk, i) => m.set(tk.id, i + 1));
     return m;
   }, [orderedVisibleTasks]);
+
+  // TokInsights — deterministic observations computed from the user's own history (no API)
+  const insights = useMemo<{ icon: string; text: string }[]>(() => {
+    const en = lang === "en";
+    const out: { icon: string; text: string }[] = [];
+    const round = (n: number) => Math.round(n);
+    const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+
+    // 1. Best time of day to focus (from journal entries)
+    const periods = [
+      { en: "the morning", zh: "早上", lo: 5, hi: 11 },
+      { en: "around midday", zh: "中午", lo: 11, hi: 14 },
+      { en: "the afternoon", zh: "下午", lo: 14, hi: 18 },
+      { en: "the evening", zh: "晚上", lo: 18, hi: 23 },
+      { en: "late at night", zh: "深夜", lo: 23, hi: 29 },
+    ];
+    const timed = journal.filter(e => typeof e.focusIndex === "number" && /^\d/.test(e.time ?? ""));
+    if (timed.length >= 4) {
+      const buckets: Record<number, number[]> = {};
+      for (const e of timed) {
+        let h = parseInt((e.time ?? "").slice(0, 2));
+        if (isNaN(h)) continue;
+        if (h < 5) h += 24;
+        const pi = periods.findIndex(p => h >= p.lo && h < p.hi);
+        if (pi < 0) continue;
+        (buckets[pi] ??= []).push(e.focusIndex);
+      }
+      let best: { pi: number; avg: number } | null = null;
+      for (const k of Object.keys(buckets)) {
+        const pi = Number(k); const arr = buckets[pi];
+        if (arr.length < 2) continue;
+        const avg = mean(arr);
+        if (!best || avg > best.avg) best = { pi, avg };
+      }
+      if (best) {
+        const p = periods[best.pi];
+        out.push({ icon: "⏰", text: en ? `You focus best in ${p.en} (avg ${round(best.avg)}/100).` : `你在${p.zh}最專注（平均 ${round(best.avg)}/100）。` });
+      }
+    }
+
+    // 2. Which mood tracks your highest focus
+    const moodFocus: Record<string, number[]> = {};
+    for (const e of journal) {
+      if (typeof e.focusIndex !== "number" || !Array.isArray(e.mood)) continue;
+      for (const m of e.mood) (moodFocus[m] ??= []).push(e.focusIndex);
+    }
+    let bestMood: { m: string; avg: number } | null = null;
+    for (const [m, arr] of Object.entries(moodFocus)) {
+      if (arr.length < 2) continue;
+      const avg = mean(arr);
+      if (!bestMood || avg > bestMood.avg) bestMood = { m, avg };
+    }
+    if (bestMood) out.push({ icon: "🧠", text: en ? `Your focus peaks when you feel "${bestMood.m}" (avg ${round(bestMood.avg)}).` : `當你感到「${bestMood.m}」時專注力最高（平均 ${round(bestMood.avg)}）。` });
+
+    // 3. Task completion rate
+    if (tasks.length > 0) {
+      const done = tasks.filter(t => t.done).length;
+      out.push({ icon: "✓", text: en ? `You've completed ${done} of ${tasks.length} tasks (${round(done / tasks.length * 100)}%).` : `你已完成 ${tasks.length} 項任務中的 ${done} 項（${round(done / tasks.length * 100)}%）。` });
+    }
+
+    // 4. Pending tasks demand more focus than finished ones
+    const doneFR = tasks.filter(t => t.done && t.focusRequired != null).map(t => t.focusRequired as number);
+    const pendFR = tasks.filter(t => !t.done && t.focusRequired != null).map(t => t.focusRequired as number);
+    if (doneFR.length >= 2 && pendFR.length >= 2) {
+      const da = round(mean(doneFR)), pa = round(mean(pendFR));
+      if (pa - da >= 8) out.push({ icon: "⚡", text: en ? `Your unfinished tasks need more focus than the ones you finish (${pa} vs ${da}) — save them for a peak window.` : `你未完成的任務所需專注度高於已完成的（${pa} 對 ${da}）— 留到專注高峰再做。` });
+    }
+
+    // 5. Most-logged substance
+    if (medLog.length >= 2) {
+      const counts: Record<string, number> = {};
+      for (const m of medLog) counts[m.name] = (counts[m.name] || 0) + 1;
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+      if (top && top[1] >= 2) out.push({ icon: "💊", text: en ? `Most logged: ${top[0]} (${top[1]}×).` : `最常記錄：${top[0]}（${top[1]} 次）。` });
+    }
+
+    // 6. This session's focus peak (live data)
+    if (focusHistory.length >= 5) {
+      const peak = round(Math.max(...focusHistory.map(p => p.value)));
+      out.push({ icon: "📈", text: en ? `This session's focus peaked at ${peak}/100.` : `本次階段專注峰值 ${peak}/100。` });
+    }
+
+    return out;
+  }, [journal, tasks, medLog, focusHistory, lang]);
   const visibleMedLog = medLog.filter(m => (m.date ?? todayStr()) === selectedDate);
   const visibleCompleted = visibleTasks.filter(t => t.done).length;
   const sessionElapsed = Math.floor((now.getTime() - sessionStart.current.getTime()) / 1000);
@@ -1638,9 +1743,10 @@ export default function Dashboard({ session }: { session: Session }) {
           </div>
           )}
 
-          {/* TokNote · TokMed */}
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
-          <div style={{ background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: 480 }}>
+          {/* Widget row — TokNote · TokMed · TokInsights (horizontal scroll) */}
+          <div style={{ position: "relative" }}>
+          <div ref={widgetScrollRef} style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}>
+          <div style={{ flex: isMobile ? "0 0 86vw" : "0 0 360px", background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: 480 }}>
             {/* Header */}
             <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(192,132,252,0.15)", display: "flex", alignItems: "center", gap: 10, background: "rgba(192,132,252,0.03)", flexShrink: 0 }}>
               <BookOpen size={16} color="#c084fc" style={{ flexShrink: 0 }} />
@@ -1809,7 +1915,7 @@ export default function Dashboard({ session }: { session: Session }) {
             </div>
 
           {/* TokMed panel */}
-          <div style={{ background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(251,191,36,0.05)", display: "flex", flexDirection: "column", height: 480 }}>
+          <div style={{ flex: isMobile ? "0 0 86vw" : "0 0 360px", background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(251,191,36,0.05)", display: "flex", flexDirection: "column", height: 480 }}>
             <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(251,191,36,0.15)", display: "flex", alignItems: "center", gap: 10, background: "rgba(251,191,36,0.02)", flexShrink: 0 }}>
               <Pill size={16} color="#fbbf24" style={{ flexShrink: 0 }} />
               <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3, flex: 1 }}>
@@ -1892,6 +1998,36 @@ export default function Dashboard({ session }: { session: Session }) {
               ))}
             </div>
           </div>
+
+          {/* TokInsights */}
+          <div style={{ flex: isMobile ? "0 0 86vw" : "0 0 360px", background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: 480 }}>
+            {/* Header */}
+            <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(192,132,252,0.15)", display: "flex", alignItems: "center", gap: 10, background: "rgba(192,132,252,0.03)", flexShrink: 0 }}>
+              <Brain size={16} color="#c084fc" style={{ flexShrink: 0 }} />
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3, flex: 1 }}>
+                <span style={{ color: "#7c3aed" }}>TOK</span>
+                <span style={{ color: "#c084fc" }}>{lang === "en" ? "INSIGHTS · OBSERVATIONS" : "INSIGHTS · 觀察"}</span>
+              </span>
+              <InfoButton onClick={() => setInfoModal(INFO[lang].tokInsights)} />
+            </div>
+            {/* Observations */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+              {insights.length === 0 ? (
+                <p style={{ margin: 0, fontSize: 14, color: "rgba(90,143,168,0.6)", fontFamily: "'Share Tech Mono', monospace", letterSpacing: 0.4, lineHeight: 1.7 }}>
+                  {t.insightsEmpty}
+                </p>
+              ) : insights.map((ins, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "9px 11px", background: "rgba(192,132,252,0.05)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 8 }}>
+                  <span style={{ fontSize: 16, lineHeight: 1.3, flexShrink: 0 }}>{ins.icon}</span>
+                  <span style={{ fontSize: 15, color: "#c8d8e8", fontFamily: "'Rajdhani', sans-serif", lineHeight: 1.45 }}>{ins.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          </div>
+          {/* Fade hints — appear only when there are more widgets in that direction */}
+          {widgetFade.left && <div style={{ position: "absolute", left: 0, top: 0, bottom: 4, width: 48, background: "linear-gradient(to left, transparent, rgba(8,6,20,0.85))", pointerEvents: "none" }} />}
+          {widgetFade.right && <div style={{ position: "absolute", right: 0, top: 0, bottom: 4, width: 48, background: "linear-gradient(to right, transparent, rgba(8,6,20,0.85))", pointerEvents: "none" }} />}
           </div>
 
           {/* TokAgent now lives in the fixed bottom dock (see end of component) */}
