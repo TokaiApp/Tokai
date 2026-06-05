@@ -1658,17 +1658,19 @@ export default function Dashboard({ session }: { session: Session }) {
 
           {/* Focus stream — full width */}
           <div style={{ minWidth: 0 }}>
-            <Panel
-              onInfo={() => setInfoModal(INFO[lang].focusStream)}
-              title={
-                <span style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}><Activity size={14} color="#c084fc" /><span>{t.focusStream}</span></span>
-                  {avgFocus !== null && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, color: "rgba(192,132,252,0.8)", letterSpacing: 1, fontWeight: 400 }}>{lang === "en" ? "5m avg" : "5分均值"} {avgFocus}</span>}
-                  {sessionAvg !== null && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, color: "rgba(56,189,248,0.85)", letterSpacing: 1, fontWeight: 400 }}>{lang === "en" ? "session avg" : "階段均值"} {sessionAvg}</span>}
-                  {dayAvg !== null && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, color: "rgba(74,222,128,0.85)", letterSpacing: 1, fontWeight: 400 }}>{lang === "en" ? "day avg" : "日均值"} {dayAvg}</span>}
-                </span>
-              }
-            >
+            <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 10, padding: 10, position: "relative" }}>
+              {/* Overlaid header — floats over the empty top band of the chart */}
+              <div style={{ position: "absolute", top: 8, left: 12, zIndex: 2, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", maxWidth: "calc(100% - 96px)", background: "rgba(12,8,24,0.55)", borderRadius: 6, padding: "3px 9px", backdropFilter: "blur(2px)" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#c084fc", letterSpacing: 2 }}><Activity size={14} color="#c084fc" /><span>{t.focusStream}</span></span>
+                {avgFocus !== null && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "rgba(192,132,252,0.9)", letterSpacing: 1 }}>{lang === "en" ? "5m avg" : "5分均值"} {avgFocus}</span>}
+                {sessionAvg !== null && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "rgba(56,189,248,0.95)", letterSpacing: 1 }}>{lang === "en" ? "session avg" : "階段均值"} {sessionAvg}</span>}
+                {dayAvg !== null && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "rgba(74,222,128,0.95)", letterSpacing: 1 }}>{lang === "en" ? "day avg" : "日均值"} {dayAvg}</span>}
+              </div>
+              {/* Top-right: live value + info */}
+              <div style={{ position: "absolute", top: 8, right: 10, zIndex: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#c084fc", background: "rgba(12,8,24,0.55)", borderRadius: 5, padding: "2px 6px" }}>{neural.focusIndex.toFixed(1)}</span>
+                <InfoButton onClick={() => setInfoModal(INFO[lang].focusStream)} />
+              </div>
               <div ref={chartWrapRef} style={{ width: "100%", position: "relative" }}>
                 <div ref={chartScrollRef} style={{ width: chartWrapWidth, height: 168, overflowX: "scroll", overflowY: "hidden" }}
                   onScroll={e => {
@@ -1722,9 +1724,6 @@ export default function Dashboard({ session }: { session: Session }) {
                     })()}
                   </div>
                 </div>
-                <div style={{ position: "absolute", right: 4, top: 8, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#c084fc", pointerEvents: "none" }}>
-                  {neural.focusIndex.toFixed(1)}
-                </div>
                 {/* Scroll controls */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, marginTop: 6 }}>
                   {[
@@ -1743,7 +1742,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   </button>
                 </div>
               </div>
-            </Panel>
+            </div>
           </div>
 
           {/* Day selector — mobile only; desktop version lives in main header */}
