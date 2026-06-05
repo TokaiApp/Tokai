@@ -268,6 +268,7 @@ const INFO = {
     focusStream: { title: "REAL-TIME FOCUS STREAM", body: "A scrollable real-time chart of your Focus Index over time. Reference lines show your 5-minute average, session average, and day average. Yellow vertical lines mark when you logged a medication or supplement." },
     tokNote: { title: "TOKNOTE", body: "An ADHD-friendly journal. Each entry is automatically stamped with the date, time, and your Focus Index at that moment. Use it to track patterns between how you feel and how your brain is actually performing." },
     tokInsights: { title: "TOKINSIGHTS", body: "Automatic observations computed from your own history — when you focus best, which moods track your focus, task completion, and what you log. Everything is calculated on your device; nothing is sent to a server. The more you log, the sharper it gets." },
+    tokTimer: { title: "TOKTIMER", body: "A Pomodoro-style focus timer. Work in focused intervals separated by short breaks, with a longer break every four cycles. Set your own work and break lengths; Tokai notifies you each time a phase ends so you can stay heads-down without watching the clock." },
     tokAgent: { title: "TOKAGENT", body: "Your AI task planning assistant, powered by Claude (Anthropic). TokAgent reads your live neural metrics, full task list, journal entries, and medication log to recommend which tasks to tackle based on your current cognitive state." },
     tokTodo: { title: "TOKDO", body: "A task manager built around cognitive demand. Tag tasks as Low, Medium, or High demand so TokAgent can match them to your focus level. Add time estimates and deadlines for realistic planning. Tasks are organized by day." },
     tokMed: { title: "TOKMED", body: "Log medications, supplements, and stimulants like coffee. Tokai tracks how your Focus Index changes in the 15–30 minutes after each entry, giving you real data on what affects your brain." },
@@ -284,6 +285,7 @@ const INFO = {
     focusStream: { title: "即時專注串流", body: "即時顯示專注指數的可捲動折線圖。參考線分別代表 5 分鐘均值、階段均值與當日均值。黃色垂直線標記你記錄藥物或補充品的時間點。" },
     tokNote: { title: "TOKNOTE", body: "ADHD 友善日誌。每則條目自動標記日期、時間與當下的專注指數，幫助你追蹤感受與大腦實際表現之間的規律。" },
     tokInsights: { title: "TOKINSIGHTS", body: "根據你自身歷史自動計算的觀察 — 你何時最專注、哪些情緒對應較高專注、任務完成度與記錄習慣。全部在你的裝置上計算，不會傳送到伺服器。記錄越多，洞察越準確。" },
+    tokTimer: { title: "TOKTIMER", body: "番茄鐘式專注計時器。以專注時段搭配短暫休息，每四個循環後安排較長休息。可自訂工作與休息時間；每個階段結束時 Tokai 會通知你，讓你無需盯著時鐘也能保持專注。" },
     tokAgent: { title: "TOKAGENT", body: "由 Claude（Anthropic）驅動的 AI 任務規劃助手。TokAgent 讀取你的即時神經指標、任務清單、日誌與藥物紀錄，根據當前認知狀態推薦最適合的任務。" },
     tokTodo: { title: "TOKDO", body: "以認知負荷為核心設計的任務管理器。為每個任務標記低、中、高需求，讓 TokAgent 能配對你的專注程度。加入預估時間與截止日期，制定更切實際的計畫。" },
     tokMed: { title: "TOKMED", body: "記錄藥物、補充品與咖啡等影響專注的物質。Tokai 追蹤記錄後 15–30 分鐘內專注指數的變化，為你提供有效成分的實際數據。" },
@@ -619,11 +621,13 @@ export default function Dashboard({ session }: { session: Session }) {
           setPomodoroPhase("break");
           pomodoroPhaseRef.current = "break";
           setPomodoroRunning(false);
+          pushNotification(lang === "en" ? "Focus block done — time for a break." : "專注時段結束 — 該休息了。", "#6ee7b7", "☕");
           return next % 4 === 0 ? pomodoroBreakRef.current * 3 : pomodoroBreakRef.current;
         } else {
           setPomodoroPhase("work");
           pomodoroPhaseRef.current = "work";
           setPomodoroRunning(false);
+          pushNotification(lang === "en" ? "Break over — back to focus." : "休息結束 — 回到專注。", "#c084fc", "⚡");
           return pomodoroWorkRef.current;
         }
       });
@@ -1400,55 +1404,6 @@ export default function Dashboard({ session }: { session: Session }) {
           </table>
         </div>
 
-        {/* Pomodoro Timer */}
-        <div>
-          <SectionLabel>
-            <span style={{ color: "#7c3aed" }}>TOK</span>
-            <span style={{ color: "#c084fc" }}>{lang === "en" ? "TIMER" : "TIMER · 計時器"}</span>
-          </SectionLabel>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 2, color: pomodoroPhase === "work" ? "#c084fc" : "#6ee7b7" }}>
-              {pomodoroPhase === "work" ? t.pomoFocus : pomodoroCount % 4 === 0 ? t.pomoLongBreak : t.pomoBreak}
-            </span>
-            <div style={{ display: "flex", gap: 5 }}>
-              {[0,1,2,3].map(i => (
-                <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: i < (pomodoroCount % 4) ? "#c084fc" : "rgba(192,132,252,0.2)", transition: "background 0.3s" }} />
-              ))}
-            </div>
-          </div>
-          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 26, color: "#c8d8e8", textAlign: "center", letterSpacing: 5, marginBottom: 10, textShadow: pomodoroRunning ? "0 0 16px rgba(192,132,252,0.4)" : "none", transition: "text-shadow 0.3s" }}>
-            {String(Math.floor(pomodoroTimeLeft / 60)).padStart(2, "0")}:{String(pomodoroTimeLeft % 60).padStart(2, "0")}
-          </div>
-          {!pomodoroRunning && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>{t.pomoWorkLabel}</span>
-              <input type="number" min={1} max={90} value={pomodoroWorkMins}
-                onChange={e => { const v = Math.max(1, Math.min(90, parseInt(e.target.value) || 1)); setPomodoroWorkMins(v); if (pomodoroPhase === "work") setPomodoroTimeLeft(v * 60); }}
-                style={{ width: 42, padding: "2px 5px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, outline: "none", textAlign: "center" }} />
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 1 }}>{t.pomoBreakLabel}</span>
-              <input type="number" min={1} max={30} value={pomodoroBreakMins}
-                onChange={e => { const v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); setPomodoroBreakMins(v); if (pomodoroPhase === "break") setPomodoroTimeLeft(v * 60); }}
-                style={{ width: 36, padding: "2px 5px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#6ee7b7", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, outline: "none", textAlign: "center" }} />
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.5)" }}>min</span>
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={() => setPomodoroRunning(r => !r)}
-              style={{ flex: 1, padding: "7px 0", background: pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)", border: "1px solid rgba(192,132,252,0.5)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer", transition: "background 0.2s" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(192,132,252,0.28)")}
-              onMouseLeave={e => (e.currentTarget.style.background = pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)")}>
-              {pomodoroRunning ? t.pomoPause : t.pomoStart}
-            </button>
-            <button
-              onClick={() => { setPomodoroRunning(false); setPomodoroPhase("work"); pomodoroPhaseRef.current = "work"; setPomodoroTimeLeft(pomodoroWorkMins * 60); setPomodoroCount(0); pomodoroCountRef.current = 0; }}
-              style={{ padding: "7px 12px", background: "transparent", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 14, cursor: "pointer", transition: "all 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(192,132,252,0.5)"; e.currentTarget.style.color = "#c084fc"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(192,132,252,0.25)"; e.currentTarget.style.color = "#5a8fa8"; }}>
-              ↺
-            </button>
-          </div>
-        </div>
 
         <div>
           <SectionLabel>{t.aboutTokai}</SectionLabel>
@@ -1749,6 +1704,62 @@ export default function Dashboard({ session }: { session: Session }) {
           {/* Widget row — TokNote · TokMed · TokInsights (horizontal scroll) */}
           <div style={{ position: "relative" }}>
           <div ref={widgetScrollRef} style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}>
+
+          {/* TokTimer */}
+          <div style={{ flex: isMobile ? "0 0 100%" : "0 0 calc(50% - 7px)", background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: 480 }}>
+            <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(192,132,252,0.15)", display: "flex", alignItems: "center", gap: 10, background: "rgba(192,132,252,0.03)", flexShrink: 0 }}>
+              <Clock size={16} color="#c084fc" style={{ flexShrink: 0 }} />
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3, flex: 1 }}>
+                <span style={{ color: "#7c3aed" }}>TOK</span>
+                <span style={{ color: "#c084fc" }}>{lang === "en" ? "TIMER" : "TIMER · 計時器"}</span>
+              </span>
+              <InfoButton onClick={() => setInfoModal(INFO[lang].tokTimer)} />
+            </div>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 20, padding: "20px 24px" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 3, color: pomodoroPhase === "work" ? "#c084fc" : "#6ee7b7" }}>
+                  {pomodoroPhase === "work" ? t.pomoFocus : pomodoroCount % 4 === 0 ? t.pomoLongBreak : t.pomoBreak}
+                </span>
+                <div style={{ display: "flex", gap: 7 }}>
+                  {[0,1,2,3].map(i => (
+                    <div key={i} style={{ width: 9, height: 9, borderRadius: "50%", background: i < (pomodoroCount % 4) ? "#c084fc" : "rgba(192,132,252,0.2)", transition: "background 0.3s" }} />
+                  ))}
+                </div>
+              </div>
+              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 56, color: "#c8d8e8", textAlign: "center", letterSpacing: 4, lineHeight: 1, textShadow: pomodoroRunning ? "0 0 22px rgba(192,132,252,0.45)" : "none", transition: "text-shadow 0.3s" }}>
+                {String(Math.floor(pomodoroTimeLeft / 60)).padStart(2, "0")}:{String(pomodoroTimeLeft % 60).padStart(2, "0")}
+              </div>
+              {!pomodoroRunning && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>{t.pomoWorkLabel}</span>
+                  <input type="number" min={1} max={90} value={pomodoroWorkMins}
+                    onChange={e => { const v = Math.max(1, Math.min(90, parseInt(e.target.value) || 1)); setPomodoroWorkMins(v); if (pomodoroPhase === "work") setPomodoroTimeLeft(v * 60); }}
+                    style={{ width: 46, padding: "3px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", textAlign: "center" }} />
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>{t.pomoBreakLabel}</span>
+                  <input type="number" min={1} max={30} value={pomodoroBreakMins}
+                    onChange={e => { const v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); setPomodoroBreakMins(v); if (pomodoroPhase === "break") setPomodoroTimeLeft(v * 60); }}
+                    style={{ width: 40, padding: "3px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#6ee7b7", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", textAlign: "center" }} />
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)" }}>min</span>
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 280 }}>
+                <button onClick={() => setPomodoroRunning(r => !r)}
+                  style={{ flex: 1, padding: "10px 0", background: pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)", border: "1px solid rgba(192,132,252,0.5)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: "pointer", transition: "background 0.2s" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(192,132,252,0.28)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = pomodoroRunning ? "rgba(192,132,252,0.12)" : "rgba(192,132,252,0.18)")}>
+                  {pomodoroRunning ? t.pomoPause : t.pomoStart}
+                </button>
+                <button onClick={() => { setPomodoroRunning(false); setPomodoroPhase("work"); pomodoroPhaseRef.current = "work"; setPomodoroTimeLeft(pomodoroWorkMins * 60); setPomodoroCount(0); pomodoroCountRef.current = 0; }}
+                  style={{ padding: "10px 16px", background: "transparent", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 15, cursor: "pointer", transition: "all 0.2s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(192,132,252,0.5)"; e.currentTarget.style.color = "#c084fc"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(192,132,252,0.25)"; e.currentTarget.style.color = "#5a8fa8"; }}>
+                  ↺
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* TokNote */}
           <div style={{ flex: isMobile ? "0 0 100%" : "0 0 calc(50% - 7px)", background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: 480 }}>
             {/* Header */}
             <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(192,132,252,0.15)", display: "flex", alignItems: "center", gap: 10, background: "rgba(192,132,252,0.03)", flexShrink: 0 }}>
