@@ -310,10 +310,10 @@ function MetricCard({ title, icon, onInfo, children }: { title: string; icon?: R
   return (
     <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 10, padding: "16px 20px", position: "relative", overflow: "hidden", flex: "0 0 185px", minWidth: 0 }}>
       <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: "linear-gradient(180deg, #c084fc, #7c3aed)" }} />
-      <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "#5a8fa8", letterSpacing: 2, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-        {icon}
+      <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "#5a8fa8", letterSpacing: 2, marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 6 }}>
+        {icon && <span style={{ flexShrink: 0, marginTop: 2 }}>{icon}</span>}
         <span style={{ flex: 1 }}>{title}</span>
-        {onInfo && <InfoButton onClick={onInfo} />}
+        {onInfo && <span style={{ flexShrink: 0 }}><InfoButton onClick={onInfo} /></span>}
       </div>
       {children}
     </div>
@@ -560,12 +560,13 @@ export default function Dashboard({ session }: { session: Session }) {
           tasks: pending.map(t => ({ id: t.id, title: t.title, description: t.description, done: t.done, focusRequired: t.focusRequired, estimatedMinutes: t.estimatedMinutes })),
           activeTaskId: activeTaskIdRef.current ?? undefined,
           userApiKey: apiKey || undefined,
+          lang,
         }),
       });
       const data = await res.json();
       setBestTask(data);
     } catch {
-      if (!silent) setBestTask({ taskId: null, reason: "Could not reach the server." });
+      if (!silent) setBestTask({ taskId: null, reason: lang === "en" ? "Could not reach the server." : "無法連線到伺服器。" });
     }
     if (!silent) setBestTaskLoading(false);
     bestTaskInFlight.current = false;
@@ -650,11 +651,14 @@ export default function Dashboard({ session }: { session: Session }) {
   }
   function logFocusSession(minutes: number) {
     const at = activeTaskRef.current;
+    const entry = { date: todayStr(), taskId: at?.id ?? null, taskTitle: at?.title ?? null, minutes, time: formatTime(new Date()) };
     setFocusSessions(prev => {
-      const next = [...prev, { date: todayStr(), taskId: at?.id ?? null, taskTitle: at?.title ?? null, minutes, time: formatTime(new Date()) }].slice(-500);
+      const next = [...prev, entry].slice(-500);
       try { localStorage.setItem("tokai_focus_sessions", JSON.stringify(next)); } catch { /* ignore */ }
       return next;
     });
+    // Sync to Supabase (best-effort; no-ops until the focus_sessions migration is applied)
+    supabase.from("focus_sessions").insert({ user_id: userId, date: entry.date, time: entry.time, task_id: entry.taskId, task_title: entry.taskTitle, minutes: entry.minutes });
   }
   function extendTimer(secs: number) { setPomodoroTimeLeft(t => Math.min(t + secs, 99 * 60 + 59)); }
   function breakEarly() {
@@ -766,13 +770,25 @@ export default function Dashboard({ session }: { session: Session }) {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const [{ data: tData }, { data: mData }, { data: jData }, { data: profileData }] = await Promise.all([
+      const [{ data: tData }, { data: mData }, { data: jData }, { data: profileData }, { data: fsData }] = await Promise.all([
         supabase.from("tasks").select("*").eq("user_id", userId),
         supabase.from("med_log").select("*").eq("user_id", userId).order("logged_at"),
         supabase.from("journal_entries").select("*").eq("user_id", userId),
         supabase.from("profiles").select("*").eq("user_id", userId).single(),
+        supabase.from("focus_sessions").select("*").eq("user_id", userId).order("created_at"),
       ]);
       if (cancelled) return;
+
+      // Focus sessions: prefer the synced table; fall back to the localStorage cache (pre-migration)
+      if (fsData && fsData.length > 0) {
+        const mapped = fsData.map((r: Record<string, unknown>) => ({
+          date: r.date as string, time: (r.time as string) ?? "",
+          taskId: (r.task_id as string) ?? null, taskTitle: (r.task_title as string) ?? null,
+          minutes: Number(r.minutes) || 0,
+        }));
+        setFocusSessions(mapped);
+        try { localStorage.setItem("tokai_focus_sessions", JSON.stringify(mapped.slice(-500))); } catch { /* ignore */ }
+      }
 
       const mappedTasks: Task[] = (tData ?? []).map((r: Record<string, unknown>) => ({
         id: r.id as string, title: r.title as string, description: r.description as string | null,
@@ -2370,7 +2386,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
       {/* ── TokDo right panel (desktop only) ── */}
       {!isMobile && (
-        <aside style={{ width: 340, minWidth: 340, borderLeft: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflowY: "auto", background: "linear-gradient(180deg, #0c0818 0%, #0e0920 100%)" }}>
+        <aside style={{ width: 380, minWidth: 380, borderLeft: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflowY: "auto", background: "linear-gradient(180deg, #0c0818 0%, #0e0920 100%)" }}>
           {/* Header */}
           <div style={{ padding: "20px 18px 14px", borderBottom: "1px solid rgba(192,132,252,0.15)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2536,7 +2552,7 @@ export default function Dashboard({ session }: { session: Session }) {
       {/* ── TokAgent bottom dock ── */}
       {!agentDockOpen && (
         <button onClick={() => setAgentDockOpen(true)}
-          style={{ position: "fixed", left: isMobile ? 0 : 240, right: isMobile ? 0 : 340, bottom: 0, zIndex: 150, height: 46, display: "flex", alignItems: "center", gap: 12, padding: "0 18px", background: "linear-gradient(180deg, #140d2e, #0c0818)", borderTop: "1px solid rgba(192,132,252,0.5)", boxShadow: "0 -6px 24px rgba(0,0,0,0.4)", cursor: "pointer" }}>
+          style={{ position: "fixed", left: isMobile ? 0 : 240, right: isMobile ? 0 : 380, bottom: 0, zIndex: 150, height: 46, display: "flex", alignItems: "center", gap: 12, padding: "0 18px", background: "linear-gradient(180deg, #140d2e, #0c0818)", borderTop: "1px solid rgba(192,132,252,0.5)", boxShadow: "0 -6px 24px rgba(0,0,0,0.4)", cursor: "pointer" }}>
           <span style={{ fontSize: 12, color: "rgba(192,132,252,0.8)" }}>▴</span>
           <Bot size={15} color="#c084fc" style={{ flexShrink: 0 }} />
           <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, fontWeight: 700, letterSpacing: 3 }}>
@@ -2550,7 +2566,7 @@ export default function Dashboard({ session }: { session: Session }) {
       )}
       {agentDockOpen && (<>
         <div onClick={() => setAgentDockOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 140 }} />
-        <div style={{ position: "fixed", left: isMobile ? 0 : 240, right: isMobile ? 0 : 340, bottom: 0, zIndex: 150, height: "min(72vh, 580px)", padding: isMobile ? 0 : "0 16px", boxSizing: "border-box" }}>
+        <div style={{ position: "fixed", left: isMobile ? 0 : 240, right: isMobile ? 0 : 380, bottom: 0, zIndex: 150, height: "min(72vh, 580px)", padding: isMobile ? 0 : "0 16px", boxSizing: "border-box" }}>
           <AgentChat
             key={selectedDate}
             selectedDate={selectedDate}
