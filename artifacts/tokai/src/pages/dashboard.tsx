@@ -1394,7 +1394,10 @@ export default function Dashboard({ session }: { session: Session }) {
 
         {/* Pomodoro Timer */}
         <div>
-          <SectionLabel>{t.pomodoro}</SectionLabel>
+          <SectionLabel>
+            <span style={{ color: "#7c3aed" }}>TOK</span>
+            <span style={{ color: "#c084fc" }}>{lang === "en" ? "TIMER" : "TIMER · 計時器"}</span>
+          </SectionLabel>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 2, color: pomodoroPhase === "work" ? "#c084fc" : "#6ee7b7" }}>
               {pomodoroPhase === "work" ? t.pomoFocus : pomodoroCount % 4 === 0 ? t.pomoLongBreak : t.pomoBreak}
@@ -1746,7 +1749,7 @@ export default function Dashboard({ session }: { session: Session }) {
           {/* Widget row — TokNote · TokMed · TokInsights (horizontal scroll) */}
           <div style={{ position: "relative" }}>
           <div ref={widgetScrollRef} style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}>
-          <div style={{ flex: isMobile ? "0 0 86vw" : "0 0 360px", background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: 480 }}>
+          <div style={{ flex: isMobile ? "0 0 100%" : "0 0 calc(50% - 7px)", background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: 480 }}>
             {/* Header */}
             <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(192,132,252,0.15)", display: "flex", alignItems: "center", gap: 10, background: "rgba(192,132,252,0.03)", flexShrink: 0 }}>
               <BookOpen size={16} color="#c084fc" style={{ flexShrink: 0 }} />
@@ -1915,7 +1918,7 @@ export default function Dashboard({ session }: { session: Session }) {
             </div>
 
           {/* TokMed panel */}
-          <div style={{ flex: isMobile ? "0 0 86vw" : "0 0 360px", background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(251,191,36,0.05)", display: "flex", flexDirection: "column", height: 480 }}>
+          <div style={{ flex: isMobile ? "0 0 100%" : "0 0 calc(50% - 7px)", background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(251,191,36,0.05)", display: "flex", flexDirection: "column", height: 480 }}>
             <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(251,191,36,0.15)", display: "flex", alignItems: "center", gap: 10, background: "rgba(251,191,36,0.02)", flexShrink: 0 }}>
               <Pill size={16} color="#fbbf24" style={{ flexShrink: 0 }} />
               <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: 3, flex: 1 }}>
@@ -2000,7 +2003,7 @@ export default function Dashboard({ session }: { session: Session }) {
           </div>
 
           {/* TokInsights */}
-          <div style={{ flex: isMobile ? "0 0 86vw" : "0 0 360px", background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: 480 }}>
+          <div style={{ flex: isMobile ? "0 0 100%" : "0 0 calc(50% - 7px)", background: "linear-gradient(135deg, #100a25, #120d28)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 10, overflow: "hidden", boxShadow: "0 0 24px rgba(192,132,252,0.07)", display: "flex", flexDirection: "column", height: 480 }}>
             {/* Header */}
             <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(192,132,252,0.15)", display: "flex", alignItems: "center", gap: 10, background: "rgba(192,132,252,0.03)", flexShrink: 0 }}>
               <Brain size={16} color="#c084fc" style={{ flexShrink: 0 }} />
