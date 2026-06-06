@@ -64,7 +64,8 @@ const UI = {
       `Neural sync established. I'm TokAgent, your task planning assistant. Based on your current state — Focus ${f}/100, Energy ${e}% — I can help you build and prioritize your to-do list. What are you trying to accomplish today?`,
     error: "Neural link disrupted. Check that your API key is valid and try again.",
     keyPromptTitle: "ANTHROPIC API KEY REQUIRED",
-    keyPromptDesc: "Connect your own Anthropic API key, or use the app's built-in key if it's configured. A key you enter is stored locally in your browser and never saved on Tokai's servers.",
+    keyPromptDesc: "Add your Anthropic API key in your profile to enable TokAgent. A key you enter is stored locally in your browser and never saved on Tokai's servers.",
+    keyOpenSettings: "OPEN PROFILE SETTINGS",
     keyPrivacy: "When you send a message, your neural metrics, tasks, journal, and medication log are sent to Anthropic's API to generate a response. Anthropic does not use API data to train its models, and Tokai's API server is a stateless relay that stores nothing. Your tasks, journal, and profile are kept in your private Tokai account (isolated per user via row-level security); your API key and chat history stay in your browser.",
     keyPlaceholder: "sk-ant-...",
     keySubmit: "CONNECT",
@@ -82,7 +83,8 @@ const UI = {
       `神經同步完成。我是 TokAgent，你的任務規劃助手。根據你當前的狀態——專注度 ${f}/100，能量 ${e}%——我可以幫你制定並優先排列今日任務清單。你今天需要完成什麼？`,
     error: "神經鏈路中斷。請確認 API 金鑰有效後重試。",
     keyPromptTitle: "需要 ANTHROPIC API 金鑰",
-    keyPromptDesc: "連接你自己的 Anthropic API 金鑰，或在已設定時使用應用程式內建的金鑰。你輸入的金鑰僅儲存在瀏覽器本機，不會儲存於 Tokai 伺服器。",
+    keyPromptDesc: "在個人檔案中加入你的 Anthropic API 金鑰即可啟用 TokAgent。你輸入的金鑰僅儲存在瀏覽器本機，不會儲存於 Tokai 伺服器。",
+    keyOpenSettings: "開啟個人設定",
     keyPrivacy: "當你發送訊息時，你的神經指標、任務、日誌與藥物紀錄會傳送至 Anthropic API 以生成回應。Anthropic 不會使用 API 資料訓練模型，且 Tokai 的 API 伺服器為無狀態中繼，不儲存任何資料。你的任務、日誌與個人檔案儲存在你的私人 Tokai 帳戶中（透過列級安全性逐一隔離）；API 金鑰與對話紀錄則留在你的瀏覽器。",
     keyPlaceholder: "sk-ant-...",
     keySubmit: "連線",
@@ -95,7 +97,7 @@ const STORAGE_KEY = "tokai_anthropic_key";
 const CHAT_KEY_PREFIX = "tokai_chat";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
-export default function AgentChat({ neuralState, tasks, journalEntries = [], medLog = [], lang = "en", isMobile = false, selectedDate, onInfo, onClose, moodAssessment }: {
+export default function AgentChat({ neuralState, tasks, journalEntries = [], medLog = [], lang = "en", isMobile = false, selectedDate, onInfo, onClose, onOpenSettings, apiKey, moodAssessment }: {
   neuralState: NeuralState;
   tasks: Task[];
   journalEntries?: JournalEntry[];
@@ -105,6 +107,8 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
   selectedDate?: string;
   onInfo?: () => void;
   onClose?: () => void;
+  onOpenSettings?: () => void;
+  apiKey: string;
   moodAssessment?: MoodAssessment;
 }) {
   const t = UI[lang];
@@ -112,8 +116,6 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
   const chatKey = `${CHAT_KEY_PREFIX}_${chatDate}`;
   const isToday = chatDate === todayStr();
 
-  const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem(STORAGE_KEY) ?? "");
-  const [keyInput, setKeyInput] = useState("");
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const s = localStorage.getItem(chatKey);
@@ -159,19 +161,6 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
-
-  function submitKey() {
-    const k = keyInput.trim();
-    if (!k) return;
-    localStorage.setItem(STORAGE_KEY, k);
-    setApiKey(k);
-    setKeyInput("");
-  }
-
-  function clearKey() {
-    localStorage.removeItem(STORAGE_KEY);
-    setApiKey("");
-  }
 
   function resetChat() {
     localStorage.removeItem(chatKey);
@@ -240,11 +229,6 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
               {lang === "en" ? "RESET CHAT" : "重置對話"}
             </button>
           )}
-          {apiKey && (
-            <button onClick={clearKey} style={{ background: "none", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 4, color: "#5a8fa8", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, padding: "4px 10px", letterSpacing: 1 }}>
-              {t.clearKey}
-            </button>
-          )}
           {onInfo && (
             <button onClick={onInfo}
               style={{ background: "none", border: "1px solid rgba(192,132,252,0.25)", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "rgba(192,132,252,0.5)", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, padding: 0, lineHeight: 1, flexShrink: 0 }}
@@ -265,26 +249,15 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
       </div>
 
       {!apiKey ? (
-        <div style={{ flex: 1, padding: "28px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ flex: 1, padding: "28px 24px", display: "flex", flexDirection: "column", gap: 14, justifyContent: "center" }}>
           <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#c084fc", letterSpacing: 2 }}>{t.keyPromptTitle}</div>
           <p style={{ fontSize: 15, color: "#5a8fa8", lineHeight: 1.6, margin: 0 }}>{t.keyPromptDesc}</p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              type="password"
-              value={keyInput}
-              onChange={e => setKeyInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && submitKey()}
-              placeholder={t.keyPlaceholder}
-              style={{ flex: 1, padding: "9px 14px", background: "rgba(0,0,0,0.35)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#d0e8f8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none" }}
-            />
-            <button
-              onClick={submitKey}
-              disabled={!keyInput.trim()}
-              style={{ padding: "9px 18px", background: keyInput.trim() ? "rgba(192,132,252,0.15)" : "rgba(192,132,252,0.05)", border: "1px solid rgba(192,132,252,0.3)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, cursor: keyInput.trim() ? "pointer" : "not-allowed", letterSpacing: 1 }}
-            >
-              {t.keySubmit}
+          {onOpenSettings && (
+            <button onClick={onOpenSettings}
+              style={{ alignSelf: "flex-start", padding: "9px 18px", background: "rgba(192,132,252,0.15)", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, cursor: "pointer", letterSpacing: 1 }}>
+              {t.keyOpenSettings}
             </button>
-          </div>
+          )}
           <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "rgba(192,132,252,0.5)", fontFamily: "'Share Tech Mono', monospace", letterSpacing: 1 }}>{t.keyGet} →</a>
           <div style={{ padding: "10px 12px", background: "rgba(192,132,252,0.04)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 6 }}>
             <p style={{ margin: 0, fontSize: 11, color: "rgba(90,143,168,0.8)", lineHeight: 1.6, fontFamily: "'Share Tech Mono', monospace", letterSpacing: 0.3 }}>{t.keyPrivacy}</p>

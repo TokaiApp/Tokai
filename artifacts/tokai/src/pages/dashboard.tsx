@@ -361,6 +361,15 @@ export default function Dashboard({ session }: { session: Session }) {
   const [profile, setProfile] = useState<{ name: string; bciDevice: string; subscriptionTier: string; tokens: number; aiProfile: string | null } | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showReport, setShowReport] = useState(false);
+
+  // Anthropic API key (BYOK) — single source of truth; entered in the profile, used by TokAgent + AI endpoints
+  const [anthropicKey, setAnthropicKey] = useState(() => { try { return localStorage.getItem("tokai_anthropic_key") ?? ""; } catch { return ""; } });
+  function saveAnthropicKey(k: string) {
+    const v = k.trim();
+    setAnthropicKey(v);
+    try { if (v) localStorage.setItem("tokai_anthropic_key", v); else localStorage.removeItem("tokai_anthropic_key"); } catch { /* ignore */ }
+  }
+  const [keyInput, setKeyInput] = useState("");
   const [profileGenerating, setProfileGenerating] = useState(false);
   const tokEn = profile?.tokens ?? 100;
   const [lang, setLang] = useState<Lang>("en");
@@ -2612,6 +2621,8 @@ export default function Dashboard({ session }: { session: Session }) {
             isMobile={isMobile}
             onInfo={() => setInfoModal(INFO[lang].tokAgent)}
             onClose={() => setAgentDockOpen(false)}
+            onOpenSettings={() => setShowProfileModal(true)}
+            apiKey={anthropicKey}
             moodAssessment={moodAssessment ?? undefined}
           />
         </div>
@@ -2689,6 +2700,30 @@ export default function Dashboard({ session }: { session: Session }) {
                 <option value="emotiv">Emotiv EPOC X</option>
                 <option value="other">{lang === "en" ? "Other" : "其他"}</option>
               </select>
+            </div>
+
+            {/* Anthropic API key (BYOK) */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "ANTHROPIC API KEY · TOKAGENT" : "ANTHROPIC API 金鑰 · TOKAGENT"}</span>
+              {anthropicKey ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ flex: 1, padding: "8px 12px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(110,231,183,0.3)", borderRadius: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#6ee7b7" }}>✓ {lang === "en" ? "Connected" : "已連接"} · ••••{anthropicKey.slice(-4)}</span>
+                  <button onClick={() => saveAnthropicKey("")}
+                    style={{ padding: "8px 14px", background: "transparent", border: "1px solid rgba(248,113,113,0.35)", borderRadius: 6, color: "#f87171", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>{lang === "en" ? "CLEAR" : "清除"}</button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input type="password" value={keyInput} onChange={e => setKeyInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && keyInput.trim()) { saveAnthropicKey(keyInput); setKeyInput(""); } }}
+                    placeholder="sk-ant-..."
+                    style={{ flex: 1, padding: "8px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none" }} />
+                  <button onClick={() => { if (keyInput.trim()) { saveAnthropicKey(keyInput); setKeyInput(""); } }} disabled={!keyInput.trim()}
+                    style={{ padding: "8px 16px", background: keyInput.trim() ? "rgba(192,132,252,0.18)" : "rgba(192,132,252,0.05)", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: keyInput.trim() ? "pointer" : "not-allowed" }}>{lang === "en" ? "SAVE" : "儲存"}</button>
+                </div>
+              )}
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.7)", letterSpacing: 0.3, lineHeight: 1.5 }}>
+                {lang === "en" ? "Stored only in your browser, never on Tokai's servers. " : "僅儲存在你的瀏覽器，不會儲存於 Tokai 伺服器。"}
+                <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" style={{ color: "#c084fc", textDecoration: "none" }}>{lang === "en" ? "Get a key →" : "取得金鑰 →"}</a>
+              </span>
             </div>
 
             {/* Accessibility */}
