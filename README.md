@@ -267,7 +267,7 @@ The full source — including the API relay and the exact system prompts sent to
 
 Tokai originated as a master's thesis project exploring the intersection of real-time neurofeedback, agentic AI, and ADHD management. The core hypothesis: **if an AI assistant has access to a user's live cognitive state, it can dramatically improve task-planning outcomes for people with executive-function challenges.**
 
-This repository is the first public prototype (v0.1.0). We are actively seeking collaborators, researchers, and neurodivergent users willing to provide feedback.
+This repository is the first public alpha (v0.1.0-alpha). We are actively seeking collaborators, researchers, and neurodivergent users willing to provide feedback.
 
 ---
 
@@ -300,7 +300,7 @@ Learn more about the project and team at **[tokai.app](https://tokai.app)**.
 
 ## License
 
-Copyright © 2025 TokaiApp
+Copyright © 2026 TokaiApp
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
 
