@@ -1747,11 +1747,11 @@ export default function Dashboard({ session }: { session: Session }) {
                 <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)", letterSpacing: 2, flexShrink: 0 }}>
                   {lang === "en" ? "DATA SOURCE:" : "資料來源："}
                 </span>
-                <div style={{ display: "flex", background: "rgba(12,8,24,0.8)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 8, overflow: "visible" }}>
+                <div style={{ display: "flex", alignSelf: "stretch", alignItems: "stretch", background: "rgba(12,8,24,0.8)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 8, overflow: "visible" }}>
                   <button
                     onClick={() => { setDataSource("simulated"); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
                     style={{
-                      padding: "8px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)", borderRadius: "8px 0 0 8px",
+                      padding: "0 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)", borderRadius: "8px 0 0 8px",
                       background: dataSource === "simulated" ? "rgba(192,132,252,0.18)" : "transparent",
                       color: dataSource === "simulated" ? "#c084fc" : "rgba(90,143,168,0.7)",
                       fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
@@ -1761,11 +1761,11 @@ export default function Dashboard({ session }: { session: Session }) {
                     {dataSource === "simulated" && <span style={{ marginRight: 6, fontSize: 9 }}>●</span>}
                     SIMULATED
                   </button>
-                  <div ref={datasetDropdownRef} style={{ position: "relative" }}>
+                  <div ref={datasetDropdownRef} style={{ position: "relative", display: "flex" }}>
                     <button
                       onClick={() => { setDataSource("dataset"); setDatasetDropdownOpen(o => !o); }}
                       style={{
-                        padding: "8px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
+                        padding: "0 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
                         background: dataSource === "dataset" ? "rgba(192,132,252,0.18)" : "transparent",
                         color: dataSource === "dataset" ? "#c084fc" : "rgba(90,143,168,0.7)",
                         fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
@@ -1805,7 +1805,7 @@ export default function Dashboard({ session }: { session: Session }) {
                     disabled
                     title={lang === "en" ? "Available in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置"}
                     style={{
-                      padding: "8px 20px", border: "none", borderRadius: "0 8px 8px 0",
+                      padding: "0 20px", border: "none", borderRadius: "0 8px 8px 0",
                       background: "transparent", color: "rgba(90,143,168,0.3)",
                       fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
                       cursor: "not-allowed",
