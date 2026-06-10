@@ -14,7 +14,7 @@
     <a href="https://tokai-pre-alpha-tokai.vercel.app/"><img src="https://img.shields.io/badge/Live%20Demo-Alpha-c084fc?style=flat-square&logo=vercel" alt="Live Demo" /></a>
     <a href="https://tokai.app"><img src="https://img.shields.io/badge/Website-tokai.app-7c3aed?style=flat-square" alt="Website" /></a>
     <a href="https://github.com/TokaiApp/Tokai/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square" alt="License" /></a>
-    <img src="https://img.shields.io/badge/Version-0.1.0--alpha-f472b6?style=flat-square" alt="Version" />
+    <img src="https://img.shields.io/badge/Version-0.2.0--alpha-f472b6?style=flat-square" alt="Version" />
     <img src="https://img.shields.io/badge/AI-Claude%20(Anthropic)-orange?style=flat-square" alt="AI" />
   </p>
 
@@ -267,7 +267,7 @@ The full source — including the API relay and the exact system prompts sent to
 
 Tokai originated as a master's thesis project exploring the intersection of real-time neurofeedback, agentic AI, and ADHD management. The core hypothesis: **if an AI assistant has access to a user's live cognitive state, it can dramatically improve task-planning outcomes for people with executive-function challenges.**
 
-This repository is the first public alpha (v0.1.0-alpha). We are actively seeking collaborators, researchers, and neurodivergent users willing to provide feedback.
+This repository is the first public alpha (v0.2.0-alpha). We are actively seeking collaborators, researchers, and neurodivergent users willing to provide feedback.
 
 ---
 
