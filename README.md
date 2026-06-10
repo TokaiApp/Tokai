@@ -35,9 +35,9 @@
 >
 > 據我們所知，**Tokai 是全球首款**提議根據使用者大腦數據來驅動 AI 任務規劃器與代理型待辦清單（TokAgent 與 TokDo）的應用程式。
 
-Neural data is **simulated** in this alpha release. Integration with [Muse 2](https://choosemuse.com/) and other consumer EEG headsets is planned for future versions.
+Neural data can be driven by three sources selectable in the dashboard: **Simulated** (AR(1) generative model), **Dataset** (five profiles parameterised from the STEW and DEAP open EEG datasets), or **My BCI** (live EEG headset — available in Beta). Integration with [Muse 2](https://choosemuse.com/) and other consumer EEG headsets is planned for Beta.
 
-目前的 Alpha 版本中，神經數據為**模擬狀態**。計劃在未來版本中整合 [Muse 2](https://choosemuse.com/) 及其他消費級 EEG 設備。
+神經數據可透過儀表板中的三種資料來源切換：**模擬**（AR(1) 生成模型）、**資料集**（以 STEW 與 DEAP 開放 EEG 資料集參數化的五種受試者檔案）或**我的 BCI**（即時 EEG 設備 — Beta 版提供）。消費級 EEG 設備整合（如 Muse 2）計劃於 Beta 版推出。
 
 ---
 
@@ -55,6 +55,7 @@ Everything is themed as the **Tok** family — the prefix nods to *token* (the a
 | 💡 | **TokInsights** — automatic, on-device observations from your own history: when you focus best, which moods track your focus, task completion, where your focus time goes, and more. No API calls — instant and private | **TokInsights** — 根據你自身歷史在本機自動計算的觀察：你何時最專注、哪些情緒對應高專注、任務完成度、專注時間花在哪等。不呼叫 API — 即時且私密 |
 | 📓 | **TokNote** — an ADHD-friendly journal with multi-select mood tagging, each entry auto-stamped with date, time, and your Focus Index at that moment | **TokNote** — ADHD 友善日誌，支援多選情緒標籤，每則條目自動標記日期、時間與當下專注指數 |
 | 💊 | **TokMed** — log medications, supplements, and stimulants; Tokai tracks how your Focus Index shifts in the 15–30 minutes after each entry | **TokMed** — 記錄藥物、補充品與咖啡因；Tokai 追蹤記錄後 15–30 分鐘內專注指數的變化 |
+| 🧬 | **Data Source selector** — switch between **Simulated** (generative AR(1) model), **Dataset** (five EEG profiles derived from the STEW and DEAP open datasets: High Focus, ADHD Pattern, Cognitive Fatigue, High WM Load, Hyperfocus), and **My BCI** (live headset, available in Beta) | **資料來源選擇器** — 在**模擬**（AR(1) 生成模型）、**資料集**（五種源自 STEW 與 DEAP 開放資料集的 EEG 受試者檔案：高專注、ADHD 模式、認知疲勞、高工作記憶負荷、過度專注）與**我的 BCI**（即時頭戴裝置，Beta 版提供）之間切換 |
 | 🔔 | **Notifications** — focus-drop alerts, recovery banners, medication reminders, and TokTimer phase changes | **通知** — 專注下降提醒、恢復橫幅、用藥提醒與 TokTimer 階段切換 |
 | 🪙 | **Profiles & TokEn** — Supabase-backed accounts with an AI-generated profile summary, BCI device selection, subscription tiers, and the TokEn currency | **個人檔案與 TokEn** — 由 Supabase 支援的帳戶，含 AI 生成的個人摘要、BCI 裝置選擇、訂閱方案與 TokEn 代幣 |
 | 📅 | **Day selector** — browse any past day; TokNote, TokAgent, and TokDo are filtered per selected day (past days are read-only) | **日期選擇器** — 瀏覽任一歷史日期；TokNote、TokAgent 與 TokDo 均按所選日期篩選（歷史日期唯讀） |
@@ -100,6 +101,8 @@ Tokai/
 │   │   │   │   └── dashboard.tsx       # Main dashboard (metrics, TokDo, TokTimer, TokInsights…)
 │   │   │   ├── components/
 │   │   │   │   └── agent-chat.tsx      # TokAgent chat UI (rendered in the bottom dock)
+│   │   │   ├── data/
+│   │   │   │   └── eeg_dataset.ts      # Dataset-parameterised EEG profiles (STEW + DEAP)
 │   │   │   └── lib/
 │   │   │       └── supabase.ts         # Supabase client
 │   │   ├── migrations/                 # One-off SQL to run in the Supabase SQL editor
@@ -190,16 +193,16 @@ Run the migrations in `artifacts/tokai/migrations/` and confirm RLS is enabled o
 
 ## Neural Metrics Explained
 
-| Metric | Description |
-|---|---|
-| **Focus Index** | Composite score (0–100) derived from EEG theta/beta patterns |
-| **Bio Energy** | Simulated biological energy level (%) — will reflect HRV/biometrics in future versions |
-| **Neural Noise** | Background EEG signal noise (μV²) — lower is cleaner; higher means distraction or arousal |
-| **Theta/Beta Ratio** | Elevated TBR (>3.0) is associated with ADHD inattention |
-| **Focus Window** | Predicted time remaining in your current focus state, from the recent trend |
-| **Working Memory Load** | Estimated load on working memory |
-| **Mental Fatigue** | Estimated cognitive fatigue building over the session |
-| **Hyperfocus Risk** | Likelihood you're locking into hyperfocus (and may skip breaks/meals) |
+| Metric | Description | Dataset source |
+|---|---|---|
+| **Focus Index** | Composite score (0–100) derived from EEG theta/beta patterns | STEW-derived |
+| **Bio Energy** | Biological energy level (%) — DEAP arousal-mapped in dataset mode; will reflect HRV/biometrics in future versions | DEAP-derived |
+| **Neural Noise** | Background EEG signal noise (μV²) — lower is cleaner; higher means distraction or arousal | STEW-derived |
+| **Theta/Beta Ratio** | Elevated TBR (>3.0) is associated with ADHD inattention | STEW-derived |
+| **Focus Window** | Predicted time remaining in your current focus state, from the recent trend | Computed |
+| **Working Memory Load** | Estimated frontal theta load on working memory | STEW-derived |
+| **Mental Fatigue** | Cognitive fatigue — DEAP inverse-valence-mapped in dataset mode | DEAP-derived |
+| **Hyperfocus Risk** | Likelihood you're locking into hyperfocus (and may skip breaks/meals) | Anchored simulation |
 
 TokAgent and the TokDo recommendation use these to tailor advice:
 - **High focus (>70):** deep work, complex problem-solving, demanding tasks
@@ -253,7 +256,8 @@ The full source — including the API relay and the exact system prompts sent to
 
 - [x] **User accounts** — Supabase auth, cross-device sync for tasks, ordering, and focus sessions
 - [x] **Focus session tracking** — TokTimer sessions feeding TokInsights
-- [ ] **Real EEG integration** — Muse 2, OpenBCI, Neurosity
+- [x] **Open EEG dataset profiles** — five parameterised subject profiles drawn from STEW and DEAP; selectable in the Data Source panel
+- [ ] **Real EEG integration** — Muse 2, OpenBCI, Neurosity (My BCI mode, Beta)
 - [ ] **Focus-aware scheduling** — plan the day against your focus curve; optional Google Calendar sync
 - [ ] **Metered AI / free tier** — wire the TokEn currency to real AI usage
 - [ ] **ADHD-specific profiles** — personalized thresholds and recommendations
@@ -315,3 +319,12 @@ You may use, modify, and distribute this software freely under the terms of the 
 - [Recharts](https://recharts.org) — charting library
 - [Lucide](https://lucide.dev) — icons
 - The ADHD and neurodiversity community — for inspiring this work
+
+### Datasets
+
+The Dataset mode profiles are parameterised from the statistical characteristics of two open EEG datasets:
+
+- **STEW** — Lim, W. L., Sourina, O., & Wang, L. P. (2018). STEW: Simultaneous Task EEG Workload Dataset. *IEEE Transactions on Neural Systems and Rehabilitation Engineering*, 26(5), 1060–1069. [IEEE DataPort (open access)](https://ieee-dataport.org/open-access/stew-simultaneous-task-eeg-workload-dataset)
+- **DEAP** — Koelstra, S., Muhl, C., Soleymani, M., Lee, J. S., Yazdani, A., Ebrahimi, T., ... & Patras, I. (2012). DEAP: A database for emotion analysis using physiological signals. *IEEE Transactions on Affective Computing*, 3(1), 18–31. [Project page](http://eecs.qmul.ac.uk/mmv/datasets/deap/)
+
+Raw dataset files are not bundled with the app. The time series are generated deterministically from published band-power statistics via AR(1) processes; they are not literal playback of recorded signals.
