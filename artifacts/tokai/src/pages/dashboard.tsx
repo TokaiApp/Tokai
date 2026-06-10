@@ -467,11 +467,30 @@ export default function Dashboard({ session }: { session: Session }) {
   // Internal focus target: drifts slowly, actual focus index pulls toward it
   const focusTargetRef = useRef(55);
 
+  // Online/offline detection
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
+  }, []);
+
   // Notifications
   const [notifications, setNotifications] = useState<{ id: string; message: string; color: string; icon: string }[]>([]);
   const [medReminders, setMedReminders] = useState<{ medId: string; medName: string; fireAt: number }[]>([]);
   const lowFocusStartRef = useRef<number | null>(null);
   const focusWasLowRef = useRef(false);
+
+  function sendBrowserNotification(title: string) {
+    if (typeof Notification === "undefined" || Notification.permission === "denied") return;
+    if (Notification.permission === "granted") {
+      new Notification(title, { silent: true });
+    } else {
+      Notification.requestPermission().then(p => { if (p === "granted") new Notification(title, { silent: true }); });
+    }
+  }
 
   function pushNotification(message: string, color: string, icon: string) {
     const id = Date.now().toString();
@@ -542,6 +561,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
   // Manual task ordering (drag / arrows to reorder) — synced to tasks.position
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
+  const orderSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Persist a new full ordering: assign each id its index as position and save changed rows
   function applyOrder(idOrder: string[]) {
@@ -552,7 +572,10 @@ export default function Dashboard({ session }: { session: Session }) {
       return i >= 0 ? { ...tk, position: i } : tk;
     });
     setTasks(next);
-    changed.forEach(c => { supabase.from("tasks").update({ position: c.position }).eq("id", c.id); });
+    if (orderSaveTimeout.current) clearTimeout(orderSaveTimeout.current);
+    orderSaveTimeout.current = setTimeout(() => {
+      changed.forEach(c => { supabase.from("tasks").update({ position: c.position }).eq("id", c.id); });
+    }, 600);
   }
 
   // Move a task up (-1) or down (+1) one slot
@@ -727,14 +750,18 @@ export default function Dashboard({ session }: { session: Session }) {
           logFocusSession(Math.round(pomodoroWorkRef.current / 60));
           playChime();
           const at = activeTaskRef.current;
-          pushNotification((lang === "en" ? "Focus block done — time for a break." : "專注時段結束 — 該休息了。") + (at ? ` · ${at.title}` : ""), "#6ee7b7", "☕");
+          const workDoneMsg = (lang === "en" ? "Focus block done — time for a break." : "專注時段結束 — 該休息了。") + (at ? ` · ${at.title}` : "");
+          pushNotification(workDoneMsg, "#6ee7b7", "☕");
+          sendBrowserNotification(workDoneMsg);
           return next % 4 === 0 ? pomodoroBreakRef.current * 3 : pomodoroBreakRef.current;
         } else {
           setPomodoroPhase("work");
           pomodoroPhaseRef.current = "work";
           if (!pomodoroAutoContinueRef.current) setPomodoroRunning(false);
           playChime();
-          pushNotification(lang === "en" ? "Break over — back to focus." : "休息結束 — 回到專注。", "#c084fc", "⚡");
+          const breakDoneMsg = lang === "en" ? "Break over — back to focus." : "休息結束 — 回到專注。";
+          pushNotification(breakDoneMsg, "#c084fc", "⚡");
+          sendBrowserNotification(breakDoneMsg);
           return pomodoroWorkRef.current;
         }
       });
@@ -800,10 +827,11 @@ export default function Dashboard({ session }: { session: Session }) {
       const now = Date.now();
       setMedReminders(prev => {
         const fired = prev.filter(r => r.fireAt <= now);
-        fired.forEach(r => pushNotification(
-          lang === "en" ? `Reminder: ${r.medName}` : `提醒：${r.medName}`,
-          "#fbbf24", "💊"
-        ));
+        fired.forEach(r => {
+          const medMsg = lang === "en" ? `Reminder: ${r.medName}` : `提醒：${r.medName}`;
+          pushNotification(medMsg, "#fbbf24", "💊");
+          sendBrowserNotification(medMsg);
+        });
         return prev.filter(r => r.fireAt > now);
       });
     }, 30000);
@@ -2641,6 +2669,13 @@ export default function Dashboard({ session }: { session: Session }) {
           insights={insights}
           onClose={() => setShowReport(false)}
         />
+      )}
+
+      {/* ── Offline banner ── */}
+      {!isOnline && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 500, background: "#7f1d1d", borderBottom: "1px solid #ef4444", padding: "8px 16px", textAlign: "center", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#fca5a5", letterSpacing: 1 }}>
+          {lang === "en" ? "No internet connection — changes may not save." : "目前離線 — 變更可能無法儲存。"}
+        </div>
       )}
 
       {/* ── Notification banners ── */}
