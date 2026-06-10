@@ -1827,7 +1827,7 @@ export default function Dashboard({ session }: { session: Session }) {
               {/* MY BCI — disabled */}
               <button
                 disabled
-                title={lang === "en" ? "Coming in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置"}
+                title={lang === "en" ? "Available in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置"}
                 style={{
                   padding: "8px 20px", border: "none", borderRadius: "0 8px 8px 0",
                   background: "transparent", color: "rgba(90,143,168,0.3)",
@@ -1835,7 +1835,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   cursor: "not-allowed",
                 }}
               >
-                MY BCI · BETA
+                MY BCI (available in Beta)
               </button>
 
             </div>
