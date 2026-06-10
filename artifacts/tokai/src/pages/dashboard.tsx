@@ -7,6 +7,8 @@ import {
 } from "recharts";
 import AgentChat from "@/components/agent-chat";
 import ClinicianReport from "@/components/clinician-report";
+import { eegDataset } from "@/data/eeg_dataset";
+import type { DatasetSubject } from "@/data/eeg_dataset";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
@@ -459,6 +461,16 @@ export default function Dashboard({ session }: { session: Session }) {
     window.addEventListener("resize", update);
     return () => { el.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
   }, [isMobile]);
+  // Data source: simulated drift, dataset replay, or live BCI (future)
+  type DataSource = "simulated" | "dataset" | "bci";
+  const [dataSource, setDataSource] = useState<DataSource>("simulated");
+  const dataSourceRef = useRef<DataSource>("simulated");
+  useEffect(() => { dataSourceRef.current = dataSource; }, [dataSource]);
+  const [datasetSubjectIdx, setDatasetSubjectIdx] = useState(0);
+  const datasetSubjectIdxRef = useRef(0);
+  useEffect(() => { datasetSubjectIdxRef.current = datasetSubjectIdx; }, [datasetSubjectIdx]);
+  const datasetPlayheadRef = useRef(0);
+
   const [chartWrapWidth, setChartWrapWidth] = useState(600);
   const [isLive, setIsLive] = useState(true);
   const sessionStartSampleCount = useRef(0);
@@ -1243,45 +1255,60 @@ export default function Dashboard({ session }: { session: Session }) {
 
   const tick = useCallback(() => {
     const prev = neuralRef.current;
-    const newTheta = drift(prev.theta, 18, 10, 180);
-    const newBeta = drift(prev.beta, 18, 10, 180);
+    let next: NeuralState;
 
-    // Mean-reverting focus simulation: target drifts slowly, focus pulls toward it
-    focusTargetRef.current = clamp(
-      focusTargetRef.current + (Math.random() - 0.5) * 10,
-      5, 95
-    );
-    const focusPull = (focusTargetRef.current - prev.focusIndex) * 0.2;
-    const newFocus = parseFloat(clamp(prev.focusIndex + focusPull + (Math.random() - 0.5) * 10, 0, 100).toFixed(1));
+    if (dataSourceRef.current === "dataset") {
+      const subject: DatasetSubject = eegDataset[datasetSubjectIdxRef.current];
+      const sample = subject.samples[datasetPlayheadRef.current % subject.samples.length];
+      datasetPlayheadRef.current++;
+      // Hyperfocus risk is not in the dataset — anchor it to dataset focus + noise values
+      const hfrTrend = (sample.focusIndex > 72 && sample.neuralNoise < 28) ? 0.5 : sample.focusIndex < 45 ? -0.4 : 0;
+      const newHFR = parseFloat(clamp(
+        prev.hyperfocusRisk + (Math.random() - 0.5) * 4 + hfrTrend, 0, 100
+      ).toFixed(1));
+      next = { ...sample, hyperfocusRisk: newHFR };
+    } else {
+      const newTheta = drift(prev.theta, 18, 10, 180);
+      const newBeta = drift(prev.beta, 18, 10, 180);
 
-    // Working memory: higher theta = more load; drifts with slight upward pull when focus is high
-    const newWML = parseFloat(clamp(
-      prev.workingMemoryLoad + (Math.random() - 0.48) * 6 + (newFocus > 60 ? 0.3 : -0.2),
-      0, 100
-    ).toFixed(1));
-    // Mental fatigue: slowly accumulates during high focus, gently recovers during low focus
-    const fatigueTrend = newFocus > 65 ? 0.25 : newFocus < 30 ? -0.15 : 0.05;
-    const newFatigue = parseFloat(clamp(
-      prev.mentalFatigue + (Math.random() - 0.5) * 1.5 + fatigueTrend,
-      0, 100
-    ).toFixed(1));
-    // Hyperfocus risk: spikes when focus is high + noise is low; fades otherwise
-    const hfrTrend = (newFocus > 72 && prev.neuralNoise < 28) ? 0.5 : newFocus < 45 ? -0.4 : 0;
-    const newHFR = parseFloat(clamp(
-      prev.hyperfocusRisk + (Math.random() - 0.5) * 4 + hfrTrend,
-      0, 100
-    ).toFixed(1));
+      // Mean-reverting focus simulation: target drifts slowly, focus pulls toward it
+      focusTargetRef.current = clamp(
+        focusTargetRef.current + (Math.random() - 0.5) * 10,
+        5, 95
+      );
+      const focusPull = (focusTargetRef.current - prev.focusIndex) * 0.2;
+      const newFocus = parseFloat(clamp(prev.focusIndex + focusPull + (Math.random() - 0.5) * 10, 0, 100).toFixed(1));
 
-    const next: NeuralState = {
-      focusIndex: newFocus,
-      bioEnergy: drift(prev.bioEnergy, 2, 0, 100),
-      neuralNoise: drift(prev.neuralNoise, 3, 0, 80),
-      tbRatio: parseFloat((newTheta / newBeta).toFixed(2)),
-      theta: newTheta, beta: newBeta,
-      workingMemoryLoad: newWML,
-      mentalFatigue: newFatigue,
-      hyperfocusRisk: newHFR,
-    };
+      // Working memory: higher theta = more load; drifts with slight upward pull when focus is high
+      const newWML = parseFloat(clamp(
+        prev.workingMemoryLoad + (Math.random() - 0.48) * 6 + (newFocus > 60 ? 0.3 : -0.2),
+        0, 100
+      ).toFixed(1));
+      // Mental fatigue: slowly accumulates during high focus, gently recovers during low focus
+      const fatigueTrend = newFocus > 65 ? 0.25 : newFocus < 30 ? -0.15 : 0.05;
+      const newFatigue = parseFloat(clamp(
+        prev.mentalFatigue + (Math.random() - 0.5) * 1.5 + fatigueTrend,
+        0, 100
+      ).toFixed(1));
+      // Hyperfocus risk: spikes when focus is high + noise is low; fades otherwise
+      const hfrTrend = (newFocus > 72 && prev.neuralNoise < 28) ? 0.5 : newFocus < 45 ? -0.4 : 0;
+      const newHFR = parseFloat(clamp(
+        prev.hyperfocusRisk + (Math.random() - 0.5) * 4 + hfrTrend,
+        0, 100
+      ).toFixed(1));
+
+      next = {
+        focusIndex: newFocus,
+        bioEnergy: drift(prev.bioEnergy, 2, 0, 100),
+        neuralNoise: drift(prev.neuralNoise, 3, 0, 80),
+        tbRatio: parseFloat((newTheta / newBeta).toFixed(2)),
+        theta: newTheta, beta: newBeta,
+        workingMemoryLoad: newWML,
+        mentalFatigue: newFatigue,
+        hyperfocusRisk: newHFR,
+      };
+    }
+
     setNeural(next);
     neuralRef.current = next;
     const maxSamples = Math.round(30 * 60 / refreshRate);
@@ -1721,6 +1748,55 @@ export default function Dashboard({ session }: { session: Session }) {
               </div>
             </div>
           )}
+
+          {/* Data source selector */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", background: "rgba(12,8,24,0.8)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 8, overflow: "hidden" }}>
+              {(["simulated", "dataset", "bci"] as const).map(src => {
+                const active = dataSource === src;
+                const disabled = src === "bci";
+                const labels: Record<string, string> = { simulated: "SIMULATED", dataset: "DATASET", bci: "MY BCI · BETA" };
+                return (
+                  <button
+                    key={src}
+                    disabled={disabled}
+                    title={disabled ? (lang === "en" ? "Coming in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置") : undefined}
+                    onClick={() => { if (!disabled) { setDataSource(src); datasetPlayheadRef.current = 0; } }}
+                    style={{
+                      padding: "5px 14px", border: "none", borderRight: src !== "bci" ? "1px solid rgba(192,132,252,0.2)" : "none",
+                      background: active ? "rgba(192,132,252,0.18)" : "transparent",
+                      color: disabled ? "rgba(90,143,168,0.35)" : active ? "#c084fc" : "rgba(90,143,168,0.7)",
+                      fontFamily: "'Share Tech Mono', monospace", fontSize: 10, letterSpacing: 1.5,
+                      cursor: disabled ? "not-allowed" : "pointer", transition: "all 0.15s",
+                    }}
+                  >
+                    {active && !disabled && <span style={{ marginRight: 5, fontSize: 8 }}>●</span>}
+                    {labels[src]}
+                  </button>
+                );
+              })}
+            </div>
+
+            {dataSource === "dataset" && (
+              <>
+                <select
+                  value={datasetSubjectIdx}
+                  onChange={e => { setDatasetSubjectIdx(Number(e.target.value)); datasetPlayheadRef.current = 0; }}
+                  style={{ padding: "5px 10px", background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, letterSpacing: 1, cursor: "pointer", outline: "none", colorScheme: "dark" }}
+                >
+                  {eegDataset.map((s, i) => (
+                    <option key={s.id} value={i}>{s.label}</option>
+                  ))}
+                </select>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.6)", letterSpacing: 1 }}>
+                  {eegDataset[datasetSubjectIdx].source}
+                </span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>
+                  {eegDataset[datasetSubjectIdx].description}
+                </span>
+              </>
+            )}
+          </div>
 
           {/* Metric cards — horizontal scroll, ~5 visible */}
           <div style={{ position: "relative" }}>
