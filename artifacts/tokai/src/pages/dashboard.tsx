@@ -1738,11 +1738,84 @@ export default function Dashboard({ session }: { session: Session }) {
 
           {/* Desktop header */}
           {!isMobile && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h1 style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 52, fontWeight: 700, letterSpacing: 14, textShadow: "0 0 30px rgba(192,132,252,0.4), 0 0 60px rgba(192,132,252,0.15)", margin: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+              <h1 style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 52, fontWeight: 700, letterSpacing: 14, textShadow: "0 0 30px rgba(192,132,252,0.4), 0 0 60px rgba(192,132,252,0.15)", margin: 0, flexShrink: 0 }}>
                 <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>AI</span>
               </h1>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {/* Data source selector — desktop; mobile version is below */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, justifyContent: "center" }}>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)", letterSpacing: 2, flexShrink: 0 }}>
+                  {lang === "en" ? "DATA SOURCE:" : "資料來源："}
+                </span>
+                <div style={{ display: "flex", background: "rgba(12,8,24,0.8)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 8, overflow: "visible" }}>
+                  <button
+                    onClick={() => { setDataSource("simulated"); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
+                    style={{
+                      padding: "8px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)", borderRadius: "8px 0 0 8px",
+                      background: dataSource === "simulated" ? "rgba(192,132,252,0.18)" : "transparent",
+                      color: dataSource === "simulated" ? "#c084fc" : "rgba(90,143,168,0.7)",
+                      fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
+                      cursor: "pointer", transition: "all 0.15s",
+                    }}
+                  >
+                    {dataSource === "simulated" && <span style={{ marginRight: 6, fontSize: 9 }}>●</span>}
+                    SIMULATED
+                  </button>
+                  <div ref={datasetDropdownRef} style={{ position: "relative" }}>
+                    <button
+                      onClick={() => { setDataSource("dataset"); setDatasetDropdownOpen(o => !o); }}
+                      style={{
+                        padding: "8px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
+                        background: dataSource === "dataset" ? "rgba(192,132,252,0.18)" : "transparent",
+                        color: dataSource === "dataset" ? "#c084fc" : "rgba(90,143,168,0.7)",
+                        fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
+                        cursor: "pointer", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 7,
+                      }}
+                    >
+                      {dataSource === "dataset" && <span style={{ fontSize: 9 }}>●</span>}
+                      DATASET
+                      <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
+                    </button>
+                    {datasetDropdownOpen && (
+                      <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 8, padding: "6px 0", minWidth: 280, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+                        {eegDataset.map((s, i) => (
+                          <button
+                            key={s.id}
+                            onClick={() => { setDatasetSubjectIdx(i); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
+                            style={{
+                              width: "100%", padding: "9px 16px", border: "none", background: datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent",
+                              color: datasetSubjectIdx === i && dataSource === "dataset" ? "#c084fc" : "#c8d8e8",
+                              fontFamily: "'Share Tech Mono', monospace", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 3,
+                              transition: "background 0.1s",
+                            }}
+                            onMouseEnter={e => { (e.currentTarget.style.background = "rgba(192,132,252,0.08)"); }}
+                            onMouseLeave={e => { (e.currentTarget.style.background = datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent"); }}
+                          >
+                            <span style={{ fontSize: 11, letterSpacing: 1 }}>{datasetSubjectIdx === i && dataSource === "dataset" ? "● " : "  "}{s.label}</span>
+                            <span style={{ fontSize: 9, color: "rgba(90,143,168,0.6)", letterSpacing: 0.5 }}>{s.description}</span>
+                          </button>
+                        ))}
+                        <div style={{ borderTop: "1px solid rgba(192,132,252,0.15)", margin: "6px 0 0", padding: "6px 16px 2px" }}>
+                          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>SOURCE: STEW + DEAP</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    disabled
+                    title={lang === "en" ? "Available in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置"}
+                    style={{
+                      padding: "8px 20px", border: "none", borderRadius: "0 8px 8px 0",
+                      background: "transparent", color: "rgba(90,143,168,0.3)",
+                      fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
+                      cursor: "not-allowed",
+                    }}
+                  >
+                    MY BCI (available in Beta)
+                  </button>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                 {pomodoroRunning && (
                   <button onClick={() => widgetScrollRef.current?.scrollTo({ left: 0, behavior: "smooth" })} title={lang === "en" ? "Go to TokTimer" : "前往 TokTimer"}
                     style={{ display: "flex", alignItems: "center", gap: 6, alignSelf: "stretch", padding: "0 12px", background: pomodoroPhase === "work" ? "rgba(192,132,252,0.12)" : "rgba(110,231,183,0.12)", border: `1px solid ${pomodoroPhase === "work" ? "rgba(192,132,252,0.5)" : "rgba(110,231,183,0.5)"}`, borderRadius: 6, color: pomodoroPhase === "work" ? "#c084fc" : "#6ee7b7", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer" }}>
@@ -1760,7 +1833,8 @@ export default function Dashboard({ session }: { session: Session }) {
             </div>
           )}
 
-          {/* Data source selector */}
+          {/* Data source selector — mobile only; desktop version lives in the main header */}
+          {isMobile && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)", letterSpacing: 2, flexShrink: 0 }}>
               {lang === "en" ? "DATA SOURCE:" : "資料來源："}
@@ -1840,6 +1914,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
             </div>
           </div>
+          )}
 
           {/* Metric cards — horizontal scroll, ~5 visible */}
           <div style={{ position: "relative" }}>
