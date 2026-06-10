@@ -152,7 +152,7 @@ function buildSubject(
 // STEW: beta-dominant resting state with low theta, typical of high-performer.
 // DEAP: high arousal clip, low fatigue.
 const s01 = buildSubject(
-  { id: "S01", label: "S01 · High Focus", description: "Beta-dominant, focused state. T/B ≈ 0.85. STEW low-load profile." },
+  { id: "S01", label: "Subj 1 — High Focus", description: "Beta-dominant, focused state. T/B ≈ 0.85. STEW low-load profile." },
   {
     thetaMu: 50,  thetaPhi: 0.85, thetaSig: 6,  thetaX0: 52,
     betaMu:  60,  betaPhi:  0.80, betaSig:  8,  betaX0:  58,
@@ -168,7 +168,7 @@ const s01 = buildSubject(
 // STEW: theta-dominant, high T/B ratio (~2.4) consistent with ADHD inattention literature.
 // DEAP: moderate arousal, elevated fatigue.
 const s02 = buildSubject(
-  { id: "S02", label: "S02 · ADHD Pattern", description: "Theta-dominant, high T/B ≈ 2.4. Consistent with ADHD inattention profile." },
+  { id: "S02", label: "Subj 2 — ADHD Pattern", description: "Theta-dominant, high T/B ≈ 2.4. Consistent with ADHD inattention profile." },
   {
     thetaMu: 105, thetaPhi: 0.88, thetaSig: 12, thetaX0: 100,
     betaMu:  44,  betaPhi:  0.82, betaSig:  6,  betaX0:  47,
@@ -185,7 +185,7 @@ const s02 = buildSubject(
 // Theta mean drifts up, beta mean drifts down → T/B rises, focus falls.
 // DEAP: depleting energy, accumulating fatigue.
 const s03 = buildSubject(
-  { id: "S03", label: "S03 · Cognitive Fatigue", description: "Session-level fatigue buildup. T/B drifts 0.82→1.75 as cognitive load accumulates." },
+  { id: "S03", label: "Subj 3 — Cognitive Fatigue", description: "Session-level fatigue buildup. T/B drifts 0.82→1.75 as cognitive load accumulates." },
   {
     thetaMu: ramp(54, 88, N), thetaPhi: 0.86, thetaSig: 8,  thetaX0: 56,
     betaMu:  ramp(68, 50, N), betaPhi:  0.83, betaSig:  7,  betaX0:  66,
@@ -201,7 +201,7 @@ const s03 = buildSubject(
 // STEW: sustained high cognitive load, moderate T/B (~1.4), elevated frontal theta.
 // DEAP: moderate arousal, moderate fatigue.
 const s04 = buildSubject(
-  { id: "S04", label: "S04 · High WM Load", description: "Sustained cognitive load, elevated frontal theta. T/B ≈ 1.4, WM load 65–80." },
+  { id: "S04", label: "Subj 4 — High WM Load", description: "Sustained cognitive load, elevated frontal theta. T/B ≈ 1.4, WM load 65–80." },
   {
     thetaMu: 80,  thetaPhi: 0.87, thetaSig: 9,  thetaX0: 78,
     betaMu:  57,  betaPhi:  0.83, betaSig:  7,  betaX0:  59,
@@ -217,7 +217,7 @@ const s04 = buildSubject(
 // STEW: extremely beta-dominant, very low T/B (~0.42). Represents deep flow state.
 // DEAP: high arousal, low-moderate fatigue.
 const s05 = buildSubject(
-  { id: "S05", label: "S05 · Hyperfocus", description: "Intense beta-dominant flow state. T/B ≈ 0.42. High focus, low WM load, elevated HFR." },
+  { id: "S05", label: "Subj 5 — Hyperfocus", description: "Intense beta-dominant flow state. T/B ≈ 0.42. High focus, low WM load, elevated HFR." },
   {
     thetaMu: 34,  thetaPhi: 0.90, thetaSig: 5,  thetaX0: 36,
     betaMu:  82,  betaPhi:  0.85, betaSig:  8,  betaX0:  80,
