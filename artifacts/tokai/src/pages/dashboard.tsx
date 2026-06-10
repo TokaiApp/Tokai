@@ -470,6 +470,17 @@ export default function Dashboard({ session }: { session: Session }) {
   const datasetSubjectIdxRef = useRef(0);
   useEffect(() => { datasetSubjectIdxRef.current = datasetSubjectIdx; }, [datasetSubjectIdx]);
   const datasetPlayheadRef = useRef(0);
+  const [datasetDropdownOpen, setDatasetDropdownOpen] = useState(false);
+  const datasetDropdownRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!datasetDropdownOpen) return;
+    function handleOutside(e: MouseEvent) {
+      if (datasetDropdownRef.current && !datasetDropdownRef.current.contains(e.target as Node))
+        setDatasetDropdownOpen(false);
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [datasetDropdownOpen]);
 
   const [chartWrapWidth, setChartWrapWidth] = useState(600);
   const [isLive, setIsLive] = useState(true);
@@ -1750,52 +1761,84 @@ export default function Dashboard({ session }: { session: Session }) {
           )}
 
           {/* Data source selector */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <div style={{ display: "flex", background: "rgba(12,8,24,0.8)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 8, overflow: "hidden" }}>
-              {(["simulated", "dataset", "bci"] as const).map(src => {
-                const active = dataSource === src;
-                const disabled = src === "bci";
-                const labels: Record<string, string> = { simulated: "SIMULATED", dataset: "DATASET", bci: "MY BCI · BETA" };
-                return (
-                  <button
-                    key={src}
-                    disabled={disabled}
-                    title={disabled ? (lang === "en" ? "Coming in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置") : undefined}
-                    onClick={() => { if (!disabled) { setDataSource(src); datasetPlayheadRef.current = 0; } }}
-                    style={{
-                      padding: "5px 14px", border: "none", borderRight: src !== "bci" ? "1px solid rgba(192,132,252,0.2)" : "none",
-                      background: active ? "rgba(192,132,252,0.18)" : "transparent",
-                      color: disabled ? "rgba(90,143,168,0.35)" : active ? "#c084fc" : "rgba(90,143,168,0.7)",
-                      fontFamily: "'Share Tech Mono', monospace", fontSize: 10, letterSpacing: 1.5,
-                      cursor: disabled ? "not-allowed" : "pointer", transition: "all 0.15s",
-                    }}
-                  >
-                    {active && !disabled && <span style={{ marginRight: 5, fontSize: 8 }}>●</span>}
-                    {labels[src]}
-                  </button>
-                );
-              })}
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)", letterSpacing: 2, flexShrink: 0 }}>
+              {lang === "en" ? "DATA SOURCE:" : "資料來源："}
+            </span>
+            <div style={{ display: "flex", background: "rgba(12,8,24,0.8)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 8, overflow: "visible" }}>
 
-            {dataSource === "dataset" && (
-              <>
-                <select
-                  value={datasetSubjectIdx}
-                  onChange={e => { setDatasetSubjectIdx(Number(e.target.value)); datasetPlayheadRef.current = 0; }}
-                  style={{ padding: "5px 10px", background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 10, letterSpacing: 1, cursor: "pointer", outline: "none", colorScheme: "dark" }}
+              {/* SIMULATED */}
+              <button
+                onClick={() => { setDataSource("simulated"); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
+                style={{
+                  padding: "8px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)", borderRadius: "8px 0 0 8px",
+                  background: dataSource === "simulated" ? "rgba(192,132,252,0.18)" : "transparent",
+                  color: dataSource === "simulated" ? "#c084fc" : "rgba(90,143,168,0.7)",
+                  fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
+                  cursor: "pointer", transition: "all 0.15s",
+                }}
+              >
+                {dataSource === "simulated" && <span style={{ marginRight: 6, fontSize: 9 }}>●</span>}
+                SIMULATED
+              </button>
+
+              {/* DATASET — dropdown trigger */}
+              <div ref={datasetDropdownRef} style={{ position: "relative" }}>
+                <button
+                  onClick={() => { setDataSource("dataset"); setDatasetDropdownOpen(o => !o); }}
+                  style={{
+                    padding: "8px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
+                    background: dataSource === "dataset" ? "rgba(192,132,252,0.18)" : "transparent",
+                    color: dataSource === "dataset" ? "#c084fc" : "rgba(90,143,168,0.7)",
+                    fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
+                    cursor: "pointer", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 7,
+                  }}
                 >
-                  {eegDataset.map((s, i) => (
-                    <option key={s.id} value={i}>{s.label}</option>
-                  ))}
-                </select>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.6)", letterSpacing: 1 }}>
-                  {eegDataset[datasetSubjectIdx].source}
-                </span>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>
-                  {eegDataset[datasetSubjectIdx].description}
-                </span>
-              </>
-            )}
+                  {dataSource === "dataset" && <span style={{ fontSize: 9 }}>●</span>}
+                  DATASET
+                  <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
+                </button>
+                {datasetDropdownOpen && (
+                  <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 8, padding: "6px 0", minWidth: 280, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+                    {eegDataset.map((s, i) => (
+                      <button
+                        key={s.id}
+                        onClick={() => { setDatasetSubjectIdx(i); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
+                        style={{
+                          width: "100%", padding: "9px 16px", border: "none", background: datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent",
+                          color: datasetSubjectIdx === i && dataSource === "dataset" ? "#c084fc" : "#c8d8e8",
+                          fontFamily: "'Share Tech Mono', monospace", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 3,
+                          transition: "background 0.1s",
+                        }}
+                        onMouseEnter={e => { (e.currentTarget.style.background = "rgba(192,132,252,0.08)"); }}
+                        onMouseLeave={e => { (e.currentTarget.style.background = datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent"); }}
+                      >
+                        <span style={{ fontSize: 11, letterSpacing: 1 }}>{datasetSubjectIdx === i && dataSource === "dataset" ? "● " : "  "}{s.label}</span>
+                        <span style={{ fontSize: 9, color: "rgba(90,143,168,0.6)", letterSpacing: 0.5 }}>{s.description}</span>
+                      </button>
+                    ))}
+                    <div style={{ borderTop: "1px solid rgba(192,132,252,0.15)", margin: "6px 0 0", padding: "6px 16px 2px" }}>
+                      <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>SOURCE: STEW + DEAP</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* MY BCI — disabled */}
+              <button
+                disabled
+                title={lang === "en" ? "Coming in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置"}
+                style={{
+                  padding: "8px 20px", border: "none", borderRadius: "0 8px 8px 0",
+                  background: "transparent", color: "rgba(90,143,168,0.3)",
+                  fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
+                  cursor: "not-allowed",
+                }}
+              >
+                MY BCI · BETA
+              </button>
+
+            </div>
           </div>
 
           {/* Metric cards — horizontal scroll, ~5 visible */}
