@@ -98,6 +98,17 @@ const T = {
     focusReadyLabel: "✓ READY", focusMarginalLabel: "~ MARGINAL", focusNotYetLabel: "✗ NOT YET",
     deadlineLabel: "DEADLINE:", taskAddedLabel: "ADDED",
     dueLabel: "DUE",
+    selfReport: "SELF-REPORT",
+    checkInTitle: "NEURAL CHECK-IN",
+    checkInSubtitle: "How are you feeling right now?",
+    checkInFocusLabel: "How focused do you feel?",
+    checkInEnergyLabel: "How much energy do you have?",
+    checkInFatigueLabel: "How mentally tired are you?",
+    checkInWmlLabel: "How much are you holding in your mind?",
+    checkInBtn: "CHECK IN",
+    bciOnly: "BCI ONLY",
+    checkInAgo: (m: number) => m < 1 ? "just now" : `${m} min ago`,
+    reCheckIn: "update",
   },
   zh: {
     version: "Tokai Alpha",
@@ -182,6 +193,17 @@ const T = {
     focusReadyLabel: "✓ 可開始", focusMarginalLabel: "~ 勉強", focusNotYetLabel: "✗ 尚未準備",
     deadlineLabel: "截止日期：", taskAddedLabel: "新增於",
     dueLabel: "截止",
+    selfReport: "自我回報",
+    checkInTitle: "神經自評",
+    checkInSubtitle: "你現在感覺如何？",
+    checkInFocusLabel: "你目前有多專注？",
+    checkInEnergyLabel: "你有多少能量？",
+    checkInFatigueLabel: "你的心理疲勞程度如何？",
+    checkInWmlLabel: "你的腦中同時在處理多少事情？",
+    checkInBtn: "確認",
+    bciOnly: "需要 BCI",
+    checkInAgo: (m: number) => m < 1 ? "剛剛" : `${m} 分鐘前`,
+    reCheckIn: "更新",
   },
 };
 
@@ -309,9 +331,9 @@ function InfoButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function MetricCard({ title, icon, onInfo, children }: { title: string; icon?: React.ReactNode; onInfo?: () => void; children: React.ReactNode }) {
+function MetricCard({ title, icon, onInfo, children, dimmed }: { title: string; icon?: React.ReactNode; onInfo?: () => void; children: React.ReactNode; dimmed?: boolean }) {
   return (
-    <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 10, padding: "16px 20px", position: "relative", overflow: "hidden", flex: "0 0 185px", minWidth: 0 }}>
+    <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 10, padding: "16px 20px", position: "relative", overflow: "hidden", flex: "0 0 185px", minWidth: 0, opacity: dimmed ? 0.38 : 1, transition: "opacity 0.3s" }}>
       <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: "linear-gradient(180deg, #c084fc, #7c3aed)" }} />
       <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "#5a8fa8", letterSpacing: 2, marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 6 }}>
         {icon && <span style={{ flexShrink: 0, marginTop: 2 }}>{icon}</span>}
@@ -462,9 +484,9 @@ export default function Dashboard({ session }: { session: Session }) {
     return () => { el.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
   }, [isMobile]);
   // Data source: simulated drift, dataset replay, or live BCI (future)
-  type DataSource = "simulated" | "dataset" | "bci";
-  const [dataSource, setDataSource] = useState<DataSource>("simulated");
-  const dataSourceRef = useRef<DataSource>("simulated");
+  type DataSource = "simulated" | "dataset" | "bci" | "self-report";
+  const [dataSource, setDataSource] = useState<DataSource>("self-report");
+  const dataSourceRef = useRef<DataSource>("self-report");
   useEffect(() => { dataSourceRef.current = dataSource; }, [dataSource]);
   const [datasetSubjectIdx, setDatasetSubjectIdx] = useState(0);
   const datasetSubjectIdxRef = useRef(0);
@@ -472,6 +494,12 @@ export default function Dashboard({ session }: { session: Session }) {
   const datasetPlayheadRef = useRef(0);
   const [datasetDropdownOpen, setDatasetDropdownOpen] = useState(false);
   const datasetDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Self-report mode state
+  const [selfReport, setSelfReport] = useState({ focusIndex: 50, bioEnergy: 70, mentalFatigue: 30, workingMemoryLoad: 40 });
+  const [showCheckIn, setShowCheckIn] = useState(true); // open immediately on first load
+  const [lastCheckIn, setLastCheckIn] = useState<Date | null>(null);
+  const [checkInDraft, setCheckInDraft] = useState({ focusIndex: 50, bioEnergy: 70, mentalFatigue: 30, workingMemoryLoad: 40 });
   useEffect(() => {
     if (!datasetDropdownOpen) return;
     function handleOutside(e: MouseEvent) {
@@ -551,6 +579,15 @@ export default function Dashboard({ session }: { session: Session }) {
   function closeTaskForm() {
     setTaskFormOpen(false);
     setNewTask(""); setNewTaskDesc(""); setNewTaskTime(""); setNewTaskDeadline(""); setNewTaskEmoji(""); setNewTaskFocusRequired(null);
+  }
+
+  function applyCheckIn(values: { focusIndex: number; bioEnergy: number; mentalFatigue: number; workingMemoryLoad: number }) {
+    const next: NeuralState = { ...neuralRef.current, ...values };
+    setNeural(next);
+    neuralRef.current = next;
+    setSelfReport(values);
+    setLastCheckIn(new Date());
+    setShowCheckIn(false);
   }
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -1273,6 +1310,14 @@ export default function Dashboard({ session }: { session: Session }) {
     const prev = neuralRef.current;
     let next: NeuralState;
 
+    if (dataSourceRef.current === "self-report") {
+      // Values are user-controlled — just log to history without mutating neural state
+      const maxSamples = Math.round(30 * 60 / refreshRate);
+      setFocusHistory(h => [...h, { time: formatTimeSec(new Date()), value: prev.focusIndex }].slice(-maxSamples));
+      setSamples(s => s + 1);
+      return;
+    }
+
     if (dataSourceRef.current === "dataset") {
       const subject: DatasetSubject = eegDataset[datasetSubjectIdxRef.current];
       const sample = subject.samples[datasetPlayheadRef.current % subject.samples.length];
@@ -1753,77 +1798,103 @@ export default function Dashboard({ session }: { session: Session }) {
                 <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>AI</span>
               </h1>
               {/* Data source selector — desktop; mobile version is below */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, justifyContent: "center" }}>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)", letterSpacing: 2, flexShrink: 0 }}>
-                  {lang === "en" ? "DATA SOURCE:" : "資料來源："}
-                </span>
-                <div style={{ display: "flex", background: "rgba(12,8,24,0.8)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 8, overflow: "visible" }}>
-                  <button
-                    onClick={() => { setDataSource("simulated"); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
-                    style={{
-                      padding: "6px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)", borderRadius: "8px 0 0 8px",
-                      background: dataSource === "simulated" ? "rgba(192,132,252,0.18)" : "transparent",
-                      color: dataSource === "simulated" ? "#c084fc" : "rgba(90,143,168,0.7)",
-                      fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
-                      cursor: "pointer", transition: "all 0.15s",
-                    }}
-                  >
-                    {dataSource === "simulated" && <span style={{ marginRight: 6, fontSize: 9 }}>●</span>}
-                    SIMULATED
-                  </button>
-                  <div ref={datasetDropdownRef} style={{ position: "relative" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1, justifyContent: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)", letterSpacing: 2, flexShrink: 0 }}>
+                    {lang === "en" ? "DATA SOURCE:" : "資料來源："}
+                  </span>
+                  <div style={{ display: "flex", background: "rgba(12,8,24,0.8)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 8, overflow: "visible" }}>
+                    {/* SELF-REPORT */}
                     <button
-                      onClick={() => { setDataSource("dataset"); setDatasetDropdownOpen(o => !o); }}
+                      onClick={() => { setDataSource("self-report"); setCheckInDraft(selfReport); setShowCheckIn(true); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
                       style={{
-                        padding: "6px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
-                        background: dataSource === "dataset" ? "rgba(192,132,252,0.18)" : "transparent",
-                        color: dataSource === "dataset" ? "#c084fc" : "rgba(90,143,168,0.7)",
+                        padding: "6px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)", borderRadius: "8px 0 0 8px",
+                        background: dataSource === "self-report" ? "rgba(192,132,252,0.18)" : "transparent",
+                        color: dataSource === "self-report" ? "#c084fc" : "rgba(90,143,168,0.7)",
                         fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
-                        cursor: "pointer", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 7,
+                        cursor: "pointer", transition: "all 0.15s",
                       }}
                     >
-                      {dataSource === "dataset" && <span style={{ fontSize: 9 }}>●</span>}
-                      DATASET
-                      <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
+                      {dataSource === "self-report" && <span style={{ marginRight: 6, fontSize: 9 }}>●</span>}
+                      {t.selfReport}
                     </button>
-                    {datasetDropdownOpen && (
-                      <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 8, padding: "6px 0", minWidth: 280, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
-                        {eegDataset.map((s, i) => (
-                          <button
-                            key={s.id}
-                            onClick={() => { setDatasetSubjectIdx(i); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
-                            style={{
-                              width: "100%", padding: "9px 16px", border: "none", background: datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent",
-                              color: datasetSubjectIdx === i && dataSource === "dataset" ? "#c084fc" : "#c8d8e8",
-                              fontFamily: "'Share Tech Mono', monospace", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 3,
-                              transition: "background 0.1s",
-                            }}
-                            onMouseEnter={e => { (e.currentTarget.style.background = "rgba(192,132,252,0.08)"); }}
-                            onMouseLeave={e => { (e.currentTarget.style.background = datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent"); }}
-                          >
-                            <span style={{ fontSize: 11, letterSpacing: 1 }}>{datasetSubjectIdx === i && dataSource === "dataset" ? "● " : "  "}{s.label}</span>
-                            <span style={{ fontSize: 9, color: "rgba(90,143,168,0.6)", letterSpacing: 0.5 }}>{s.description}</span>
-                          </button>
-                        ))}
-                        <div style={{ borderTop: "1px solid rgba(192,132,252,0.15)", margin: "6px 0 0", padding: "6px 16px 2px" }}>
-                          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>SOURCE: STEW + DEAP</span>
+                    {/* SIMULATED */}
+                    <button
+                      onClick={() => { setDataSource("simulated"); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
+                      style={{
+                        padding: "6px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
+                        background: dataSource === "simulated" ? "rgba(192,132,252,0.18)" : "transparent",
+                        color: dataSource === "simulated" ? "#c084fc" : "rgba(90,143,168,0.7)",
+                        fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
+                        cursor: "pointer", transition: "all 0.15s",
+                      }}
+                    >
+                      {dataSource === "simulated" && <span style={{ marginRight: 6, fontSize: 9 }}>●</span>}
+                      SIMULATED
+                    </button>
+                    <div ref={datasetDropdownRef} style={{ position: "relative" }}>
+                      <button
+                        onClick={() => { setDataSource("dataset"); setDatasetDropdownOpen(o => !o); }}
+                        style={{
+                          padding: "6px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
+                          background: dataSource === "dataset" ? "rgba(192,132,252,0.18)" : "transparent",
+                          color: dataSource === "dataset" ? "#c084fc" : "rgba(90,143,168,0.7)",
+                          fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
+                          cursor: "pointer", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 7,
+                        }}
+                      >
+                        {dataSource === "dataset" && <span style={{ fontSize: 9 }}>●</span>}
+                        DATASET
+                        <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
+                      </button>
+                      {datasetDropdownOpen && (
+                        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 8, padding: "6px 0", minWidth: 280, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+                          {eegDataset.map((s, i) => (
+                            <button
+                              key={s.id}
+                              onClick={() => { setDatasetSubjectIdx(i); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
+                              style={{
+                                width: "100%", padding: "9px 16px", border: "none", background: datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent",
+                                color: datasetSubjectIdx === i && dataSource === "dataset" ? "#c084fc" : "#c8d8e8",
+                                fontFamily: "'Share Tech Mono', monospace", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 3,
+                                transition: "background 0.1s",
+                              }}
+                              onMouseEnter={e => { (e.currentTarget.style.background = "rgba(192,132,252,0.08)"); }}
+                              onMouseLeave={e => { (e.currentTarget.style.background = datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent"); }}
+                            >
+                              <span style={{ fontSize: 11, letterSpacing: 1 }}>{datasetSubjectIdx === i && dataSource === "dataset" ? "● " : "  "}{s.label}</span>
+                              <span style={{ fontSize: 9, color: "rgba(90,143,168,0.6)", letterSpacing: 0.5 }}>{s.description}</span>
+                            </button>
+                          ))}
+                          <div style={{ borderTop: "1px solid rgba(192,132,252,0.15)", margin: "6px 0 0", padding: "6px 16px 2px" }}>
+                            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>SOURCE: STEW + DEAP</span>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                    <button
+                      disabled
+                      title={lang === "en" ? "Available in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置"}
+                      style={{
+                        padding: "6px 20px", border: "none", borderRadius: "0 8px 8px 0",
+                        background: "transparent", color: "rgba(90,143,168,0.3)",
+                        fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
+                        cursor: "not-allowed",
+                      }}
+                    >
+                      MY BCI
+                    </button>
                   </div>
-                  <button
-                    disabled
-                    title={lang === "en" ? "Available in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置"}
-                    style={{
-                      padding: "6px 20px", border: "none", borderRadius: "0 8px 8px 0",
-                      background: "transparent", color: "rgba(90,143,168,0.3)",
-                      fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
-                      cursor: "not-allowed",
-                    }}
-                  >
-                    MY BCI (available in Beta)
-                  </button>
                 </div>
+                {dataSource === "self-report" && lastCheckIn && (
+                  <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.55)", letterSpacing: 1 }}>
+                    ✓ {t.checkInAgo(Math.floor((Date.now() - lastCheckIn.getTime()) / 60000))} ·{" "}
+                    <span
+                      onClick={() => { setCheckInDraft(selfReport); setShowCheckIn(true); }}
+                      style={{ color: "rgba(192,132,252,0.55)", cursor: "pointer", textDecoration: "underline" }}
+                    >{t.reCheckIn}</span>
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                 {pomodoroRunning && (
@@ -1845,84 +1916,110 @@ export default function Dashboard({ session }: { session: Session }) {
 
           {/* Data source selector — mobile only; desktop version lives in the main header */}
           {isMobile && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)", letterSpacing: 2, flexShrink: 0 }}>
-              {lang === "en" ? "DATA SOURCE:" : "資料來源："}
-            </span>
-            <div style={{ display: "flex", background: "rgba(12,8,24,0.8)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 8, overflow: "visible" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.7)", letterSpacing: 2, flexShrink: 0 }}>
+                {lang === "en" ? "DATA SOURCE:" : "資料來源："}
+              </span>
+              <div style={{ display: "flex", background: "rgba(12,8,24,0.8)", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 8, overflow: "visible" }}>
 
-              {/* SIMULATED */}
-              <button
-                onClick={() => { setDataSource("simulated"); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
-                style={{
-                  padding: "8px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)", borderRadius: "8px 0 0 8px",
-                  background: dataSource === "simulated" ? "rgba(192,132,252,0.18)" : "transparent",
-                  color: dataSource === "simulated" ? "#c084fc" : "rgba(90,143,168,0.7)",
-                  fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
-                  cursor: "pointer", transition: "all 0.15s",
-                }}
-              >
-                {dataSource === "simulated" && <span style={{ marginRight: 6, fontSize: 9 }}>●</span>}
-                SIMULATED
-              </button>
-
-              {/* DATASET — dropdown trigger */}
-              <div ref={datasetDropdownRef} style={{ position: "relative" }}>
+                {/* SELF-REPORT */}
                 <button
-                  onClick={() => { setDataSource("dataset"); setDatasetDropdownOpen(o => !o); }}
+                  onClick={() => { setDataSource("self-report"); setCheckInDraft(selfReport); setShowCheckIn(true); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
                   style={{
-                    padding: "8px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
-                    background: dataSource === "dataset" ? "rgba(192,132,252,0.18)" : "transparent",
-                    color: dataSource === "dataset" ? "#c084fc" : "rgba(90,143,168,0.7)",
-                    fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
-                    cursor: "pointer", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 7,
+                    padding: "8px 14px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)", borderRadius: "8px 0 0 8px",
+                    background: dataSource === "self-report" ? "rgba(192,132,252,0.18)" : "transparent",
+                    color: dataSource === "self-report" ? "#c084fc" : "rgba(90,143,168,0.7)",
+                    fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1,
+                    cursor: "pointer", transition: "all 0.15s",
                   }}
                 >
-                  {dataSource === "dataset" && <span style={{ fontSize: 9 }}>●</span>}
-                  DATASET
-                  <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
+                  {dataSource === "self-report" && <span style={{ marginRight: 5, fontSize: 9 }}>●</span>}
+                  {t.selfReport}
                 </button>
-                {datasetDropdownOpen && (
-                  <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 8, padding: "6px 0", minWidth: 280, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
-                    {eegDataset.map((s, i) => (
-                      <button
-                        key={s.id}
-                        onClick={() => { setDatasetSubjectIdx(i); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
-                        style={{
-                          width: "100%", padding: "9px 16px", border: "none", background: datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent",
-                          color: datasetSubjectIdx === i && dataSource === "dataset" ? "#c084fc" : "#c8d8e8",
-                          fontFamily: "'Share Tech Mono', monospace", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 3,
-                          transition: "background 0.1s",
-                        }}
-                        onMouseEnter={e => { (e.currentTarget.style.background = "rgba(192,132,252,0.08)"); }}
-                        onMouseLeave={e => { (e.currentTarget.style.background = datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent"); }}
-                      >
-                        <span style={{ fontSize: 11, letterSpacing: 1 }}>{datasetSubjectIdx === i && dataSource === "dataset" ? "● " : "  "}{s.label}</span>
-                        <span style={{ fontSize: 9, color: "rgba(90,143,168,0.6)", letterSpacing: 0.5 }}>{s.description}</span>
-                      </button>
-                    ))}
-                    <div style={{ borderTop: "1px solid rgba(192,132,252,0.15)", margin: "6px 0 0", padding: "6px 16px 2px" }}>
-                      <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>SOURCE: STEW + DEAP</span>
+
+                {/* SIMULATED */}
+                <button
+                  onClick={() => { setDataSource("simulated"); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
+                  style={{
+                    padding: "8px 14px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
+                    background: dataSource === "simulated" ? "rgba(192,132,252,0.18)" : "transparent",
+                    color: dataSource === "simulated" ? "#c084fc" : "rgba(90,143,168,0.7)",
+                    fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1,
+                    cursor: "pointer", transition: "all 0.15s",
+                  }}
+                >
+                  {dataSource === "simulated" && <span style={{ marginRight: 5, fontSize: 9 }}>●</span>}
+                  SIMULATED
+                </button>
+
+                {/* DATASET — dropdown trigger */}
+                <div ref={datasetDropdownRef} style={{ position: "relative" }}>
+                  <button
+                    onClick={() => { setDataSource("dataset"); setDatasetDropdownOpen(o => !o); }}
+                    style={{
+                      padding: "8px 14px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
+                      background: dataSource === "dataset" ? "rgba(192,132,252,0.18)" : "transparent",
+                      color: dataSource === "dataset" ? "#c084fc" : "rgba(90,143,168,0.7)",
+                      fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1,
+                      cursor: "pointer", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 6,
+                    }}
+                  >
+                    {dataSource === "dataset" && <span style={{ fontSize: 9 }}>●</span>}
+                    DATASET
+                    <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
+                  </button>
+                  {datasetDropdownOpen && (
+                    <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 8, padding: "6px 0", minWidth: 280, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+                      {eegDataset.map((s, i) => (
+                        <button
+                          key={s.id}
+                          onClick={() => { setDatasetSubjectIdx(i); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
+                          style={{
+                            width: "100%", padding: "9px 16px", border: "none", background: datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent",
+                            color: datasetSubjectIdx === i && dataSource === "dataset" ? "#c084fc" : "#c8d8e8",
+                            fontFamily: "'Share Tech Mono', monospace", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 3,
+                            transition: "background 0.1s",
+                          }}
+                          onMouseEnter={e => { (e.currentTarget.style.background = "rgba(192,132,252,0.08)"); }}
+                          onMouseLeave={e => { (e.currentTarget.style.background = datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent"); }}
+                        >
+                          <span style={{ fontSize: 11, letterSpacing: 1 }}>{datasetSubjectIdx === i && dataSource === "dataset" ? "● " : "  "}{s.label}</span>
+                          <span style={{ fontSize: 9, color: "rgba(90,143,168,0.6)", letterSpacing: 0.5 }}>{s.description}</span>
+                        </button>
+                      ))}
+                      <div style={{ borderTop: "1px solid rgba(192,132,252,0.15)", margin: "6px 0 0", padding: "6px 16px 2px" }}>
+                        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>SOURCE: STEW + DEAP</span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+
+                {/* MY BCI — disabled */}
+                <button
+                  disabled
+                  title={lang === "en" ? "Available in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置"}
+                  style={{
+                    padding: "8px 14px", border: "none", borderRadius: "0 8px 8px 0",
+                    background: "transparent", color: "rgba(90,143,168,0.3)",
+                    fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1,
+                    cursor: "not-allowed",
+                  }}
+                >
+                  MY BCI
+                </button>
+
               </div>
-
-              {/* MY BCI — disabled */}
-              <button
-                disabled
-                title={lang === "en" ? "Available in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置"}
-                style={{
-                  padding: "8px 20px", border: "none", borderRadius: "0 8px 8px 0",
-                  background: "transparent", color: "rgba(90,143,168,0.3)",
-                  fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
-                  cursor: "not-allowed",
-                }}
-              >
-                MY BCI (available in Beta)
-              </button>
-
             </div>
+            {dataSource === "self-report" && lastCheckIn && (
+              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.55)", letterSpacing: 1, paddingLeft: 2 }}>
+                ✓ {t.checkInAgo(Math.floor((Date.now() - lastCheckIn.getTime()) / 60000))} ·{" "}
+                <span
+                  onClick={() => { setCheckInDraft(selfReport); setShowCheckIn(true); }}
+                  style={{ color: "rgba(192,132,252,0.55)", cursor: "pointer", textDecoration: "underline" }}
+                >{t.reCheckIn}</span>
+              </div>
+            )}
           </div>
           )}
 
@@ -1945,28 +2042,55 @@ export default function Dashboard({ session }: { session: Session }) {
                 </div>
               </MetricCard>
 
-              <MetricCard title={t.neuralNoise} icon={<Waves size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].neuralNoise)}>
-                <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
-                  {Math.round(neural.neuralNoise)}<span style={{ fontSize: 13, color: "#5a8fa8" }}> μV²</span>
-                </div>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: noiseInfo.color, letterSpacing: 2 }}>{noiseInfo.label}</span>
+              <MetricCard title={t.neuralNoise} icon={<Waves size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].neuralNoise)} dimmed={dataSource === "self-report"}>
+                {dataSource === "self-report" ? (
+                  <>
+                    <div style={{ fontSize: 28, fontWeight: 700, color: "rgba(90,143,168,0.5)", marginBottom: 8 }}>—</div>
+                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 2 }}>{t.bciOnly}</span>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
+                      {Math.round(neural.neuralNoise)}<span style={{ fontSize: 13, color: "#5a8fa8" }}> μV²</span>
+                    </div>
+                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: noiseInfo.color, letterSpacing: 2 }}>{noiseInfo.label}</span>
+                  </>
+                )}
               </MetricCard>
 
-              <MetricCard title={t.tbRatio} icon={<BarChart2 size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].tbRatio)}>
-                <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>{neural.tbRatio}</div>
-                <Badge color={tbrInfo.color}>{tbrInfo.label}</Badge>
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1, marginTop: 6 }}>
-                  θ:{neural.theta.toFixed(1)}  β:{neural.beta.toFixed(1)}
-                </div>
+              <MetricCard title={t.tbRatio} icon={<BarChart2 size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].tbRatio)} dimmed={dataSource === "self-report"}>
+                {dataSource === "self-report" ? (
+                  <>
+                    <div style={{ fontSize: 28, fontWeight: 700, color: "rgba(90,143,168,0.5)", marginBottom: 8 }}>—</div>
+                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 2 }}>{t.bciOnly}</span>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>{neural.tbRatio}</div>
+                    <Badge color={tbrInfo.color}>{tbrInfo.label}</Badge>
+                    <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1, marginTop: 6 }}>
+                      θ:{neural.theta.toFixed(1)}  β:{neural.beta.toFixed(1)}
+                    </div>
+                  </>
+                )}
               </MetricCard>
 
-              <MetricCard title={t.focusWindow} icon={<Clock size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].focusWindow)}>
-                <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8, lineHeight: 1.2 }}>
-                  {focusHistory.length < 6 ? t.collectingData : `~${Math.max(3, Math.round((80 - neural.focusIndex) / 2))} min`}
-                </div>
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>
-                  {focusHistory.length < 6 ? t.streamMoreSamples : `${t.confidence} ${Math.min(99, Math.round(50 + samples * 1.2))}%`}
-                </div>
+              <MetricCard title={t.focusWindow} icon={<Clock size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].focusWindow)} dimmed={dataSource === "self-report"}>
+                {dataSource === "self-report" ? (
+                  <>
+                    <div style={{ fontSize: 28, fontWeight: 700, color: "rgba(90,143,168,0.5)", marginBottom: 8 }}>—</div>
+                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 2 }}>{t.bciOnly}</span>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8, lineHeight: 1.2 }}>
+                      {focusHistory.length < 6 ? t.collectingData : `~${Math.max(3, Math.round((80 - neural.focusIndex) / 2))} min`}
+                    </div>
+                    <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>
+                      {focusHistory.length < 6 ? t.streamMoreSamples : `${t.confidence} ${Math.min(99, Math.round(50 + samples * 1.2))}%`}
+                    </div>
+                  </>
+                )}
               </MetricCard>
 
               <MetricCard title={t.workingMemory} icon={<Brain size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].workingMemory)}>
@@ -1990,13 +2114,22 @@ export default function Dashboard({ session }: { session: Session }) {
                 </Badge>
               </MetricCard>
 
-              <MetricCard title={t.hyperfocusRisk} icon={<Crosshair size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].hyperfocusRisk)}>
-                <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
-                  {neural.hyperfocusRisk.toFixed(1)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>%</span>
-                </div>
-                <Badge color={neural.hyperfocusRisk > 65 ? "#f472b6" : neural.hyperfocusRisk > 35 ? "#fbbf24" : "#4ade80"}>
-                  {neural.hyperfocusRisk > 65 ? t.hfrHigh : neural.hyperfocusRisk > 35 ? t.hfrMed : t.hfrLow}
-                </Badge>
+              <MetricCard title={t.hyperfocusRisk} icon={<Crosshair size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].hyperfocusRisk)} dimmed={dataSource === "self-report"}>
+                {dataSource === "self-report" ? (
+                  <>
+                    <div style={{ fontSize: 28, fontWeight: 700, color: "rgba(90,143,168,0.5)", marginBottom: 8 }}>—</div>
+                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 2 }}>{t.bciOnly}</span>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
+                      {neural.hyperfocusRisk.toFixed(1)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>%</span>
+                    </div>
+                    <Badge color={neural.hyperfocusRisk > 65 ? "#f472b6" : neural.hyperfocusRisk > 35 ? "#fbbf24" : "#4ade80"}>
+                      {neural.hyperfocusRisk > 65 ? t.hfrHigh : neural.hyperfocusRisk > 35 ? t.hfrMed : t.hfrLow}
+                    </Badge>
+                  </>
+                )}
               </MetricCard>
             </div>
             {/* Fade hints — appear only when there are more cards in that direction */}
@@ -3137,6 +3270,51 @@ export default function Dashboard({ session }: { session: Session }) {
                 {lang === "en" ? "NOT NOW" : "稍後"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Self-report check-in modal ── */}
+      {showCheckIn && dataSource === "self-report" && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)", zIndex: 260, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 14, padding: 28, boxShadow: "0 0 64px rgba(192,132,252,0.18)", display: "flex", flexDirection: "column", gap: 22 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 3, height: 18, background: "#c084fc", borderRadius: 1, flexShrink: 0 }} />
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#c084fc", letterSpacing: 3, flex: 1 }}>{t.checkInTitle}</span>
+              {lastCheckIn && (
+                <button onClick={() => setShowCheckIn(false)} style={{ background: "none", border: "none", color: "#5a8fa8", cursor: "pointer", fontSize: 22, padding: 0, lineHeight: 1 }}>×</button>
+              )}
+            </div>
+            <p style={{ margin: 0, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>{t.checkInSubtitle}</p>
+
+            {([
+              { key: "focusIndex",       label: t.checkInFocusLabel,  unit: "/100", color: "#c084fc" },
+              { key: "bioEnergy",        label: t.checkInEnergyLabel, unit: "%",    color: "#4ade80" },
+              { key: "mentalFatigue",    label: t.checkInFatigueLabel, unit: "/100", color: "#f472b6" },
+              { key: "workingMemoryLoad", label: t.checkInWmlLabel,   unit: "/100", color: "#fbbf24" },
+            ] as const).map(({ key, label, unit, color }) => (
+              <div key={key} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>{label}</span>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 18, fontWeight: 700, color }}>{checkInDraft[key]}<span style={{ fontSize: 12, color: "#5a8fa8" }}>{unit}</span></span>
+                </div>
+                <input
+                  type="range" min={0} max={100} step={1}
+                  value={checkInDraft[key]}
+                  onChange={e => setCheckInDraft(d => ({ ...d, [key]: Number(e.target.value) }))}
+                  style={{ width: "100%", accentColor: color, cursor: "pointer" }}
+                />
+              </div>
+            ))}
+
+            <button
+              onClick={() => applyCheckIn(checkInDraft)}
+              style={{ width: "100%", padding: "11px 0", background: "rgba(192,132,252,0.18)", border: "1px solid rgba(192,132,252,0.5)", borderRadius: 8, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 2, cursor: "pointer", transition: "all 0.15s" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(192,132,252,0.28)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(192,132,252,0.18)"; }}
+            >
+              {t.checkInBtn}
+            </button>
           </div>
         </div>
       )}
