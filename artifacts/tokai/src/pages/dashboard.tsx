@@ -40,7 +40,7 @@ const T = {
     focusStream: "REAL-TIME FOCUS STREAM",
     neuralInsights: "TOKAI · NEURAL INSIGHTS",
     tokTodo: "TOKDO",
-    taskPlaceholder: "Task title — press Enter to add...",
+    taskPlaceholder: "Task title...",
     descPlaceholder: "Description (optional)...",
     addTaskBtn: "+ ADD TASK", addTaskClose: "✕ CLOSE",
     generateDesc: "✦ GENERATE DESCRIPTION",
@@ -124,7 +124,7 @@ const T = {
     focusStream: "即時專注串流",
     neuralInsights: "TOKAI · 神經洞察",
     tokTodo: "任務清單",
-    taskPlaceholder: "任務標題 — 按 Enter 新增...",
+    taskPlaceholder: "任務標題...",
     descPlaceholder: "描述（選填）...",
     addTaskBtn: "+ 新增任務", addTaskClose: "✕ 關閉",
     generateDesc: "✦ 生成描述",
@@ -1374,29 +1374,32 @@ export default function Dashboard({ session }: { session: Session }) {
     return t.insightLow(f.toFixed(1), String(Math.round(e)));
   }
 
+  async function submitTask() {
+    if (!newTask.trim()) return;
+    const title = newTask.trim();
+    const description = newTaskDesc.trim() || null;
+    const nextPosition = tasks.reduce((max, tk) => tk.position != null && tk.position > max ? tk.position : max, -1) + 1;
+    const task: Task = {
+      id: Date.now().toString(), title, description, done: false,
+      estimatedMinutes: newTaskTime ? parseInt(newTaskTime) : null,
+      createdAt: formatDateTime(new Date()), deadline: newTaskDeadline || undefined,
+      emoji: newTaskEmoji || undefined,
+      focusRequired: newTaskFocusRequired ?? estimateFocusRequired(title, description),
+      position: nextPosition,
+    };
+    setTasks(prev => [...prev, task]);
+    setNewTask(""); setNewTaskDesc("");
+    setNewTaskTime(""); setNewTaskDeadline(""); setNewTaskEmoji(""); setNewTaskFocusRequired(null);
+    await supabase.from("tasks").insert({
+      id: task.id, user_id: userId, title: task.title, description: task.description,
+      done: false, estimated_minutes: task.estimatedMinutes,
+      created_at: task.createdAt, deadline: task.deadline ?? null, emoji: task.emoji ?? null,
+      focus_required: task.focusRequired ?? null, position: task.position,
+    });
+  }
+
   async function addTask(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" && newTask.trim()) {
-      const title = newTask.trim();
-      const description = newTaskDesc.trim() || null;
-      const nextPosition = tasks.reduce((max, tk) => tk.position != null && tk.position > max ? tk.position : max, -1) + 1;
-      const task: Task = {
-        id: Date.now().toString(), title, description, done: false,
-        estimatedMinutes: newTaskTime ? parseInt(newTaskTime) : null,
-        createdAt: formatDateTime(new Date()), deadline: newTaskDeadline || undefined,
-        emoji: newTaskEmoji || undefined,
-        focusRequired: newTaskFocusRequired ?? estimateFocusRequired(title, description),
-        position: nextPosition,
-      };
-      setTasks(prev => [...prev, task]);
-      setNewTask(""); setNewTaskDesc("");
-      setNewTaskTime(""); setNewTaskDeadline(""); setNewTaskEmoji(""); setNewTaskFocusRequired(null);
-      await supabase.from("tasks").insert({
-        id: task.id, user_id: userId, title: task.title, description: task.description,
-        done: false, estimated_minutes: task.estimatedMinutes,
-        created_at: task.createdAt, deadline: task.deadline ?? null, emoji: task.emoji ?? null,
-        focus_required: task.focusRequired ?? null, position: task.position,
-      });
-    }
+    if (e.key === "Enter") await submitTask();
   }
 
   async function generateDescription(task: Task) {
@@ -2535,6 +2538,10 @@ export default function Dashboard({ session }: { session: Session }) {
                     <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8" }}>{t.minUnit}</span>
                   </div>
                 </div>
+                <button onClick={submitTask} disabled={!newTask.trim()}
+                  style={{ width: "100%", padding: "8px 0", background: newTask.trim() ? "rgba(192,132,252,0.18)" : "rgba(192,132,252,0.05)", border: `1px solid ${newTask.trim() ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.15)"}`, borderRadius: 6, color: newTask.trim() ? "#c084fc" : "rgba(192,132,252,0.3)", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: newTask.trim() ? "pointer" : "default", transition: "all 0.15s" }}>
+                  {t.addTaskBtn}
+                </button>
                 </>) : (
                 <button onClick={() => setTaskFormOpen(true)}
                   style={{ width: "100%", padding: "9px 0", marginBottom: 4, background: "rgba(192,132,252,0.12)", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: "pointer" }}>
@@ -2767,6 +2774,10 @@ export default function Dashboard({ session }: { session: Session }) {
                   style={{ width: 58, padding: "3px 6px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 3, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", textAlign: "center" }} />
                 <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.4)" }}>/ 100  ({t.minFocusHint})</span>
               </div>
+              <button onClick={submitTask} disabled={!newTask.trim()}
+                style={{ width: "100%", marginTop: 10, padding: "8px 0", background: newTask.trim() ? "rgba(192,132,252,0.18)" : "rgba(192,132,252,0.05)", border: `1px solid ${newTask.trim() ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.15)"}`, borderRadius: 6, color: newTask.trim() ? "#c084fc" : "rgba(192,132,252,0.3)", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: newTask.trim() ? "pointer" : "default", transition: "all 0.15s" }}>
+                {t.addTaskBtn}
+              </button>
             </>) : (
               <button onClick={() => setTaskFormOpen(true)}
                 style={{ width: "100%", padding: "9px 0", background: "rgba(192,132,252,0.12)", border: "1px solid rgba(192,132,252,0.4)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, cursor: "pointer", transition: "background 0.2s" }}
