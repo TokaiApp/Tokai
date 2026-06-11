@@ -3288,14 +3288,17 @@ export default function Dashboard({ session }: { session: Session }) {
             <p style={{ margin: 0, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>{t.checkInSubtitle}</p>
 
             {([
-              { key: "focusIndex",       label: t.checkInFocusLabel,  unit: "/100", color: "#c084fc" },
-              { key: "bioEnergy",        label: t.checkInEnergyLabel, unit: "%",    color: "#4ade80" },
-              { key: "mentalFatigue",    label: t.checkInFatigueLabel, unit: "/100", color: "#f472b6" },
-              { key: "workingMemoryLoad", label: t.checkInWmlLabel,   unit: "/100", color: "#fbbf24" },
-            ] as const).map(({ key, label, unit, color }) => (
+              { key: "focusIndex",        title: t.focusIndex,    label: t.checkInFocusLabel,   unit: "/100", color: "#c084fc" },
+              { key: "bioEnergy",         title: t.bioEnergy,     label: t.checkInEnergyLabel,  unit: "%",    color: "#4ade80" },
+              { key: "mentalFatigue",     title: t.mentalFatigue, label: t.checkInFatigueLabel, unit: "/100", color: "#f472b6" },
+              { key: "workingMemoryLoad", title: t.workingMemory, label: t.checkInWmlLabel,     unit: "/100", color: "#fbbf24" },
+            ] as const).map(({ key, title, label, unit, color }) => (
               <div key={key} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>{label}</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color, letterSpacing: 2 }}>{title}:</span>
+                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.75)", letterSpacing: 0.5 }}>{label}</span>
+                  </div>
                   <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 18, fontWeight: 700, color }}>{checkInDraft[key]}<span style={{ fontSize: 12, color: "#5a8fa8" }}>{unit}</span></span>
                 </div>
                 <input
