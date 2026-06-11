@@ -576,6 +576,12 @@ export default function Dashboard({ session }: { session: Session }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [agentDockOpen]);
+  useEffect(() => {
+    if (!showCheckIn) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setShowCheckIn(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showCheckIn]);
   function closeTaskForm() {
     setTaskFormOpen(false);
     setNewTask(""); setNewTaskDesc(""); setNewTaskTime(""); setNewTaskDeadline(""); setNewTaskEmoji(""); setNewTaskFocusRequired(null);
@@ -3276,14 +3282,12 @@ export default function Dashboard({ session }: { session: Session }) {
 
       {/* ── Self-report check-in modal ── */}
       {showCheckIn && dataSource === "self-report" && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)", zIndex: 260, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div onClick={() => setShowCheckIn(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)", zIndex: 260, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 14, padding: 28, boxShadow: "0 0 64px rgba(192,132,252,0.18)", display: "flex", flexDirection: "column", gap: 22 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ width: 3, height: 18, background: "#c084fc", borderRadius: 1, flexShrink: 0 }} />
               <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#c084fc", letterSpacing: 3, flex: 1 }}>{t.checkInTitle}</span>
-              {lastCheckIn && (
-                <button onClick={() => setShowCheckIn(false)} style={{ background: "none", border: "none", color: "#5a8fa8", cursor: "pointer", fontSize: 22, padding: 0, lineHeight: 1 }}>×</button>
-              )}
+              <button onClick={() => setShowCheckIn(false)} style={{ background: "none", border: "none", color: "#5a8fa8", cursor: "pointer", fontSize: 22, padding: 0, lineHeight: 1 }}>×</button>
             </div>
             <p style={{ margin: 0, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>{t.checkInSubtitle}</p>
 
