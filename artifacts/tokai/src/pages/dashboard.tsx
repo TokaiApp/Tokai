@@ -601,20 +601,25 @@ export default function Dashboard({ session }: { session: Session }) {
     }, 600);
   }
 
-  // Move a task up (-1) or down (+1) one slot
+  // Move a task up (-1) or down (+1) one slot within its group (incomplete / complete)
   function moveTask(id: string, dir: -1 | 1) {
-    const ids = orderedVisibleTasks.map(tk => tk.id);
-    const from = ids.indexOf(id);
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    const groupIds = orderedVisibleTasks.filter(tk => tk.done === task.done).map(tk => tk.id);
+    const from = groupIds.indexOf(id);
     const to = from + dir;
-    if (from < 0 || to < 0 || to >= ids.length) return;
-    [ids[from], ids[to]] = [ids[to], ids[from]];
-    applyOrder(ids);
+    if (from < 0 || to < 0 || to >= groupIds.length) return;
+    [groupIds[from], groupIds[to]] = [groupIds[to], groupIds[from]];
+    applyOrder(groupIds);
   }
 
-  // Drop the dragged task at the target task's slot
+  // Drop the dragged task at the target task's slot — only within the same group
   function reorderTask(dragId: string, targetId: string) {
     if (dragId === targetId) return;
-    const ids = orderedVisibleTasks.map(tk => tk.id);
+    const dragTask = tasks.find(t => t.id === dragId);
+    const targetTask = tasks.find(t => t.id === targetId);
+    if (!dragTask || !targetTask || dragTask.done !== targetTask.done) return;
+    const ids = orderedVisibleTasks.filter(tk => tk.done === dragTask.done).map(tk => tk.id);
     const from = ids.indexOf(dragId), to = ids.indexOf(targetId);
     if (from < 0 || to < 0) return;
     ids.splice(from, 1);
@@ -1416,9 +1421,10 @@ export default function Dashboard({ session }: { session: Session }) {
   const visibleTasks = selectedDate === todayStr()
     ? tasks
     : tasks.filter(task => task.createdAt?.startsWith(selectedDate));
-  // Order by tasks.position; tasks without a position (pre-migration / brand new) fall back to creation order
+  // Incomplete tasks first, completed tasks at the bottom; within each group preserve position order
   const orderedVisibleTasks = useMemo(
     () => [...visibleTasks].sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
       if (a.position != null && b.position != null) return a.position - b.position;
       if (a.position != null) return -1;
       if (b.position != null) return 1;
@@ -1426,6 +1432,7 @@ export default function Dashboard({ session }: { session: Session }) {
     }),
     [visibleTasks]
   );
+  const incompleteCount = orderedVisibleTasks.filter(t => !t.done).length;
   const canReorder = selectedDate === todayStr();
   // Map each visible task id to its list number (1-based), matching what's shown in the list
   const taskNumberById = useMemo(() => {
@@ -2615,10 +2622,10 @@ export default function Dashboard({ session }: { session: Session }) {
                         {task.estimatedMinutes && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", flexShrink: 0 }}>{task.estimatedMinutes}{t.minUnit}</span>}
                         {canReorder && (
                           <div onClick={e => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", gap: 1, flexShrink: 0 }}>
-                            <button onClick={() => moveTask(task.id, -1)} disabled={idx === 0}
-                              style={{ background: "none", border: "none", padding: 0, lineHeight: 0.8, fontSize: 11, color: idx === 0 ? "rgba(192,132,252,0.2)" : "#c084fc", cursor: idx === 0 ? "default" : "pointer" }}>▲</button>
-                            <button onClick={() => moveTask(task.id, 1)} disabled={idx === orderedVisibleTasks.length - 1}
-                              style={{ background: "none", border: "none", padding: 0, lineHeight: 0.8, fontSize: 11, color: idx === orderedVisibleTasks.length - 1 ? "rgba(192,132,252,0.2)" : "#c084fc", cursor: idx === orderedVisibleTasks.length - 1 ? "default" : "pointer" }}>▼</button>
+                            <button onClick={() => moveTask(task.id, -1)} disabled={task.done ? idx === incompleteCount : idx === 0}
+                              style={{ background: "none", border: "none", padding: 0, lineHeight: 0.8, fontSize: 11, color: (task.done ? idx === incompleteCount : idx === 0) ? "rgba(192,132,252,0.2)" : "#c084fc", cursor: (task.done ? idx === incompleteCount : idx === 0) ? "default" : "pointer" }}>▲</button>
+                            <button onClick={() => moveTask(task.id, 1)} disabled={task.done ? idx === orderedVisibleTasks.length - 1 : idx === incompleteCount - 1}
+                              style={{ background: "none", border: "none", padding: 0, lineHeight: 0.8, fontSize: 11, color: (task.done ? idx === orderedVisibleTasks.length - 1 : idx === incompleteCount - 1) ? "rgba(192,132,252,0.2)" : "#c084fc", cursor: (task.done ? idx === orderedVisibleTasks.length - 1 : idx === incompleteCount - 1) ? "default" : "pointer" }}>▼</button>
                           </div>
                         )}
                       </div>
