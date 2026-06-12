@@ -71,6 +71,8 @@ const T = {
       `Neural baseline is ${noise}. Conditions are favorable for sustained cognitive work. Focus is moderate (${f}/100). Consider chunking tasks into 20-minute intervals. Biological energy is ${eLevel} (${e}%). Leverage this window for complex problem-solving.`,
     insightLow: (f: string, e: string) =>
       `Focus index is low (${f}/100). Neural noise is elevated. Recommend switching to low-cognitive tasks — organizing, reviewing notes, or short breaks. Energy at ${e}%. Allow your neural state to recover before tackling demanding work.`,
+    bioHigh: "ENERGIZED", bioMed: "STEADY", bioLow: "DEPLETED",
+    fwLong: "LONG WINDOW", fwMed: "MEDIUM", fwShort: "SHORT", fwCalib: "CALIBRATING",
     workingMemory: "WORKING MEMORY", wmlHigh: "OVERLOADED", wmlMed: "MODERATE", wmlLow: "CLEAR",
     mentalFatigue: "MENTAL FATIGUE", fatHigh: "HIGH", fatMed: "BUILDING", fatLow: "FRESH",
     hyperfocusRisk: "HYPERFOCUS RISK", hfrHigh: "HIGH RISK", hfrMed: "WATCH OUT", hfrLow: "NORMAL",
@@ -170,6 +172,8 @@ const T = {
       `神經基線${noise}。認知工作條件良好，專注度中等（${f}/100）。建議以 20 分鐘為單元分解任務。生理能量${eLevel}（${e}%），適合持續的問題求解工作。`,
     insightLow: (f: string, e: string) =>
       `專注指數偏低（${f}/100），神經噪訊較高。建議切換至低認知負荷任務——整理資料、回顧筆記或短暫休息。能量水平 ${e}%，待神經狀態恢復後再處理高難度工作。`,
+    bioHigh: "充沛", bioMed: "穩定", bioLow: "耗盡",
+    fwLong: "持久窗口", fwMed: "中等", fwShort: "短暫", fwCalib: "校準中",
     workingMemory: "工作記憶", wmlHigh: "超載", wmlMed: "中等", wmlLow: "清晰",
     mentalFatigue: "心理疲勞", fatHigh: "高", fatMed: "累積中", fatLow: "清醒",
     hyperfocusRisk: "過度專注風險", hfrHigh: "高風險", hfrMed: "留意", hfrLow: "正常",
@@ -2082,9 +2086,12 @@ export default function Dashboard({ session }: { session: Session }) {
                 <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                   {Math.round(neural.bioEnergy)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>%</span>
                 </div>
-                <div style={{ height: 4, background: "rgba(192,132,252,0.1)", borderRadius: 2 }}>
+                <div style={{ height: 4, background: "rgba(192,132,252,0.1)", borderRadius: 2, marginBottom: 8 }}>
                   <div style={{ height: "100%", width: `${neural.bioEnergy}%`, background: "linear-gradient(90deg, #c084fc, #7c3aed)", borderRadius: 2, transition: "width 0.5s ease" }} />
                 </div>
+                <Badge color={neural.bioEnergy > 65 ? "#4ade80" : neural.bioEnergy > 35 ? "#fbbf24" : "#f472b6"}>
+                  {neural.bioEnergy > 65 ? t.bioHigh : neural.bioEnergy > 35 ? t.bioMed : t.bioLow}
+                </Badge>
               </MetricCard>
 
               <MetricCard title={t.mentalFatigue} icon={<Activity size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].mentalFatigue)}>
@@ -2119,7 +2126,7 @@ export default function Dashboard({ session }: { session: Session }) {
                     <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                       {Math.round(neural.neuralNoise)}<span style={{ fontSize: 13, color: "#5a8fa8" }}> μV²</span>
                     </div>
-                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: noiseInfo.color, letterSpacing: 2 }}>{noiseInfo.label}</span>
+                    <Badge color={noiseInfo.color}>{noiseInfo.label}</Badge>
                   </>
                 )}
               </MetricCard>
@@ -2147,16 +2154,22 @@ export default function Dashboard({ session }: { session: Session }) {
                     <div style={{ fontSize: 28, fontWeight: 700, color: "rgba(90,143,168,0.5)", marginBottom: 8 }}>—</div>
                     <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 2 }}>{t.bciOnly}</span>
                   </>
-                ) : (
-                  <>
-                    <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8, lineHeight: 1.2 }}>
-                      {focusHistory.length < 6 ? t.collectingData : `~${Math.max(3, Math.round((80 - neural.focusIndex) / 2))} min`}
-                    </div>
-                    <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>
-                      {focusHistory.length < 6 ? t.streamMoreSamples : `${t.confidence} ${Math.min(99, Math.round(50 + samples * 1.2))}%`}
-                    </div>
-                  </>
-                )}
+                ) : (() => {
+                    const windowMins = Math.max(3, Math.round((80 - neural.focusIndex) / 2));
+                    return (
+                      <>
+                        <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8, lineHeight: 1.2 }}>
+                          {focusHistory.length < 6 ? t.collectingData : `~${windowMins} min`}
+                        </div>
+                        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1, marginBottom: 8 }}>
+                          {focusHistory.length < 6 ? t.streamMoreSamples : `${t.confidence} ${Math.min(99, Math.round(50 + samples * 1.2))}%`}
+                        </div>
+                        <Badge color={focusHistory.length < 6 ? "#5a8fa8" : windowMins >= 20 ? "#4ade80" : windowMins >= 10 ? "#fbbf24" : "#f472b6"}>
+                          {focusHistory.length < 6 ? t.fwCalib : windowMins >= 20 ? t.fwLong : windowMins >= 10 ? t.fwMed : t.fwShort}
+                        </Badge>
+                      </>
+                    );
+                  })()}
               </MetricCard>
 
               <MetricCard title={t.hyperfocusRisk} icon={<Crosshair size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].hyperfocusRisk)} dimmed={dataSource === "self-report"}>
