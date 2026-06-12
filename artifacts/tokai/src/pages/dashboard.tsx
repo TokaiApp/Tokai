@@ -355,14 +355,14 @@ function InfoButton({ onClick }: { onClick: () => void }) {
 
 function MetricCard({ title, icon, onInfo, children, dimmed }: { title: string; icon?: React.ReactNode; onInfo?: () => void; children: React.ReactNode; dimmed?: boolean }) {
   return (
-    <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 10, padding: "16px 20px", position: "relative", overflow: "hidden", flex: "0 0 185px", minWidth: 0, opacity: dimmed ? 0.38 : 1, transition: "opacity 0.3s" }}>
+    <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 10, padding: "16px 20px", position: "relative", overflow: "hidden", flex: "0 0 185px", minWidth: 0, opacity: dimmed ? 0.38 : 1, transition: "opacity 0.3s", display: "flex", flexDirection: "column" }}>
       <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: "linear-gradient(180deg, #c084fc, #7c3aed)" }} />
       <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "#5a8fa8", letterSpacing: 2, marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 6 }}>
         {icon && <span style={{ flexShrink: 0, marginTop: 2 }}>{icon}</span>}
         <span style={{ flex: 1 }}>{title}</span>
         {onInfo && <span style={{ flexShrink: 0 }}><InfoButton onClick={onInfo} /></span>}
       </div>
-      {children}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>{children}</div>
     </div>
   );
 }
@@ -382,7 +382,7 @@ function Panel({ title, onInfo, children }: { title: React.ReactNode; onInfo?: (
 
 function Badge({ children, color }: { children: React.ReactNode; color: string }) {
   return (
-    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, padding: "2px 8px", border: `1px solid ${color}`, color, borderRadius: 3, letterSpacing: 1 }}>
+    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, padding: "2px 8px", border: `1px solid ${color}`, color, borderRadius: 3, letterSpacing: 1, marginTop: "auto", alignSelf: "flex-start" }}>
       {children}
     </span>
   );
@@ -2070,12 +2070,12 @@ export default function Dashboard({ session }: { session: Session }) {
                 <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                   {Math.round(neural.sleepQuality)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
                 </div>
+                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)", letterSpacing: 1, marginBottom: 6 }}>
+                  {t.sleepLastNight}
+                </div>
                 <Badge color={neural.sleepQuality > 70 ? "#67e8f9" : neural.sleepQuality > 45 ? "#4ade80" : neural.sleepQuality > 25 ? "#fbbf24" : "#f472b6"}>
                   {neural.sleepQuality > 70 ? t.sleepWell : neural.sleepQuality > 45 ? t.sleepOk : neural.sleepQuality > 25 ? t.sleepPoor : t.sleepExhausted}
                 </Badge>
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)", letterSpacing: 1, marginTop: 6 }}>
-                  {t.sleepLastNight}
-                </div>
               </MetricCard>
 
               <MetricCard title={t.bioEnergy} icon={<Zap size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].bioEnergy)}>
@@ -2133,10 +2133,10 @@ export default function Dashboard({ session }: { session: Session }) {
                 ) : (
                   <>
                     <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>{neural.tbRatio}</div>
-                    <Badge color={tbrInfo.color}>{tbrInfo.label}</Badge>
-                    <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1, marginTop: 6 }}>
+                    <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1, marginBottom: 6 }}>
                       θ:{neural.theta.toFixed(1)}  β:{neural.beta.toFixed(1)}
                     </div>
+                    <Badge color={tbrInfo.color}>{tbrInfo.label}</Badge>
                   </>
                 )}
               </MetricCard>
