@@ -1923,15 +1923,6 @@ export default function Dashboard({ session }: { session: Session }) {
                     </button>
                   </div>
                 </div>
-                {dataSource === "self-report" && lastCheckIn && (
-                  <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.55)", letterSpacing: 1 }}>
-                    ✓ {t.checkInAgo(Math.floor((Date.now() - lastCheckIn.getTime()) / 60000))} ·{" "}
-                    <span
-                      onClick={() => { setCheckInDraft(selfReport); setShowCheckIn(true); }}
-                      style={{ color: "rgba(192,132,252,0.55)", cursor: "pointer", textDecoration: "underline" }}
-                    >{t.reCheckIn}</span>
-                  </div>
-                )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                 {pomodoroRunning && (
@@ -2048,15 +2039,6 @@ export default function Dashboard({ session }: { session: Session }) {
 
               </div>
             </div>
-            {dataSource === "self-report" && lastCheckIn && (
-              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.55)", letterSpacing: 1, paddingLeft: 2 }}>
-                ✓ {t.checkInAgo(Math.floor((Date.now() - lastCheckIn.getTime()) / 60000))} ·{" "}
-                <span
-                  onClick={() => { setCheckInDraft(selfReport); setShowCheckIn(true); }}
-                  style={{ color: "rgba(192,132,252,0.55)", cursor: "pointer", textDecoration: "underline" }}
-                >{t.reCheckIn}</span>
-              </div>
-            )}
           </div>
           )}
 
