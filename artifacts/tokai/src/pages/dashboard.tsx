@@ -272,6 +272,12 @@ function loadSleepQuality(): number {
 function saveSleepQuality(value: number) {
   try { localStorage.setItem("tokai_sleep_quality", JSON.stringify({ date: todayStr(), value })); } catch {}
 }
+function hasCheckedInToday(): boolean {
+  try { return localStorage.getItem("tokai_checkin_date") === todayStr(); } catch { return false; }
+}
+function saveCheckinDate() {
+  try { localStorage.setItem("tokai_checkin_date", todayStr()); } catch {}
+}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -524,7 +530,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
   // Self-report mode state
   const [selfReport, setSelfReport] = useState({ focusIndex: 50, bioEnergy: 70, mentalFatigue: 30, workingMemoryLoad: 40, sleepQuality: loadSleepQuality() });
-  const [showCheckIn, setShowCheckIn] = useState(true); // open immediately on first load
+  const [showCheckIn, setShowCheckIn] = useState(() => !hasCheckedInToday());
   const [lastCheckIn, setLastCheckIn] = useState<Date | null>(null);
   const [checkInDraft, setCheckInDraft] = useState({ focusIndex: 50, bioEnergy: 70, mentalFatigue: 30, workingMemoryLoad: 40, sleepQuality: loadSleepQuality() });
   useEffect(() => {
@@ -620,6 +626,7 @@ export default function Dashboard({ session }: { session: Session }) {
     neuralRef.current = next;
     setSelfReport(values);
     saveSleepQuality(values.sleepQuality);
+    saveCheckinDate();
     setLastCheckIn(new Date());
     setShowCheckIn(false);
   }
@@ -3009,14 +3016,20 @@ export default function Dashboard({ session }: { session: Session }) {
       {/* ── TokAgent bottom dock ── */}
       {!agentDockOpen && (
         <button onClick={() => setAgentDockOpen(true)}
-          style={{ position: "fixed", left: isMobile ? 0 : 240, right: isMobile ? 0 : 380, bottom: 0, zIndex: 150, height: 46, display: "flex", alignItems: "center", gap: 12, padding: "0 18px", background: "linear-gradient(180deg, #140d2e, #0c0818)", borderTop: "1px solid rgba(192,132,252,0.5)", boxShadow: "0 -6px 24px rgba(0,0,0,0.4)", cursor: "pointer" }}>
-          <span style={{ fontSize: 12, color: "rgba(192,132,252,0.8)" }}>▴</span>
+          style={{ position: "fixed", left: isMobile ? 0 : 240, right: isMobile ? 0 : 380, bottom: 0, zIndex: 150, height: 46, display: "flex", alignItems: "center", gap: 12, padding: "0 18px", background: "linear-gradient(180deg, #140d2e, #0c0818)", borderTop: "1px solid rgba(192,132,252,0.5)", boxShadow: "0 -6px 24px rgba(0,0,0,0.4)", cursor: "pointer", transition: "background 0.18s, border-color 0.18s, box-shadow 0.18s", border: "none" }}
+          onMouseEnter={e => { e.currentTarget.style.background = "linear-gradient(180deg, #1e1040, #120d28)"; e.currentTarget.style.borderTop = "1px solid rgba(192,132,252,0.9)"; e.currentTarget.style.boxShadow = "0 -8px 32px rgba(192,132,252,0.18)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "linear-gradient(180deg, #140d2e, #0c0818)"; e.currentTarget.style.borderTop = "1px solid rgba(192,132,252,0.5)"; e.currentTarget.style.boxShadow = "0 -6px 24px rgba(0,0,0,0.4)"; }}
+        >
+          <span style={{ fontSize: 14, color: "rgba(192,132,252,0.9)" }}>▲</span>
           <Bot size={15} color="#c084fc" style={{ flexShrink: 0 }} />
           <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, fontWeight: 700, letterSpacing: 3 }}>
             <span style={{ color: "#7c3aed" }}>TOK</span><span style={{ color: "#c084fc" }}>AGENT</span>
           </span>
-          <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#5a8fa8" }}>
-            <span style={{ color: "#c084fc" }}>{lang === "en" ? "ASK →" : "詢問 →"}</span>
+          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.55)", letterSpacing: 1.5 }}>
+            {lang === "en" ? "· CLICK TO EXPAND" : "· 點擊展開"}
+          </span>
+          <span style={{ marginLeft: "auto", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#c084fc", letterSpacing: 1 }}>
+            {lang === "en" ? "ASK →" : "詢問 →"}
           </span>
         </button>
       )}
