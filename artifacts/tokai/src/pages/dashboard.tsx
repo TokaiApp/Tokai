@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { Github, Activity, BookOpen, ListChecks, Pill, Brain, Crosshair, Zap, Waves, BarChart2, Clock, Camera, Bot } from "lucide-react";
+import { Github, Activity, BookOpen, ListChecks, Pill, Brain, Crosshair, Zap, Waves, BarChart2, Clock, Camera, Bot, UserCircle } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, ReferenceLine,
 } from "recharts";
@@ -1744,9 +1744,10 @@ export default function Dashboard({ session }: { session: Session }) {
               <span style={{ color: "#c084fc" }}>: {tokEn}</span>
             </div>
           </div>
-          <div onClick={() => setShowProfileModal(true)} style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, wordBreak: "break-all", cursor: "pointer", transition: "color 0.2s" }}
+          <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, wordBreak: "break-all", cursor: "pointer", transition: "color 0.2s" }}
             onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
             onMouseLeave={e => (e.currentTarget.style.color = "rgba(90,143,168,0.5)")}>
+            <UserCircle size={13} style={{ flexShrink: 0 }} />
             {session.user.email}
           </div>
           <button
@@ -1799,7 +1800,8 @@ export default function Dashboard({ session }: { session: Session }) {
                     <span style={{ color: "#c084fc" }}>: {tokEn}</span>
                   </div>
                 </div>
-                <div onClick={() => setShowProfileModal(true)} style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer" }}>
+                <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer" }}>
+                  <UserCircle size={13} style={{ flexShrink: 0 }} />
                   {session.user.email}
                 </div>
                 <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.4)", letterSpacing: 0.5 }}>
