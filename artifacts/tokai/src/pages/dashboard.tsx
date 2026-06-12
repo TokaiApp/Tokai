@@ -1229,6 +1229,89 @@ export default function Dashboard({ session }: { session: Session }) {
     await supabase.from("journal_entries").delete().eq("id", id);
   }
 
+  // ── Agent (TokAgent tool callbacks) ─────────────────────────────────────────
+
+  async function agentCreateTask(params: { title: string; description?: string; emoji?: string; focusRequired?: number; estimatedMinutes?: number; deadline?: string }) {
+    const nextPosition = tasks.reduce((max, tk) => tk.position != null && tk.position > max ? tk.position : max, -1) + 1;
+    const id = Date.now().toString();
+    const task: Task = {
+      id, title: params.title, description: params.description ?? null, done: false,
+      estimatedMinutes: params.estimatedMinutes ?? null, createdAt: formatDateTime(new Date()),
+      deadline: params.deadline || undefined, emoji: params.emoji || undefined,
+      focusRequired: params.focusRequired ?? estimateFocusRequired(params.title, params.description ?? null),
+      position: nextPosition,
+    };
+    setTasks(prev => [...prev, task]);
+    await supabase.from("tasks").insert({
+      id: task.id, user_id: userId, title: task.title, description: task.description,
+      done: false, estimated_minutes: task.estimatedMinutes, created_at: task.createdAt,
+      deadline: task.deadline ?? null, emoji: task.emoji ?? null,
+      focus_required: task.focusRequired ?? null, position: task.position,
+    });
+    return { id };
+  }
+
+  async function agentUpdateTask(id: string, changes: { title?: string; description?: string; emoji?: string; focusRequired?: number; estimatedMinutes?: number; deadline?: string; done?: boolean }) {
+    setTasks(p => p.map(t => t.id === id ? { ...t, ...changes } : t));
+    const db: Record<string, unknown> = {};
+    if ("title" in changes) db.title = changes.title;
+    if ("description" in changes) db.description = changes.description ?? null;
+    if ("emoji" in changes) db.emoji = changes.emoji ?? null;
+    if ("focusRequired" in changes) db.focus_required = changes.focusRequired ?? null;
+    if ("estimatedMinutes" in changes) db.estimated_minutes = changes.estimatedMinutes ?? null;
+    if ("deadline" in changes) db.deadline = changes.deadline || null;
+    if ("done" in changes) db.done = changes.done;
+    if (Object.keys(db).length > 0) await supabase.from("tasks").update(db).eq("id", id);
+  }
+
+  async function agentDeleteAllTasks() {
+    setTasks([]);
+    selectActiveTask(null);
+    await supabase.from("tasks").delete().eq("user_id", userId);
+  }
+
+  async function agentAddJournalEntry(text: string, moods?: string[]) {
+    const entry: JournalEntry = {
+      id: Date.now().toString(), text, time: formatTime(new Date()), date: todayStr(),
+      focusIndex: neural.focusIndex, mood: (moods ?? []) as Mood[],
+      focusTime: focusHistory[focusHistory.length - 1]?.time,
+    };
+    setJournal(prev => [...prev, entry]);
+    await supabase.from("journal_entries").insert({
+      id: entry.id, user_id: userId, text: entry.text, time: entry.time,
+      date: entry.date, focus_index: entry.focusIndex, mood: entry.mood,
+      focus_time: entry.focusTime ?? null,
+    });
+  }
+
+  async function agentLogMedication(name: string, dose?: string) {
+    const sampleIndex = focusHistory.length - 1;
+    const entry: MedEntry = {
+      id: Date.now().toString(), name, dose: dose ?? "",
+      time: formatTime(new Date()), date: todayStr(),
+      focusTime: focusHistory[Math.max(0, sampleIndex)]?.time,
+      sampleIndex: Math.max(0, sampleIndex), rating: null,
+    };
+    setMedLog(prev => [...prev, entry]);
+    await supabase.from("med_log").insert({
+      id: entry.id, user_id: userId, name: entry.name, dose: entry.dose,
+      time: entry.time, focus_time: entry.focusTime ?? null,
+      sample_index: entry.sampleIndex, rating: null,
+    });
+  }
+
+  function agentStartTimer(workMins?: number, breakMins?: number) {
+    const w = workMins ?? pomodoroWorkMins;
+    const b = breakMins ?? pomodoroBreakMins;
+    if (workMins) setPomodoroWorkMins(w);
+    if (breakMins) setPomodoroBreakMins(b);
+    setPomodoroPhase("work");
+    setPomodoroTimeLeft(w * 60);
+    setPomodoroRunning(true);
+  }
+
+  function agentStopTimer() { setPomodoroRunning(false); }
+
   function triggerMoodCheck() {
     if (!localStorage.getItem("tokai_mood_consent")) {
       setShowMoodConsent(true);
@@ -3050,6 +3133,18 @@ export default function Dashboard({ session }: { session: Session }) {
             onOpenSettings={() => setShowProfileModal(true)}
             apiKey={anthropicKey}
             moodAssessment={moodAssessment ?? undefined}
+            tools={{
+              createTask: agentCreateTask,
+              updateTask: agentUpdateTask,
+              deleteTask: id => deleteTask(id),
+              completeTask: id => updateTask(id, { done: true }),
+              setActiveTask: async id => selectActiveTask(id),
+              deleteAllTasks: agentDeleteAllTasks,
+              addJournalEntry: agentAddJournalEntry,
+              logMedication: agentLogMedication,
+              startTimer: agentStartTimer,
+              stopTimer: agentStopTimer,
+            }}
           />
         </div>
       </>)}

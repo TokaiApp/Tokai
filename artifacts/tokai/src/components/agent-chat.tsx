@@ -11,10 +11,11 @@ interface NeuralState {
 }
 
 interface Task {
+  id: string;
   title: string;
   description?: string | null;
   done: boolean;
-  demand?: string | null;
+  focusRequired?: number | null;
   estimatedMinutes?: number | null;
   deadline?: string;
   createdAt?: string;
@@ -44,10 +45,43 @@ interface MoodAssessment {
 }
 
 interface Message {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "action";
   content: string;
   timestamp?: string;
 }
+
+type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
+  | { type: "tool_result"; tool_use_id: string; content: string };
+
+type ApiMessage = { role: "user" | "assistant"; content: string | ContentBlock[] };
+
+interface AgentTools {
+  createTask: (params: { title: string; description?: string; emoji?: string; focusRequired?: number; estimatedMinutes?: number; deadline?: string }) => Promise<{ id: string }>;
+  updateTask: (id: string, changes: { title?: string; description?: string; emoji?: string; focusRequired?: number; estimatedMinutes?: number; deadline?: string; done?: boolean }) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  completeTask: (id: string) => Promise<void>;
+  setActiveTask: (id: string | null) => Promise<void>;
+  deleteAllTasks: () => Promise<void>;
+  addJournalEntry: (text: string, moods?: string[]) => Promise<void>;
+  logMedication: (name: string, dose?: string) => Promise<void>;
+  startTimer: (workMins?: number, breakMins?: number) => void;
+  stopTimer: () => void;
+}
+
+const TOOL_LABELS: Record<string, string> = {
+  create_task: "CREATED TASK",
+  update_task: "UPDATED TASK",
+  delete_task: "DELETED TASK",
+  complete_task: "COMPLETED TASK",
+  set_active_task: "SET ACTIVE TASK",
+  delete_all_tasks: "CLEARED ALL TASKS",
+  add_journal_entry: "JOURNAL NOTE ADDED",
+  log_medication: "MEDICATION LOGGED",
+  start_timer: "TIMER STARTED",
+  stop_timer: "TIMER STOPPED",
+};
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function nowTime() { return new Date().toTimeString().slice(0, 5); }
@@ -97,7 +131,7 @@ const STORAGE_KEY = "tokai_anthropic_key";
 const CHAT_KEY_PREFIX = "tokai_chat";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
-export default function AgentChat({ neuralState, tasks, journalEntries = [], medLog = [], lang = "en", isMobile = false, selectedDate, onInfo, onClose, onOpenSettings, apiKey, moodAssessment }: {
+export default function AgentChat({ neuralState, tasks, journalEntries = [], medLog = [], lang = "en", isMobile = false, selectedDate, onInfo, onClose, onOpenSettings, apiKey, moodAssessment, tools }: {
   neuralState: NeuralState;
   tasks: Task[];
   journalEntries?: JournalEntry[];
@@ -110,6 +144,7 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
   onOpenSettings?: () => void;
   apiKey: string;
   moodAssessment?: MoodAssessment;
+  tools?: AgentTools;
 }) {
   const t = UI[lang];
   const chatDate = selectedDate ?? todayStr();
@@ -169,32 +204,118 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
     setMessages(greeting);
   }
 
+  async function executeTool(toolCall: { id: string; name: string; input: Record<string, unknown> }): Promise<{ success: boolean; message: string }> {
+    if (!tools) return { success: false, message: "no tools connected" };
+    try {
+      switch (toolCall.name) {
+        case "create_task": {
+          const p = toolCall.input as Parameters<AgentTools["createTask"]>[0];
+          const result = await tools.createTask(p);
+          return { success: true, message: `"${p.title}" · ID ${result.id}` };
+        }
+        case "update_task": {
+          const { id, ...changes } = toolCall.input as { id: string } & Parameters<AgentTools["updateTask"]>[1];
+          await tools.updateTask(id, changes);
+          return { success: true, message: `ID ${id}` };
+        }
+        case "delete_task": {
+          const { id } = toolCall.input as { id: string };
+          await tools.deleteTask(id);
+          return { success: true, message: `ID ${id} removed` };
+        }
+        case "complete_task": {
+          const { id } = toolCall.input as { id: string };
+          await tools.completeTask(id);
+          return { success: true, message: `ID ${id} done` };
+        }
+        case "set_active_task": {
+          const { id } = toolCall.input as { id: string };
+          await tools.setActiveTask(id);
+          return { success: true, message: `ID ${id}` };
+        }
+        case "delete_all_tasks": {
+          const { confirm: ok } = toolCall.input as { confirm: boolean };
+          if (!ok) return { success: false, message: "confirmation required" };
+          await tools.deleteAllTasks();
+          return { success: true, message: "all tasks removed" };
+        }
+        case "add_journal_entry": {
+          const { text, moods } = toolCall.input as { text: string; moods?: string[] };
+          await tools.addJournalEntry(text, moods);
+          return { success: true, message: text.length > 50 ? text.slice(0, 50) + "…" : text };
+        }
+        case "log_medication": {
+          const { name, dose } = toolCall.input as { name: string; dose?: string };
+          await tools.logMedication(name, dose);
+          return { success: true, message: `${name}${dose ? ` · ${dose}` : ""}` };
+        }
+        case "start_timer": {
+          const { workMins, breakMins } = toolCall.input as { workMins?: number; breakMins?: number };
+          tools.startTimer(workMins, breakMins);
+          return { success: true, message: `${workMins ?? 25}m work / ${breakMins ?? 5}m break` };
+        }
+        case "stop_timer": {
+          tools.stopTimer();
+          return { success: true, message: "timer stopped" };
+        }
+        default:
+          return { success: false, message: `unknown: ${toolCall.name}` };
+      }
+    } catch (err) {
+      return { success: false, message: err instanceof Error ? err.message : "tool failed" };
+    }
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || loading) return;
 
     const userMsg: Message = { role: "user", content: text, timestamp: nowTime() };
-    const next = [...messages, userMsg];
-    setMessages(next);
+    setMessages(prev => [...prev, userMsg]);
     setInput("");
     setLoading(true);
 
     try {
-      const stripped = next.map(({ role, content }) => ({ role, content }));
+      // Build initial API message history from display messages (exclude action chips)
+      const displayMsgs = [...messages, userMsg];
+      const stripped: ApiMessage[] = displayMsgs
+        .filter(m => m.role !== "action")
+        .map(({ role, content }) => ({ role: role as "user" | "assistant", content }));
       const firstUser = stripped.findIndex(m => m.role === "user");
-      const apiMessages = firstUser > 0 ? stripped.slice(firstUser) : stripped;
+      let roundMessages: ApiMessage[] = firstUser > 0 ? stripped.slice(firstUser) : stripped;
 
-      const res = await fetch(`${API_BASE}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, neuralState, tasks, journalEntries, medLog, lang, userApiKey: apiKey, moodAssessment }),
-      });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => null);
-        throw new Error(errBody?.content ?? `HTTP ${res.status}`);
+      for (let round = 0; round < 5; round++) {
+        const res = await fetch(`${API_BASE}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: roundMessages, neuralState, tasks, journalEntries, medLog, lang, userApiKey: apiKey, moodAssessment }),
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => null);
+          throw new Error(errBody?.content ?? `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+
+        if (data.stop_reason !== "tool_use" || !data.tool_calls?.length) {
+          setMessages(prev => [...prev, { role: "assistant", content: data.content ?? t.error, timestamp: nowTime() }]);
+          break;
+        }
+
+        // Append assistant's full content blocks to round history
+        roundMessages = [...roundMessages, { role: "assistant", content: data.raw_content }];
+
+        // Execute each tool and collect results
+        const toolResults: ContentBlock[] = [];
+        for (const toolCall of data.tool_calls as { id: string; name: string; input: Record<string, unknown> }[]) {
+          const result = await executeTool(toolCall);
+          const label = TOOL_LABELS[toolCall.name] ?? toolCall.name;
+          const icon = result.success ? "✓" : "✗";
+          setMessages(prev => [...prev, { role: "action", content: `${label}  ${icon}  ${result.message}`, timestamp: nowTime() }]);
+          toolResults.push({ type: "tool_result", tool_use_id: toolCall.id, content: result.message });
+        }
+
+        roundMessages = [...roundMessages, { role: "user", content: toolResults }];
       }
-      const data = await res.json();
-      setMessages(prev => [...prev, { role: "assistant", content: data.content, timestamp: nowTime() }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setMessages(prev => [...prev, { role: "assistant", content: `${t.error} [${msg}]` }]);
@@ -272,19 +393,27 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
                 {lang === "en" ? "No session recorded for this day." : "此日無對話紀錄。"}
               </p>
             )}
-            {messages.map((msg, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
-                <div style={{ maxWidth: "72%", padding: "10px 14px", borderRadius: msg.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: msg.role === "user" ? "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.12))" : "rgba(192,132,252,0.06)", border: `1px solid ${msg.role === "user" ? "rgba(124,58,237,0.35)" : "rgba(192,132,252,0.18)"}`, fontSize: 17, color: "#d0e8f8", lineHeight: 1.6, fontFamily: "var(--font-body)" }}>
-                  {msg.role === "assistant" && (
-                    <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#c084fc", letterSpacing: 2, marginBottom: 5 }}>{t.label}</div>
-                  )}
-                  {msg.content}
-                  {msg.timestamp && (
-                    <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)", marginTop: 6, textAlign: msg.role === "user" ? "right" : "left", letterSpacing: 0.5 }}>{msg.timestamp}</div>
-                  )}
+            {messages.map((msg, i) =>
+              msg.role === "action" ? (
+                <div key={i} style={{ display: "flex", justifyContent: "center" }}>
+                  <div style={{ fontSize: 11, fontFamily: "'Share Tech Mono', monospace", color: "#4ade80", background: "rgba(74,222,128,0.07)", border: "1px solid rgba(74,222,128,0.2)", borderRadius: 4, padding: "3px 12px", letterSpacing: 0.5, maxWidth: "90%", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                    ⚡ {msg.content}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ) : (
+                <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
+                  <div style={{ maxWidth: "72%", padding: "10px 14px", borderRadius: msg.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: msg.role === "user" ? "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.12))" : "rgba(192,132,252,0.06)", border: `1px solid ${msg.role === "user" ? "rgba(124,58,237,0.35)" : "rgba(192,132,252,0.18)"}`, fontSize: 17, color: "#d0e8f8", lineHeight: 1.6, fontFamily: "var(--font-body)" }}>
+                    {msg.role === "assistant" && (
+                      <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#c084fc", letterSpacing: 2, marginBottom: 5 }}>{t.label}</div>
+                    )}
+                    {msg.content}
+                    {msg.timestamp && (
+                      <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)", marginTop: 6, textAlign: msg.role === "user" ? "right" : "left", letterSpacing: 0.5 }}>{msg.timestamp}</div>
+                    )}
+                  </div>
+                </div>
+              )
+            )}
             {loading && (
               <div style={{ display: "flex", justifyContent: "flex-start" }}>
                 <div style={{ padding: "10px 14px", borderRadius: "12px 12px 12px 2px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.18)" }}>

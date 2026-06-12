@@ -21,6 +21,118 @@ function aiErrorReason(err, lang) {
   return zh ? (raw ? `AI 錯誤：${raw.slice(0, 140)}` : "無法連線到 AI 服務。") : (raw ? `AI error: ${raw.slice(0, 140)}` : "Could not reach the AI service.");
 }
 
+const TOOLS = [
+  {
+    name: "create_task",
+    description: "Create a new task in the user's TokTodo task list. Returns the new task's ID.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Task title — brief and action-oriented" },
+        description: { type: "string", description: "Optional description of what completing this task looks like" },
+        emoji: { type: "string", description: "Optional single emoji to represent the task visually" },
+        focusRequired: { type: "number", description: "Minimum focus level needed (0–100). Use 70+ for demanding cognitive work, 40–70 for moderate, below 40 for easy/routine." },
+        estimatedMinutes: { type: "number", description: "Estimated time to complete in minutes" },
+        deadline: { type: "string", description: "Deadline in YYYY-MM-DD format" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "update_task",
+    description: "Update properties of an existing task. Only include fields you want to change.",
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "The task ID shown as [ID:...] in the task list" },
+        title: { type: "string", description: "New title" },
+        description: { type: "string", description: "New description" },
+        emoji: { type: "string", description: "New emoji" },
+        focusRequired: { type: "number", description: "New minimum focus level (0–100)" },
+        estimatedMinutes: { type: "number", description: "New time estimate in minutes" },
+        deadline: { type: "string", description: "New deadline in YYYY-MM-DD format, or empty string to clear" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "delete_task",
+    description: "Permanently delete a specific task by ID.",
+    input_schema: {
+      type: "object",
+      properties: { id: { type: "string", description: "The task ID to delete" } },
+      required: ["id"],
+    },
+  },
+  {
+    name: "complete_task",
+    description: "Mark a task as completed (done).",
+    input_schema: {
+      type: "object",
+      properties: { id: { type: "string", description: "The task ID to mark as complete" } },
+      required: ["id"],
+    },
+  },
+  {
+    name: "set_active_task",
+    description: "Set the task the user is currently focusing on — highlights it in the UI.",
+    input_schema: {
+      type: "object",
+      properties: { id: { type: "string", description: "The task ID to set as active" } },
+      required: ["id"],
+    },
+  },
+  {
+    name: "delete_all_tasks",
+    description: "Delete ALL tasks from the user's task list. Irreversible — only do this when explicitly asked.",
+    input_schema: {
+      type: "object",
+      properties: { confirm: { type: "boolean", description: "Must be true to proceed" } },
+      required: ["confirm"],
+    },
+  },
+  {
+    name: "add_journal_entry",
+    description: "Add a note to the user's TokNote journal with the current timestamp.",
+    input_schema: {
+      type: "object",
+      properties: {
+        text: { type: "string", description: "The journal note text" },
+        moods: { type: "array", items: { type: "string" }, description: "Optional mood tags: hyperfocus, flow, focused, restless, scattered, anxious, fatigued, zoned-out, crashed, low" },
+      },
+      required: ["text"],
+    },
+  },
+  {
+    name: "log_medication",
+    description: "Log a medication or supplement to the TokMed log with the current time.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Name of the medication or supplement" },
+        dose: { type: "string", description: "Optional dose (e.g. '10mg', '1 capsule')" },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "start_timer",
+    description: "Start the Pomodoro focus timer. Optionally specify work and break durations.",
+    input_schema: {
+      type: "object",
+      properties: {
+        workMins: { type: "number", description: "Work session duration in minutes (default: 25)" },
+        breakMins: { type: "number", description: "Break duration in minutes (default: 5)" },
+      },
+    },
+  },
+  {
+    name: "stop_timer",
+    description: "Stop the Pomodoro timer if it is running.",
+    input_schema: { type: "object", properties: {} },
+  },
+];
+
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
@@ -52,9 +164,9 @@ Current neural and biological state:
 Current TokTodo task list:
 ${Array.isArray(tasks) && tasks.length > 0
   ? tasks.map(t => {
-      let s = `- [${t.done ? "DONE" : "TODO"}]${t.emoji ? ` ${t.emoji}` : ""} ${t.title}`;
+      let s = `- [${t.done ? "DONE" : "TODO"}] [ID:${t.id}]${t.emoji ? ` ${t.emoji}` : ""} ${t.title}`;
       if (t.description) s += `\n  Description: ${t.description}`;
-      if (t.demand) s += ` [Cognitive demand: ${t.demand}]`;
+      if (t.focusRequired != null) s += ` [Min focus required: ${t.focusRequired}/100]`;
       if (t.estimatedMinutes) s += ` [Estimated time: ${t.estimatedMinutes} min]`;
       if (t.deadline) s += ` [Deadline: ${t.deadline}]`;
       if (t.createdAt) s += ` [Added: ${t.createdAt}]`;
@@ -94,7 +206,9 @@ Your behavior:
 - Keep responses concise — 2-4 sentences unless the user asks for more detail
 - Be direct and actionable
 - Use a calm, focused tone
-- Do not use emojis
+- Do not use emojis in your text responses
+- You have tools available to take direct actions: create/update/delete/complete tasks, set the active task, add journal notes, log medications, and start/stop the Pomodoro timer. Use tools when the user asks you to take an action — do not just describe what they should do, actually do it. After using tools, confirm what you did in one brief sentence.
+- When creating tasks for the user, assign a focusRequired value that matches the task's cognitive demand relative to their current Focus Index (${focusIndex.toFixed(1)}/100)
 ${lang === "zh" ? "- Respond in Traditional Chinese (繁體中文)" : "- Respond in English"}${moodAssessment ? `
 
 Mood check-in (AI vision scan of user's selfie at session start):
@@ -105,30 +219,39 @@ Mood check-in (AI vision scan of user's selfie at session start):
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 512,
+      max_tokens: 1024,
       system,
+      tools: TOOLS,
       messages,
     });
 
     if (response.stop_reason === "content_filtered" || !response.content.length) {
-      res.json({ content: "TokAgent's response was blocked by Anthropic's content policy. Try rephrasing your message." });
+      res.json({ stop_reason: "end_turn", content: "TokAgent's response was blocked by Anthropic's content policy. Try rephrasing your message." });
       return;
     }
 
-    const block = response.content[0];
-    if (block.type !== "text") {
-      res.json({ content: "Received an unexpected response from the AI. Please try again." });
+    if (response.stop_reason === "tool_use") {
+      const tool_calls = response.content
+        .filter(b => b.type === "tool_use")
+        .map(b => ({ id: b.id, name: b.name, input: b.input }));
+      res.json({ stop_reason: "tool_use", raw_content: response.content, tool_calls });
       return;
     }
 
-    res.json({ content: block.text });
+    const block = response.content.find(b => b.type === "text");
+    if (!block || block.type !== "text") {
+      res.json({ stop_reason: "end_turn", content: "Received an unexpected response from the AI. Please try again." });
+      return;
+    }
+
+    res.json({ stop_reason: "end_turn", content: block.text });
   } catch (err) {
     console.error("Chat route error:", err);
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.toLowerCase().includes("content") && msg.toLowerCase().includes("filter")) {
-      res.json({ content: "TokAgent's response was blocked by Anthropic's content policy. Try rephrasing your message." });
+      res.json({ stop_reason: "end_turn", content: "TokAgent's response was blocked by Anthropic's content policy. Try rephrasing your message." });
     } else {
-      res.status(500).json({ content: "Neural link failure. Please retry." });
+      res.status(500).json({ stop_reason: "end_turn", content: "Neural link failure. Please retry." });
     }
   }
 });
