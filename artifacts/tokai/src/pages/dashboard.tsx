@@ -101,6 +101,7 @@ const T = {
     selfReport: "SELF-REPORT",
     checkInTitle: "NEURAL CHECK-IN",
     checkInSubtitle: "How are you feeling right now?",
+    checkInSleepLabel: "How well did you sleep last night?",
     checkInFocusLabel: "How focused do you feel?",
     checkInEnergyLabel: "How much energy do you have?",
     checkInFatigueLabel: "How mentally tired are you?",
@@ -109,6 +110,9 @@ const T = {
     bciOnly: "BCI ONLY",
     checkInAgo: (m: number) => m < 1 ? "just now" : `${m} min ago`,
     reCheckIn: "update",
+    sleepQuality: "SLEEP QUALITY",
+    sleepWell: "WELL RESTED", sleepOk: "OKAY", sleepPoor: "POOR SLEEP", sleepExhausted: "EXHAUSTED",
+    sleepLastNight: "LAST NIGHT",
   },
   zh: {
     version: "Tokai Alpha",
@@ -196,6 +200,7 @@ const T = {
     selfReport: "自我回報",
     checkInTitle: "神經自評",
     checkInSubtitle: "你現在感覺如何？",
+    checkInSleepLabel: "你昨晚睡得如何？",
     checkInFocusLabel: "你目前有多專注？",
     checkInEnergyLabel: "你有多少能量？",
     checkInFatigueLabel: "你的心理疲勞程度如何？",
@@ -204,6 +209,9 @@ const T = {
     bciOnly: "需要 BCI",
     checkInAgo: (m: number) => m < 1 ? "剛剛" : `${m} 分鐘前`,
     reCheckIn: "更新",
+    sleepQuality: "睡眠品質",
+    sleepWell: "充分休息", sleepOk: "尚可", sleepPoor: "睡眠不足", sleepExhausted: "極度疲憊",
+    sleepLastNight: "昨晚",
   },
 };
 
@@ -217,6 +225,7 @@ interface NeuralState {
   workingMemoryLoad: number;
   mentalFatigue: number;
   hyperfocusRisk: number;
+  sleepQuality: number;
 }
 
 interface FocusPoint { time: string; value: number; }
@@ -247,6 +256,17 @@ function formatDayLabel(dateStr: string, lang: string): string {
 
 function drift(val: number, amount: number, min: number, max: number) {
   return parseFloat(clamp(val + (Math.random() - 0.5) * amount, min, max).toFixed(2));
+}
+
+function loadSleepQuality(): number {
+  try {
+    const s = localStorage.getItem("tokai_sleep_quality");
+    if (s) { const p = JSON.parse(s); if (p.date === todayStr()) return p.value; }
+  } catch {}
+  return 70;
+}
+function saveSleepQuality(value: number) {
+  try { localStorage.setItem("tokai_sleep_quality", JSON.stringify({ date: todayStr(), value })); } catch {}
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -300,6 +320,7 @@ const INFO = {
     workingMemory: { title: "WORKING MEMORY", body: "How much cognitive load your brain is currently managing — how many things it's holding at once. High load means stick to single-step tasks. Low load is ideal for multi-step planning, reading complex material, or anything requiring you to juggle information." },
     mentalFatigue: { title: "MENTAL FATIGUE", body: "Accumulated cognitive tiredness from sustained mental work. Unlike the Focus Index, fatigue builds slowly across a session. High fatigue means you're approaching burnout — a proper break will restore your performance more than pushing through." },
     hyperfocusRisk: { title: "HYPERFOCUS RISK", body: "The likelihood you're entering or already in a hyperfocus state — intense, involuntary concentration where you lose track of time, skip meals, or miss other responsibilities. A high score is a signal to check the clock, eat something, and take a scheduled break." },
+    sleepQuality: { title: "SLEEP QUALITY", body: "How well you slept last night, self-reported on a 0–100 scale. Sleep quality is one of the strongest predictors of ADHD symptom severity: poor sleep directly impairs focus, working memory, and impulse control the following day. TokAgent uses this to calibrate task recommendations — a low score means shorter tasks, more breaks, and lower cognitive demand." },
   },
   zh: {
     focusIndex: { title: "專注指數", body: "從 0 到 100 的綜合評分，源自 θ 與 β 腦波模式。70 以上代表適合深度工作的專注窗口；40 以下表示大腦需要低認知需求任務或休息。" },
@@ -317,6 +338,7 @@ const INFO = {
     workingMemory: { title: "工作記憶", body: "大腦目前同時處理的認知負荷量。負荷高時，建議只做單步驟任務；負荷低時，適合多步驟規劃、閱讀複雜材料或需要同時思考多件事的工作。" },
     mentalFatigue: { title: "心理疲勞", body: "持續腦力勞動累積的認知疲勞。與專注指數不同，疲勞在整個工作階段中緩慢增加。疲勞值高代表你接近認知耗盡——此時真正的休息比硬撐更能恢復表現。" },
     hyperfocusRisk: { title: "過度專注風險", body: "進入或已處於過度專注狀態的可能性——一種強烈的無意識集中，可能讓你忘記時間、跳過正餐或忽略其他責任。數值高時，請查看時鐘、吃點東西，並安排一次有計畫的休息。" },
+    sleepQuality: { title: "睡眠品質", body: "昨晚的睡眠品質，以 0–100 自我評分。睡眠品質是 ADHD 症狀嚴重程度最強的預測因子之一：睡眠不足會直接損害隔天的專注力、工作記憶與衝動控制。TokAgent 將以此調整任務建議——低分代表推薦較短任務、更多休息與較低認知需求。" },
   },
 };
 
@@ -444,6 +466,7 @@ export default function Dashboard({ session }: { session: Session }) {
     focusIndex: 35.6, bioEnergy: 84, neuralNoise: 29,
     tbRatio: 2.10, theta: 88.0, beta: 41.9,
     workingMemoryLoad: 42, mentalFatigue: 18, hyperfocusRisk: 12,
+    sleepQuality: loadSleepQuality(),
   });
   const neuralRef = useRef(neural);
   useEffect(() => { neuralRef.current = neural; }, [neural]);
@@ -496,10 +519,10 @@ export default function Dashboard({ session }: { session: Session }) {
   const datasetDropdownRef = useRef<HTMLDivElement>(null);
 
   // Self-report mode state
-  const [selfReport, setSelfReport] = useState({ focusIndex: 50, bioEnergy: 70, mentalFatigue: 30, workingMemoryLoad: 40 });
+  const [selfReport, setSelfReport] = useState({ focusIndex: 50, bioEnergy: 70, mentalFatigue: 30, workingMemoryLoad: 40, sleepQuality: loadSleepQuality() });
   const [showCheckIn, setShowCheckIn] = useState(true); // open immediately on first load
   const [lastCheckIn, setLastCheckIn] = useState<Date | null>(null);
-  const [checkInDraft, setCheckInDraft] = useState({ focusIndex: 50, bioEnergy: 70, mentalFatigue: 30, workingMemoryLoad: 40 });
+  const [checkInDraft, setCheckInDraft] = useState({ focusIndex: 50, bioEnergy: 70, mentalFatigue: 30, workingMemoryLoad: 40, sleepQuality: loadSleepQuality() });
   useEffect(() => {
     if (!datasetDropdownOpen) return;
     function handleOutside(e: MouseEvent) {
@@ -587,11 +610,12 @@ export default function Dashboard({ session }: { session: Session }) {
     setNewTask(""); setNewTaskDesc(""); setNewTaskTime(""); setNewTaskDeadline(""); setNewTaskEmoji(""); setNewTaskFocusRequired(null);
   }
 
-  function applyCheckIn(values: { focusIndex: number; bioEnergy: number; mentalFatigue: number; workingMemoryLoad: number }) {
+  function applyCheckIn(values: { focusIndex: number; bioEnergy: number; mentalFatigue: number; workingMemoryLoad: number; sleepQuality: number }) {
     const next: NeuralState = { ...neuralRef.current, ...values };
     setNeural(next);
     neuralRef.current = next;
     setSelfReport(values);
+    saveSleepQuality(values.sleepQuality);
     setLastCheckIn(new Date());
     setShowCheckIn(false);
   }
@@ -1333,7 +1357,7 @@ export default function Dashboard({ session }: { session: Session }) {
       const newHFR = parseFloat(clamp(
         prev.hyperfocusRisk + (Math.random() - 0.5) * 4 + hfrTrend, 0, 100
       ).toFixed(1));
-      next = { ...sample, hyperfocusRisk: newHFR };
+      next = { ...sample, hyperfocusRisk: newHFR, sleepQuality: prev.sleepQuality };
     } else {
       const newTheta = drift(prev.theta, 18, 10, 180);
       const newBeta = drift(prev.beta, 18, 10, 180);
@@ -1373,6 +1397,7 @@ export default function Dashboard({ session }: { session: Session }) {
         workingMemoryLoad: newWML,
         mentalFatigue: newFatigue,
         hyperfocusRisk: newHFR,
+        sleepQuality: prev.sleepQuality,
       };
     }
 
@@ -2136,6 +2161,22 @@ export default function Dashboard({ session }: { session: Session }) {
                     </Badge>
                   </>
                 )}
+              </MetricCard>
+
+              <MetricCard title={t.sleepQuality} icon={<Activity size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].sleepQuality)}>
+                <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
+                  {Math.round(neural.sleepQuality)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
+                </div>
+                <Badge color={neural.sleepQuality > 70 ? "#67e8f9" : neural.sleepQuality > 45 ? "#4ade80" : neural.sleepQuality > 25 ? "#fbbf24" : "#f472b6"}>
+                  {neural.sleepQuality > 70 ? t.sleepWell : neural.sleepQuality > 45 ? t.sleepOk : neural.sleepQuality > 25 ? t.sleepPoor : t.sleepExhausted}
+                </Badge>
+                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)", letterSpacing: 1, marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>{t.sleepLastNight}</span>
+                  <span
+                    onClick={() => { setCheckInDraft(d => ({ ...d, sleepQuality: neural.sleepQuality })); setShowCheckIn(true); }}
+                    style={{ color: "rgba(103,232,249,0.6)", cursor: "pointer", textDecoration: "underline", fontSize: 10 }}
+                  >{t.reCheckIn}</span>
+                </div>
               </MetricCard>
             </div>
             {/* Fade hints — appear only when there are more cards in that direction */}
@@ -3292,6 +3333,7 @@ export default function Dashboard({ session }: { session: Session }) {
             <p style={{ margin: 0, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#5a8fa8", letterSpacing: 1 }}>{t.checkInSubtitle}</p>
 
             {([
+              { key: "sleepQuality",      title: t.sleepQuality,  label: t.checkInSleepLabel,   unit: "/100", color: "#67e8f9" },
               { key: "focusIndex",        title: t.focusIndex,    label: t.checkInFocusLabel,   unit: "/100", color: "#c084fc" },
               { key: "bioEnergy",         title: t.bioEnergy,     label: t.checkInEnergyLabel,  unit: "%",    color: "#4ade80" },
               { key: "mentalFatigue",     title: t.mentalFatigue, label: t.checkInFatigueLabel, unit: "/100", color: "#f472b6" },
