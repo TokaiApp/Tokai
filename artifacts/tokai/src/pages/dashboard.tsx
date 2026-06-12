@@ -1845,7 +1845,7 @@ export default function Dashboard({ session }: { session: Session }) {
                     <button
                       onClick={() => { setDataSource("self-report"); setCheckInDraft(selfReport); setShowCheckIn(true); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
                       style={{
-                        padding: "6px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)", borderRadius: "8px 0 0 8px",
+                        padding: "8px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)", borderRadius: "8px 0 0 8px",
                         background: dataSource === "self-report" ? "rgba(192,132,252,0.18)" : "transparent",
                         color: dataSource === "self-report" ? "#c084fc" : "rgba(90,143,168,0.7)",
                         fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
@@ -1859,7 +1859,7 @@ export default function Dashboard({ session }: { session: Session }) {
                     <button
                       onClick={() => { setDataSource("simulated"); datasetPlayheadRef.current = 0; setDatasetDropdownOpen(false); }}
                       style={{
-                        padding: "6px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
+                        padding: "8px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
                         background: dataSource === "simulated" ? "rgba(192,132,252,0.18)" : "transparent",
                         color: dataSource === "simulated" ? "#c084fc" : "rgba(90,143,168,0.7)",
                         fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
@@ -1873,7 +1873,7 @@ export default function Dashboard({ session }: { session: Session }) {
                       <button
                         onClick={() => { setDataSource("dataset"); setDatasetDropdownOpen(o => !o); }}
                         style={{
-                          padding: "6px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
+                          padding: "8px 20px", border: "none", borderRight: "1px solid rgba(192,132,252,0.2)",
                           background: dataSource === "dataset" ? "rgba(192,132,252,0.18)" : "transparent",
                           color: dataSource === "dataset" ? "#c084fc" : "rgba(90,143,168,0.7)",
                           fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
@@ -1913,7 +1913,7 @@ export default function Dashboard({ session }: { session: Session }) {
                       disabled
                       title={lang === "en" ? "Available in Beta — connect your EEG headset" : "Beta 版本提供 — 連接你的 EEG 裝置"}
                       style={{
-                        padding: "6px 20px", border: "none", borderRadius: "0 8px 8px 0",
+                        padding: "8px 20px", border: "none", borderRadius: "0 8px 8px 0",
                         background: "transparent", color: "rgba(90,143,168,0.3)",
                         fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1.5,
                         cursor: "not-allowed",
