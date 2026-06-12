@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { Github, Activity, BookOpen, ListChecks, Pill, Brain, Crosshair, Zap, Waves, BarChart2, Clock, Camera, Bot, UserCircle } from "lucide-react";
+import { Github, Activity, BookOpen, ListChecks, Pill, Brain, Crosshair, Zap, Waves, BarChart2, Clock, Camera, Bot, UserCircle, Moon } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, ReferenceLine,
 } from "recharts";
@@ -2066,19 +2066,15 @@ export default function Dashboard({ session }: { session: Session }) {
                 <Badge color={focusInfo.color}>{focusInfo.label}</Badge>
               </MetricCard>
 
-              <MetricCard title={t.sleepQuality} icon={<Activity size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].sleepQuality)}>
+              <MetricCard title={t.sleepQuality} icon={<Moon size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].sleepQuality)}>
                 <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                   {Math.round(neural.sleepQuality)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
                 </div>
                 <Badge color={neural.sleepQuality > 70 ? "#67e8f9" : neural.sleepQuality > 45 ? "#4ade80" : neural.sleepQuality > 25 ? "#fbbf24" : "#f472b6"}>
                   {neural.sleepQuality > 70 ? t.sleepWell : neural.sleepQuality > 45 ? t.sleepOk : neural.sleepQuality > 25 ? t.sleepPoor : t.sleepExhausted}
                 </Badge>
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)", letterSpacing: 1, marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>{t.sleepLastNight}</span>
-                  <span
-                    onClick={() => { setCheckInDraft(d => ({ ...d, sleepQuality: neural.sleepQuality })); setShowCheckIn(true); }}
-                    style={{ color: "rgba(103,232,249,0.6)", cursor: "pointer", textDecoration: "underline", fontSize: 10 }}
-                  >{t.reCheckIn}</span>
+                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)", letterSpacing: 1, marginTop: 6 }}>
+                  {t.sleepLastNight}
                 </div>
               </MetricCard>
 
