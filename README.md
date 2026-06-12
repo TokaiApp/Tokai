@@ -14,7 +14,7 @@
     <a href="https://go.tokai.app"><img src="https://img.shields.io/badge/Live%20Demo-Alpha-c084fc?style=flat-square&logo=vercel" alt="Live Demo" /></a>
     <a href="https://tokai.app"><img src="https://img.shields.io/badge/Website-tokai.app-7c3aed?style=flat-square" alt="Website" /></a>
     <a href="https://github.com/TokaiApp/Tokai/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square" alt="License" /></a>
-    <img src="https://img.shields.io/badge/Version-0.2.0--alpha-f472b6?style=flat-square" alt="Version" />
+    <img src="https://img.shields.io/badge/Version-0.2.1--alpha-f472b6?style=flat-square" alt="Version" />
     <img src="https://img.shields.io/badge/AI-Claude%20(Anthropic)-orange?style=flat-square" alt="AI" />
   </p>
 
@@ -47,7 +47,7 @@ Everything is themed as the **Tok** family — the prefix nods to *token* (the a
 
 | | English | 中文 |
 |---|---|---|
-| 🧠 | **Real-time neural dashboard** — a horizontally-scrollable row of live metric cards (Focus Index, Bio Energy, Neural Noise, Theta/Beta Ratio, Focus Window, Working Memory Load, Mental Fatigue, Hyperfocus Risk), updating every second with on-edge scroll arrows and fade hints | **即時神經儀表板** — 可左右捲動的即時指標卡列（專注指數、生理能量、神經噪訊、θ/β 比值、專注窗口、工作記憶負荷、心理疲勞、過度專注風險），每秒更新，含邊緣捲動箭頭與漸層提示 |
+| 🧠 | **Real-time neural dashboard** — a horizontally-scrollable row of nine live metric cards (Focus Index, Sleep Quality, Bio Energy, Mental Fatigue, Working Memory Load, Neural Noise, Theta/Beta Ratio, Focus Window, Hyperfocus Risk), each with a status badge pinned to the bottom; updates every second with on-edge scroll arrows and fade hints. Self-reportable cards are always fully visible; BCI-only cards dim gracefully in Self-Report mode | **即時神經儀表板** — 可左右捲動的九張即時指標卡列（專注指數、睡眠品質、生理能量、心理疲勞、工作記憶負荷、神經噪訊、θ/β 比值、專注窗口、過度專注風險），每張卡片底部均有狀態徽章；每秒更新，含邊緣捲動箭頭與漸層提示。可自我回報的指標卡始終完整顯示；僅限 BCI 的指標卡在自我回報模式下優雅淡出 |
 | 📈 | **Focus Stream** — a scrollable real-time line chart with side scroll arrows, a LIVE pill, and reference lines for the 5-minute, session, and day averages; medication and journal markers are overlaid on the timeline | **專注串流** — 可捲動的即時折線圖，含側邊箭頭、LIVE 按鈕，以及 5 分鐘／本次／當日均值參考線；時間軸上疊加用藥與日誌標記 |
 | 🤖 | **TokAgent** — a Claude-powered assistant in a slide-up **bottom dock**. Reads your live neural metrics, full task list, journal, and meds to give context-aware planning advice. Per-day sessions, persisted history. Uses a server key or your own | **TokAgent** — 由 Claude 驅動的助手，置於可滑出的**底部面板**。整合即時神經指標、任務清單、日誌與用藥，提供情境感知規劃建議。按日分組、保存對話。可用伺服器金鑰或自備金鑰 |
 | ✅ | **TokDo** — a focus-aware task manager: pick an **Active Task** and TokAgent recommends what you *should* be doing right now (confirm or switch). Numbered, **drag-to-reorder** list (▲/▼ on mobile), per-task **Focus Required** (0–100) with readiness badges, emoji, estimates, deadlines, and a detail modal | **TokDo** — 專注感知任務管理器：選擇**進行中任務**，TokAgent 即建議你此刻**應該**做什麼（確認或切換）。可編號、**拖曳排序**清單（行動裝置用 ▲/▼），每項任務含**所需專注度**（0–100）與就緒徽章、表情、預估與截止日 |
@@ -55,7 +55,7 @@ Everything is themed as the **Tok** family — the prefix nods to *token* (the a
 | 💡 | **TokInsights** — automatic, on-device observations from your own history: when you focus best, which moods track your focus, task completion, where your focus time goes, and more. No API calls — instant and private | **TokInsights** — 根據你自身歷史在本機自動計算的觀察：你何時最專注、哪些情緒對應高專注、任務完成度、專注時間花在哪等。不呼叫 API — 即時且私密 |
 | 📓 | **TokNote** — an ADHD-friendly journal with multi-select mood tagging, each entry auto-stamped with date, time, and your Focus Index at that moment | **TokNote** — ADHD 友善日誌，支援多選情緒標籤，每則條目自動標記日期、時間與當下專注指數 |
 | 💊 | **TokMed** — log medications, supplements, and stimulants; Tokai tracks how your Focus Index shifts in the 15–30 minutes after each entry | **TokMed** — 記錄藥物、補充品與咖啡因；Tokai 追蹤記錄後 15–30 分鐘內專注指數的變化 |
-| 🧬 | **Data Source selector** — four modes: **Self-Report** (default — rate Focus Index, Bio Energy, Mental Fatigue, and Working Memory Load via a neural check-in modal; BCI-only cards dim gracefully), **Simulated** (generative AR(1) model), **Dataset** (five EEG profiles from STEW + DEAP: High Focus, ADHD Pattern, Cognitive Fatigue, High WM Load, Hyperfocus), and **My BCI** (live headset, Beta) | **資料來源選擇器** — 四種模式：**自我回報**（預設 — 透過神經自評彈窗評估專注指數、生理能量、心理疲勞與工作記憶；不可自評的指標卡優雅淡出）、**模擬**（AR(1) 生成模型）、**資料集**（五種源自 STEW 與 DEAP 的 EEG 受試者檔案：高專注、ADHD 模式、認知疲勞、高工作記憶負荷、過度專注）與**我的 BCI**（即時頭戴裝置，Beta 版提供）|
+| 🧬 | **Data Source selector** — four modes: **Self-Report** (default — rate Focus Index, Bio Energy, Mental Fatigue, Working Memory Load, and Sleep Quality via a neural check-in modal; auto-opens once per calendar day; BCI-only cards dim gracefully), **Simulated** (generative AR(1) model), **Dataset** (five EEG profiles from STEW + DEAP: High Focus, ADHD Pattern, Cognitive Fatigue, High WM Load, Hyperfocus), and **My BCI** (live headset, Beta) | **資料來源選擇器** — 四種模式：**自我回報**（預設 — 透過神經自評彈窗評估專注指數、生理能量、心理疲勞、工作記憶負荷與睡眠品質；每日曆日自動開啟一次；不可自評的指標卡優雅淡出）、**模擬**（AR(1) 生成模型）、**資料集**（五種源自 STEW 與 DEAP 的 EEG 受試者檔案：高專注、ADHD 模式、認知疲勞、高工作記憶負荷、過度專注）與**我的 BCI**（即時頭戴裝置，Beta 版提供）|
 | 🔔 | **Notifications** — focus-drop alerts, recovery banners, medication reminders, and TokTimer phase changes | **通知** — 專注下降提醒、恢復橫幅、用藥提醒與 TokTimer 階段切換 |
 | 🪙 | **Profiles & TokEn** — Supabase-backed accounts with an AI-generated profile summary, BCI device selection, subscription tiers, and the TokEn currency | **個人檔案與 TokEn** — 由 Supabase 支援的帳戶，含 AI 生成的個人摘要、BCI 裝置選擇、訂閱方案與 TokEn 代幣 |
 | 📅 | **Day selector** — browse any past day; TokNote, TokAgent, and TokDo are filtered per selected day (past days are read-only) | **日期選擇器** — 瀏覽任一歷史日期；TokNote、TokAgent 與 TokDo 均按所選日期篩選（歷史日期唯讀） |
@@ -193,16 +193,17 @@ Run the migrations in `artifacts/tokai/migrations/` and confirm RLS is enabled o
 
 ## Neural Metrics Explained
 
-| Metric | Description | Dataset source |
+| Metric | Description | Source |
 |---|---|---|
-| **Focus Index** | Composite score (0–100) derived from EEG theta/beta patterns | STEW-derived |
-| **Bio Energy** | Biological energy level (%) — DEAP arousal-mapped in dataset mode; will reflect HRV/biometrics in future versions | DEAP-derived |
-| **Neural Noise** | Background EEG signal noise (μV²) — lower is cleaner; higher means distraction or arousal | STEW-derived |
-| **Theta/Beta Ratio** | Elevated TBR (>3.0) is associated with ADHD inattention | STEW-derived |
-| **Focus Window** | Predicted time remaining in your current focus state, from the recent trend | Computed |
-| **Working Memory Load** | Estimated frontal theta load on working memory | STEW-derived |
-| **Mental Fatigue** | Cognitive fatigue — DEAP inverse-valence-mapped in dataset mode | DEAP-derived |
-| **Hyperfocus Risk** | Likelihood you're locking into hyperfocus (and may skip breaks/meals) | Anchored simulation |
+| **Focus Index** | Composite score (0–100) derived from EEG theta/beta patterns | STEW-derived / self-report |
+| **Sleep Quality** | How well you slept last night (0–100), self-reported; persisted daily in `localStorage`. Strong predictor of next-day ADHD symptom severity | Self-report |
+| **Bio Energy** | Biological energy level (%) — DEAP arousal-mapped in dataset mode | DEAP-derived / self-report |
+| **Mental Fatigue** | Cognitive fatigue accumulation — DEAP inverse-valence-mapped in dataset mode | DEAP-derived / self-report |
+| **Working Memory Load** | Estimated frontal theta load on working memory (0–100) | STEW-derived / self-report |
+| **Neural Noise** | Background EEG signal noise (μV²) — lower is cleaner; higher means distraction or arousal | STEW-derived / BCI |
+| **Theta/Beta Ratio** | Elevated TBR (>2.0) is associated with ADHD inattention | STEW-derived / BCI |
+| **Focus Window** | Predicted time remaining in current focus state, from recent trend | Computed / BCI |
+| **Hyperfocus Risk** | Likelihood of attentional lock-in (may skip breaks/meals) | Anchored simulation / BCI |
 
 TokAgent and the TokDo recommendation use these to tailor advice:
 - **High focus (>70):** deep work, complex problem-solving, demanding tasks
@@ -257,7 +258,8 @@ The full source — including the API relay and the exact system prompts sent to
 - [x] **User accounts** — Supabase auth, cross-device sync for tasks, ordering, and focus sessions
 - [x] **Focus session tracking** — TokTimer sessions feeding TokInsights
 - [x] **Open EEG dataset profiles** — five parameterised subject profiles drawn from STEW and DEAP; selectable in the Data Source panel
-- [x] **Self-Report mode** — hardware-free cognitive state input via a neural check-in modal (Focus Index, Bio Energy, Mental Fatigue, Working Memory Load); BCI-only cards dim gracefully; now the default data source
+- [x] **Self-Report mode** — hardware-free cognitive state input via a neural check-in modal (Focus Index, Bio Energy, Mental Fatigue, Working Memory Load, Sleep Quality); BCI-only cards dim gracefully; now the default data source; auto-opens once per calendar day
+- [x] **Sleep Quality metric** — 9th neural metric, self-reportable, persisted daily via `localStorage`; predicts next-day ADHD symptom severity
 - [ ] **Real EEG integration** — Muse 2, OpenBCI, Neurosity (My BCI mode, Beta)
 - [ ] **Focus-aware scheduling** — plan the day against your focus curve; optional Google Calendar sync
 - [ ] **Metered AI / free tier** — wire the TokEn currency to real AI usage
@@ -272,7 +274,9 @@ The full source — including the API relay and the exact system prompts sent to
 
 Tokai originated as a master's thesis project exploring the intersection of real-time neurofeedback, agentic AI, and ADHD management. The core hypothesis: **if an AI assistant has access to a user's live cognitive state, it can dramatically improve task-planning outcomes for people with executive-function challenges.**
 
-This repository is the first public alpha (v0.2.0-alpha). We are actively seeking collaborators, researchers, and neurodivergent users willing to provide feedback.
+A whitepaper describing the system architecture, design principles, and NeuroRights-aligned privacy model is forthcoming on arXiv.
+
+This repository is the first public alpha (v0.2.1-alpha). We are actively seeking collaborators, researchers, and neurodivergent users willing to provide feedback.
 
 ---
 
