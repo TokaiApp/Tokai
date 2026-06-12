@@ -35,9 +35,9 @@
 >
 > 據我們所知，**Tokai 是全球首款**提議根據使用者大腦數據來驅動 AI 任務規劃器與代理型待辦清單（TokAgent 與 TokDo）的應用程式。
 
-Neural data can be driven by three sources selectable in the dashboard: **Simulated** (AR(1) generative model), **Dataset** (five profiles parameterised from the STEW and DEAP open EEG datasets), or **My BCI** (live EEG headset — available in Beta). Integration with [Muse 2](https://choosemuse.com/) and other consumer EEG headsets is planned for Beta.
+Neural data can be driven by four sources selectable in the dashboard: **Self-Report** (the default — a neural check-in modal lets you rate your own cognitive state via sliders), **Simulated** (AR(1) generative model), **Dataset** (five profiles parameterised from the STEW and DEAP open EEG datasets), or **My BCI** (live EEG headset — available in Beta). Self-reporting makes Tokai fully usable without any hardware: research shows self-reported cognitive state often matches or exceeds the accuracy of consumer EEG devices. Integration with [Muse 2](https://choosemuse.com/) and other consumer EEG headsets is planned for Beta.
 
-神經數據可透過儀表板中的三種資料來源切換：**模擬**（AR(1) 生成模型）、**資料集**（以 STEW 與 DEAP 開放 EEG 資料集參數化的五種受試者檔案）或**我的 BCI**（即時 EEG 設備 — Beta 版提供）。消費級 EEG 設備整合（如 Muse 2）計劃於 Beta 版推出。
+神經數據可透過儀表板中的四種資料來源切換：**自我回報**（預設 — 神經自評彈窗讓你以滑桿自評認知狀態）、**模擬**（AR(1) 生成模型）、**資料集**（以 STEW 與 DEAP 開放 EEG 資料集參數化的五種受試者檔案）或**我的 BCI**（即時 EEG 設備 — Beta 版提供）。自我回報讓 Tokai 在無任何硬體的情況下完整可用：研究顯示自我回報的認知狀態準確度常可媲美或超過消費級 EEG 設備。消費級 EEG 設備整合（如 Muse 2）計劃於 Beta 版推出。
 
 ---
 
@@ -55,7 +55,7 @@ Everything is themed as the **Tok** family — the prefix nods to *token* (the a
 | 💡 | **TokInsights** — automatic, on-device observations from your own history: when you focus best, which moods track your focus, task completion, where your focus time goes, and more. No API calls — instant and private | **TokInsights** — 根據你自身歷史在本機自動計算的觀察：你何時最專注、哪些情緒對應高專注、任務完成度、專注時間花在哪等。不呼叫 API — 即時且私密 |
 | 📓 | **TokNote** — an ADHD-friendly journal with multi-select mood tagging, each entry auto-stamped with date, time, and your Focus Index at that moment | **TokNote** — ADHD 友善日誌，支援多選情緒標籤，每則條目自動標記日期、時間與當下專注指數 |
 | 💊 | **TokMed** — log medications, supplements, and stimulants; Tokai tracks how your Focus Index shifts in the 15–30 minutes after each entry | **TokMed** — 記錄藥物、補充品與咖啡因；Tokai 追蹤記錄後 15–30 分鐘內專注指數的變化 |
-| 🧬 | **Data Source selector** — switch between **Simulated** (generative AR(1) model), **Dataset** (five EEG profiles derived from the STEW and DEAP open datasets: High Focus, ADHD Pattern, Cognitive Fatigue, High WM Load, Hyperfocus), and **My BCI** (live headset, available in Beta) | **資料來源選擇器** — 在**模擬**（AR(1) 生成模型）、**資料集**（五種源自 STEW 與 DEAP 開放資料集的 EEG 受試者檔案：高專注、ADHD 模式、認知疲勞、高工作記憶負荷、過度專注）與**我的 BCI**（即時頭戴裝置，Beta 版提供）之間切換 |
+| 🧬 | **Data Source selector** — four modes: **Self-Report** (default — rate Focus Index, Bio Energy, Mental Fatigue, and Working Memory Load via a neural check-in modal; BCI-only cards dim gracefully), **Simulated** (generative AR(1) model), **Dataset** (five EEG profiles from STEW + DEAP: High Focus, ADHD Pattern, Cognitive Fatigue, High WM Load, Hyperfocus), and **My BCI** (live headset, Beta) | **資料來源選擇器** — 四種模式：**自我回報**（預設 — 透過神經自評彈窗評估專注指數、生理能量、心理疲勞與工作記憶；不可自評的指標卡優雅淡出）、**模擬**（AR(1) 生成模型）、**資料集**（五種源自 STEW 與 DEAP 的 EEG 受試者檔案：高專注、ADHD 模式、認知疲勞、高工作記憶負荷、過度專注）與**我的 BCI**（即時頭戴裝置，Beta 版提供）|
 | 🔔 | **Notifications** — focus-drop alerts, recovery banners, medication reminders, and TokTimer phase changes | **通知** — 專注下降提醒、恢復橫幅、用藥提醒與 TokTimer 階段切換 |
 | 🪙 | **Profiles & TokEn** — Supabase-backed accounts with an AI-generated profile summary, BCI device selection, subscription tiers, and the TokEn currency | **個人檔案與 TokEn** — 由 Supabase 支援的帳戶，含 AI 生成的個人摘要、BCI 裝置選擇、訂閱方案與 TokEn 代幣 |
 | 📅 | **Day selector** — browse any past day; TokNote, TokAgent, and TokDo are filtered per selected day (past days are read-only) | **日期選擇器** — 瀏覽任一歷史日期；TokNote、TokAgent 與 TokDo 均按所選日期篩選（歷史日期唯讀） |
@@ -257,6 +257,7 @@ The full source — including the API relay and the exact system prompts sent to
 - [x] **User accounts** — Supabase auth, cross-device sync for tasks, ordering, and focus sessions
 - [x] **Focus session tracking** — TokTimer sessions feeding TokInsights
 - [x] **Open EEG dataset profiles** — five parameterised subject profiles drawn from STEW and DEAP; selectable in the Data Source panel
+- [x] **Self-Report mode** — hardware-free cognitive state input via a neural check-in modal (Focus Index, Bio Energy, Mental Fatigue, Working Memory Load); BCI-only cards dim gracefully; now the default data source
 - [ ] **Real EEG integration** — Muse 2, OpenBCI, Neurosity (My BCI mode, Beta)
 - [ ] **Focus-aware scheduling** — plan the day against your focus curve; optional Google Calendar sync
 - [ ] **Metered AI / free tier** — wire the TokEn currency to real AI usage
