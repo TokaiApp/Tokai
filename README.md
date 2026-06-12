@@ -11,7 +11,7 @@
   <p><em>A productivity app that reads your live cognitive state and plans your day around how your brain is actually performing.</em></p>
 
   <p>
-    <a href="https://tokai-pre-alpha-tokai.vercel.app/"><img src="https://img.shields.io/badge/Live%20Demo-Alpha-c084fc?style=flat-square&logo=vercel" alt="Live Demo" /></a>
+    <a href="https://go.tokai.app"><img src="https://img.shields.io/badge/Live%20Demo-Alpha-c084fc?style=flat-square&logo=vercel" alt="Live Demo" /></a>
     <a href="https://tokai.app"><img src="https://img.shields.io/badge/Website-tokai.app-7c3aed?style=flat-square" alt="Website" /></a>
     <a href="https://github.com/TokaiApp/Tokai/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square" alt="License" /></a>
     <img src="https://img.shields.io/badge/Version-0.2.0--alpha-f472b6?style=flat-square" alt="Version" />
@@ -19,7 +19,7 @@
   </p>
 
   <p>
-    <a href="https://tokai-pre-alpha-tokai.vercel.app/">Try it live →</a>
+    <a href="https://go.tokai.app">Try it live →</a>
   </p>
 </div>
 
@@ -66,7 +66,7 @@ Everything is themed as the **Tok** family — the prefix nods to *token* (the a
 
 ## Live Demo 立即體驗
 
-**[https://tokai-pre-alpha-tokai.vercel.app/](https://tokai-pre-alpha-tokai.vercel.app/)**
+**[go.tokai.app](https://go.tokai.app)**
 
 > AI features (TokAgent, the TokDo recommendation, the AI profile summary) run on a server-side Anthropic key when configured. You can also bring your own key in the UI — it's stored locally in your browser and never saved on Tokai's own servers.
 >
