@@ -357,7 +357,7 @@ function MetricCard({ title, icon, onInfo, children, dimmed }: { title: string; 
   return (
     <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 10, padding: "16px 20px", position: "relative", overflow: "hidden", flex: "0 0 185px", minWidth: 0, opacity: dimmed ? 0.38 : 1, transition: "opacity 0.3s", display: "flex", flexDirection: "column" }}>
       <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: "linear-gradient(180deg, #c084fc, #7c3aed)" }} />
-      <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "#5a8fa8", letterSpacing: 2, marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 6 }}>
+      <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "#5a8fa8", letterSpacing: 2, marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 6, minHeight: "2.6em", lineHeight: 1.3 }}>
         {icon && <span style={{ flexShrink: 0, marginTop: 2 }}>{icon}</span>}
         <span style={{ flex: 1 }}>{title}</span>
         {onInfo && <span style={{ flexShrink: 0 }}><InfoButton onClick={onInfo} /></span>}
