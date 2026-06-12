@@ -2066,6 +2066,22 @@ export default function Dashboard({ session }: { session: Session }) {
                 <Badge color={focusInfo.color}>{focusInfo.label}</Badge>
               </MetricCard>
 
+              <MetricCard title={t.sleepQuality} icon={<Activity size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].sleepQuality)}>
+                <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
+                  {Math.round(neural.sleepQuality)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
+                </div>
+                <Badge color={neural.sleepQuality > 70 ? "#67e8f9" : neural.sleepQuality > 45 ? "#4ade80" : neural.sleepQuality > 25 ? "#fbbf24" : "#f472b6"}>
+                  {neural.sleepQuality > 70 ? t.sleepWell : neural.sleepQuality > 45 ? t.sleepOk : neural.sleepQuality > 25 ? t.sleepPoor : t.sleepExhausted}
+                </Badge>
+                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)", letterSpacing: 1, marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>{t.sleepLastNight}</span>
+                  <span
+                    onClick={() => { setCheckInDraft(d => ({ ...d, sleepQuality: neural.sleepQuality })); setShowCheckIn(true); }}
+                    style={{ color: "rgba(103,232,249,0.6)", cursor: "pointer", textDecoration: "underline", fontSize: 10 }}
+                  >{t.reCheckIn}</span>
+                </div>
+              </MetricCard>
+
               <MetricCard title={t.bioEnergy} icon={<Zap size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].bioEnergy)}>
                 <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                   {Math.round(neural.bioEnergy)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>%</span>
@@ -2073,6 +2089,27 @@ export default function Dashboard({ session }: { session: Session }) {
                 <div style={{ height: 4, background: "rgba(192,132,252,0.1)", borderRadius: 2 }}>
                   <div style={{ height: "100%", width: `${neural.bioEnergy}%`, background: "linear-gradient(90deg, #c084fc, #7c3aed)", borderRadius: 2, transition: "width 0.5s ease" }} />
                 </div>
+              </MetricCard>
+
+              <MetricCard title={t.mentalFatigue} icon={<Activity size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].mentalFatigue)}>
+                <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
+                  {neural.mentalFatigue.toFixed(1)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
+                </div>
+                <div style={{ height: 4, background: "rgba(192,132,252,0.1)", borderRadius: 2, marginBottom: 6 }}>
+                  <div style={{ height: "100%", width: `${neural.mentalFatigue}%`, background: neural.mentalFatigue > 65 ? "linear-gradient(90deg, #f472b6, #c084fc)" : "linear-gradient(90deg, #4ade80, #c084fc)", borderRadius: 2, transition: "width 0.5s ease" }} />
+                </div>
+                <Badge color={neural.mentalFatigue > 65 ? "#f472b6" : neural.mentalFatigue > 40 ? "#ffa040" : "#4ade80"}>
+                  {neural.mentalFatigue > 65 ? t.fatHigh : neural.mentalFatigue > 40 ? t.fatMed : t.fatLow}
+                </Badge>
+              </MetricCard>
+
+              <MetricCard title={t.workingMemory} icon={<Brain size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].workingMemory)}>
+                <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
+                  {neural.workingMemoryLoad.toFixed(1)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
+                </div>
+                <Badge color={neural.workingMemoryLoad > 65 ? "#f472b6" : neural.workingMemoryLoad > 40 ? "#ffa040" : "#4ade80"}>
+                  {neural.workingMemoryLoad > 65 ? t.wmlHigh : neural.workingMemoryLoad > 40 ? t.wmlMed : t.wmlLow}
+                </Badge>
               </MetricCard>
 
               <MetricCard title={t.neuralNoise} icon={<Waves size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].neuralNoise)} dimmed={dataSource === "self-report"}>
@@ -2126,27 +2163,6 @@ export default function Dashboard({ session }: { session: Session }) {
                 )}
               </MetricCard>
 
-              <MetricCard title={t.workingMemory} icon={<Brain size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].workingMemory)}>
-                <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
-                  {neural.workingMemoryLoad.toFixed(1)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
-                </div>
-                <Badge color={neural.workingMemoryLoad > 65 ? "#f472b6" : neural.workingMemoryLoad > 40 ? "#ffa040" : "#4ade80"}>
-                  {neural.workingMemoryLoad > 65 ? t.wmlHigh : neural.workingMemoryLoad > 40 ? t.wmlMed : t.wmlLow}
-                </Badge>
-              </MetricCard>
-
-              <MetricCard title={t.mentalFatigue} icon={<Activity size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].mentalFatigue)}>
-                <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
-                  {neural.mentalFatigue.toFixed(1)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
-                </div>
-                <div style={{ height: 4, background: "rgba(192,132,252,0.1)", borderRadius: 2, marginBottom: 6 }}>
-                  <div style={{ height: "100%", width: `${neural.mentalFatigue}%`, background: neural.mentalFatigue > 65 ? "linear-gradient(90deg, #f472b6, #c084fc)" : "linear-gradient(90deg, #4ade80, #c084fc)", borderRadius: 2, transition: "width 0.5s ease" }} />
-                </div>
-                <Badge color={neural.mentalFatigue > 65 ? "#f472b6" : neural.mentalFatigue > 40 ? "#ffa040" : "#4ade80"}>
-                  {neural.mentalFatigue > 65 ? t.fatHigh : neural.mentalFatigue > 40 ? t.fatMed : t.fatLow}
-                </Badge>
-              </MetricCard>
-
               <MetricCard title={t.hyperfocusRisk} icon={<Crosshair size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].hyperfocusRisk)} dimmed={dataSource === "self-report"}>
                 {dataSource === "self-report" ? (
                   <>
@@ -2163,22 +2179,6 @@ export default function Dashboard({ session }: { session: Session }) {
                     </Badge>
                   </>
                 )}
-              </MetricCard>
-
-              <MetricCard title={t.sleepQuality} icon={<Activity size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].sleepQuality)}>
-                <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
-                  {Math.round(neural.sleepQuality)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
-                </div>
-                <Badge color={neural.sleepQuality > 70 ? "#67e8f9" : neural.sleepQuality > 45 ? "#4ade80" : neural.sleepQuality > 25 ? "#fbbf24" : "#f472b6"}>
-                  {neural.sleepQuality > 70 ? t.sleepWell : neural.sleepQuality > 45 ? t.sleepOk : neural.sleepQuality > 25 ? t.sleepPoor : t.sleepExhausted}
-                </Badge>
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.5)", letterSpacing: 1, marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>{t.sleepLastNight}</span>
-                  <span
-                    onClick={() => { setCheckInDraft(d => ({ ...d, sleepQuality: neural.sleepQuality })); setShowCheckIn(true); }}
-                    style={{ color: "rgba(103,232,249,0.6)", cursor: "pointer", textDecoration: "underline", fontSize: 10 }}
-                  >{t.reCheckIn}</span>
-                </div>
               </MetricCard>
             </div>
             {/* Fade hints — appear only when there are more cards in that direction */}
