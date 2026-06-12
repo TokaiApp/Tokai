@@ -95,7 +95,7 @@ const UI = {
     placeholder: "Tell TokAgent what you want to work on today...",
     send: "SEND",
     greeting: (f: string, e: string) =>
-      `Neural sync established. I'm TokAgent, your task planning assistant. Based on your current state — Focus ${f}/100, Energy ${e}% — I can help you build and prioritize your to-do list. What are you trying to accomplish today?`,
+      `Neural sync established. Focus ${f}/100 · Energy ${e}%.\nI'm TokAgent. I can act directly in your workspace — add and check off tasks, start your timer, log medications, add journal notes. Just tell me what you need.`,
     error: "Neural link disrupted. Check that your API key is valid and try again.",
     keyPromptTitle: "ANTHROPIC API KEY REQUIRED",
     keyPromptDesc: "Add your Anthropic API key in your profile to enable TokAgent. A key you enter is stored locally in your browser and never saved on Tokai's servers.",
@@ -114,7 +114,7 @@ const UI = {
     placeholder: "告訴 TokAgent 你今天想做什麼...",
     send: "傳送",
     greeting: (f: string, e: string) =>
-      `神經同步完成。我是 TokAgent，你的任務規劃助手。根據你當前的狀態——專注度 ${f}/100，能量 ${e}%——我可以幫你制定並優先排列今日任務清單。你今天需要完成什麼？`,
+      `神經同步完成。專注度 ${f}/100 · 能量 ${e}%。\n我是 TokAgent。我可以直接在你的工作區執行操作——新增與完成任務、啟動計時器、記錄藥物、新增日誌筆記。告訴我你需要什麼。`,
     error: "神經鏈路中斷。請確認 API 金鑰有效後重試。",
     keyPromptTitle: "需要 ANTHROPIC API 金鑰",
     keyPromptDesc: "在個人檔案中加入你的 Anthropic API 金鑰即可啟用 TokAgent。你輸入的金鑰僅儲存在瀏覽器本機，不會儲存於 Tokai 伺服器。",
@@ -402,7 +402,7 @@ export default function AgentChat({ neuralState, tasks, journalEntries = [], med
                 </div>
               ) : (
                 <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
-                  <div style={{ maxWidth: "72%", padding: "10px 14px", borderRadius: msg.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: msg.role === "user" ? "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.12))" : "rgba(192,132,252,0.06)", border: `1px solid ${msg.role === "user" ? "rgba(124,58,237,0.35)" : "rgba(192,132,252,0.18)"}`, fontSize: 17, color: "#d0e8f8", lineHeight: 1.6, fontFamily: "var(--font-body)" }}>
+                  <div style={{ maxWidth: "72%", padding: "10px 14px", borderRadius: msg.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: msg.role === "user" ? "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.12))" : "rgba(192,132,252,0.06)", border: `1px solid ${msg.role === "user" ? "rgba(124,58,237,0.35)" : "rgba(192,132,252,0.18)"}`, fontSize: 17, color: "#d0e8f8", lineHeight: 1.6, fontFamily: "var(--font-body)", whiteSpace: "pre-wrap" }}>
                     {msg.role === "assistant" && (
                       <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#c084fc", letterSpacing: 2, marginBottom: 5 }}>{t.label}</div>
                     )}
