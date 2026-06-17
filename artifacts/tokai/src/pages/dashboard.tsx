@@ -105,7 +105,7 @@ const T = {
     datasetMode: "DATASET",
     myBci: "MY BCI",
     profileTitle: "PROFILE",
-    datasetSource: "SOURCE: STEW",
+    datasetSource: "SOURCE: STEW — Simultaneous Task EEG Workload Dataset",
     noteLogBtn: "LOG",
     checkInTitle: "NEURAL CHECK-IN",
     checkInSubtitle: "How are you feeling right now?",
@@ -212,7 +212,7 @@ const T = {
     datasetMode: "資料集",
     myBci: "我的 BCI",
     profileTitle: "個人檔案",
-    datasetSource: "來源：STEW",
+    datasetSource: "來源：STEW — Simultaneous Task EEG Workload Dataset",
     noteLogBtn: "紀錄",
     checkInTitle: "神經自評",
     checkInSubtitle: "你現在感覺如何？",
@@ -2017,7 +2017,7 @@ export default function Dashboard({ session }: { session: Session }) {
                             </button>
                           ))}
                           <div style={{ borderTop: "1px solid rgba(192,132,252,0.15)", margin: "6px 0 0", padding: "6px 16px 2px" }}>
-                            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>{t.datasetSource}</span>
+                            <a href="https://ieee-dataport.org/open-access/stew-simultaneous-task-eeg-workload-dataset" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.55)", letterSpacing: 0.5, textDecoration: "none", borderBottom: "1px dotted rgba(90,143,168,0.35)", cursor: "pointer" }}>{t.datasetSource}</a>
                           </div>
                         </div>
                       )}
