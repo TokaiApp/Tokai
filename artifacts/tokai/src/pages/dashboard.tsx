@@ -383,8 +383,8 @@ const SOURCE_BADGE: Record<string, { color: string; bg: string; border: string }
   EEG:  { color: "#67e8f9",            bg: "rgba(103,232,249,0.10)", border: "rgba(103,232,249,0.25)" },
   EST:  { color: "#fbbf24",            bg: "rgba(251,191,36,0.10)",  border: "rgba(251,191,36,0.25)"  },
   SELF: { color: "#c084fc",            bg: "rgba(192,132,252,0.10)", border: "rgba(192,132,252,0.25)" },
-  SIM:  { color: "rgba(90,143,168,0.65)", bg: "rgba(90,143,168,0.08)", border: "rgba(90,143,168,0.20)" },
-  COMP: { color: "rgba(90,143,168,0.5)", bg: "rgba(90,143,168,0.06)", border: "rgba(90,143,168,0.15)" },
+  SIM:  { color: "#7ab8cc",               bg: "rgba(90,143,168,0.10)", border: "rgba(90,143,168,0.25)" },
+  COMP: { color: "#5a8fa8",               bg: "rgba(90,143,168,0.10)", border: "rgba(90,143,168,0.25)" },
   LIVE: { color: "#4ade80",            bg: "rgba(74,222,128,0.10)",  border: "rgba(74,222,128,0.25)"  },
 };
 
@@ -422,13 +422,13 @@ function MetricCard({ title, icon, onInfo, children, dimmed, source }: { title: 
       <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: "linear-gradient(180deg, #c084fc, #7c3aed)" }} />
       <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "#5a8fa8", letterSpacing: 2, marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 6, minHeight: "2.6em", lineHeight: 1.3 }}>
         {icon && <span style={{ flexShrink: 0, marginTop: 2 }}>{icon}</span>}
-        <span style={{ flex: 1 }}>
-          {title}
-          {srcStyle && <span style={{ fontSize: 8, letterSpacing: 1, color: srcStyle.color, opacity: 0.75, marginLeft: 5 }}>· {source}</span>}
-        </span>
+        <span style={{ flex: 1 }}>{title}</span>
         {onInfo && <span style={{ flexShrink: 0 }}><InfoButton onClick={onInfo} /></span>}
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>{children}</div>
+      {srcStyle && (
+        <span style={{ position: "absolute", bottom: 14, right: 16, fontFamily: "'Share Tech Mono', monospace", fontSize: 9, letterSpacing: 1, padding: "1px 5px", borderRadius: 3, color: srcStyle.color, background: srcStyle.bg, border: `1px solid ${srcStyle.border}` }}>{source}</span>
+      )}
     </div>
   );
 }
