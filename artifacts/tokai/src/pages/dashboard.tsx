@@ -1200,11 +1200,12 @@ export default function Dashboard({ session }: { session: Session }) {
     if (idx < 0) return null;
     const baseFocus = focusHistory[idx]?.value;
     if (baseFocus == null || focusHistory.length <= idx + 1) return null;
-    const windowSamples = Math.round(15 * 60 / refreshRate);
+    const tickSec = dataSource === "dataset" ? 2 : refreshRate;
+    const windowSamples = Math.round(15 * 60 / tickSec);
     const endIdx = Math.min(idx + windowSamples, focusHistory.length - 1);
     if (endIdx <= idx) return null;
     const delta = Math.round(focusHistory[endIdx].value - baseFocus);
-    const minutes = Math.round((endIdx - idx) * refreshRate / 60);
+    const minutes = Math.round((endIdx - idx) * tickSec / 60);
     return { delta, minutes };
   }
 
@@ -1512,10 +1513,11 @@ export default function Dashboard({ session }: { session: Session }) {
   const tick = useCallback(() => {
     const prev = neuralRef.current;
     let next: NeuralState;
+    const tickSec = dataSourceRef.current === "dataset" ? 2 : refreshRate;
 
     if (dataSourceRef.current === "self-report") {
       // Values are user-controlled — just log to history without mutating neural state
-      const maxSamples = Math.round(30 * 60 / refreshRate);
+      const maxSamples = Math.round(30 * 60 / tickSec);
       setFocusHistory(h => [...h, { time: formatTimeSec(new Date()), value: prev.focusIndex }].slice(-maxSamples));
       setSamples(s => s + 1);
       return;
@@ -1576,16 +1578,16 @@ export default function Dashboard({ session }: { session: Session }) {
 
     setNeural(next);
     neuralRef.current = next;
-    const maxSamples = Math.round(30 * 60 / refreshRate);
+    const maxSamples = Math.round(30 * 60 / tickSec);
     setFocusHistory(h => [...h, { time: formatTimeSec(new Date()), value: next.focusIndex }].slice(-maxSamples));
     setSamples(s => s + 1);
   }, [refreshRate]);
 
   useEffect(() => {
     if (!liveStream) return;
-    const id = setInterval(tick, refreshRate * 1000);
+    const id = setInterval(tick, (dataSource === "dataset" ? 2 : refreshRate) * 1000);
     return () => clearInterval(id);
-  }, [liveStream, refreshRate, tick]);
+  }, [liveStream, refreshRate, tick, dataSource]);
 
   function getFocusInfo(f: number) {
     if (f < 30) return { label: t.focusLow, color: "#ff4d4d" };
@@ -1819,7 +1821,8 @@ export default function Dashboard({ session }: { session: Session }) {
   const visibleCompleted = visibleTasks.filter(t => t.done).length;
   const sessionElapsed = Math.floor((now.getTime() - sessionStart.current.getTime()) / 1000);
   const sessionDuration = `${Math.floor(sessionElapsed / 3600)}:${String(Math.floor((sessionElapsed % 3600) / 60)).padStart(2, "0")}:${String(sessionElapsed % 60).padStart(2, "0")}`;
-  const fiveMinSamples = Math.round(5 * 60 / refreshRate);
+  const effectiveTickSec = dataSource === "dataset" ? 2 : refreshRate;
+  const fiveMinSamples = Math.round(5 * 60 / effectiveTickSec);
   const recentSlice = focusHistory.slice(-fiveMinSamples);
   const avgFocus = recentSlice.length > 1
     ? Math.round(recentSlice.reduce((s, p) => s + p.value, 0) / recentSlice.length)
@@ -1833,7 +1836,7 @@ export default function Dashboard({ session }: { session: Session }) {
     : null;
   const chartPxPerSample = Math.max(4, Math.round(chartWrapWidth / fiveMinSamples) * 2);
   const chartWidth = Math.max(chartWrapWidth, focusHistory.length * chartPxPerSample);
-  const xInterval = Math.max(0, Math.round(60 / refreshRate) - 1);
+  const xInterval = Math.max(0, Math.round(60 / effectiveTickSec) - 1);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "linear-gradient(135deg, #0c0818 0%, #100a25 50%, #080614 100%)", fontFamily: "var(--font-body)", color: "#c8d8e8" }}>
@@ -1853,16 +1856,25 @@ export default function Dashboard({ session }: { session: Session }) {
             <span style={{ fontSize: 16, color: "#c8d8e8" }}>{t.liveStream}</span>
             <Toggle checked={liveStream} onChange={setLiveStream} />
           </div>
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 14, color: "#5a8fa8" }}>{t.refreshRate}</span>
-              <span style={{ fontSize: 13, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace" }}>{refreshRate}</span>
+          {dataSource === "dataset" ? (
+            <div style={{ marginBottom: 12, padding: "7px 10px", background: "rgba(103,232,249,0.06)", border: "1px solid rgba(103,232,249,0.2)", borderRadius: 4 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(103,232,249,0.7)", letterSpacing: 1 }}>
+                {lang === "en" ? "DATASET · 2s / epoch (fixed)" : "資料集 · 2秒/窗口（固定）"}
+              </span>
             </div>
-            <input type="range" min={1} max={10} value={refreshRate}
-              onChange={e => setRefreshRate(Number(e.target.value))}
-              style={{ width: "100%", accentColor: "#c084fc", cursor: "pointer" }} />
-          </div>
-          <button onClick={tick} style={{ width: "100%", padding: "7px 0", background: "transparent", border: "1px solid rgba(192,132,252,0.4)", color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, cursor: "pointer", letterSpacing: 1, borderRadius: 4 }}>
+          ) : (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ fontSize: 14, color: "#5a8fa8" }}>{t.refreshRate}</span>
+                <span style={{ fontSize: 13, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace" }}>{refreshRate}</span>
+              </div>
+              <input type="range" min={1} max={10} value={refreshRate}
+                onChange={e => setRefreshRate(Number(e.target.value))}
+                style={{ width: "100%", accentColor: "#c084fc", cursor: "pointer" }} />
+            </div>
+          )}
+          <button onClick={dataSource === "dataset" ? undefined : tick} disabled={dataSource === "dataset"}
+            style={{ width: "100%", padding: "7px 0", background: "transparent", border: `1px solid ${dataSource === "dataset" ? "rgba(192,132,252,0.15)" : "rgba(192,132,252,0.4)"}`, color: dataSource === "dataset" ? "rgba(192,132,252,0.25)" : "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, cursor: dataSource === "dataset" ? "not-allowed" : "pointer", letterSpacing: 1, borderRadius: 4 }}>
             {t.manualRefresh}
           </button>
         </div>
