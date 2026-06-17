@@ -105,6 +105,7 @@ const T = {
     datasetMode: "DATASET",
     myBci: "MY BCI",
     profileTitle: "PROFILE",
+    myAccount: "MY ACCOUNT",
     datasetSource: "SOURCE: STEW — Simultaneous Task EEG Workload Dataset",
     noteLogBtn: "LOG",
     checkInTitle: "NEURAL CHECK-IN",
@@ -212,6 +213,7 @@ const T = {
     datasetMode: "資料集",
     myBci: "我的 BCI",
     profileTitle: "個人檔案",
+    myAccount: "我的帳戶",
     datasetSource: "來源：STEW — Simultaneous Task EEG Workload Dataset",
     noteLogBtn: "紀錄",
     checkInTitle: "神經自評",
@@ -1897,11 +1899,11 @@ export default function Dashboard({ session }: { session: Session }) {
 
         {/* Pinned bottom user section */}
         <div style={{ padding: "12px 20px", borderTop: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", gap: 10, background: "linear-gradient(0deg, #0c0818, #0e0920)" }}>
-          <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, wordBreak: "break-all", cursor: "pointer", transition: "color 0.2s" }}
+          <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer", transition: "color 0.2s" }}
             onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
             onMouseLeave={e => (e.currentTarget.style.color = "rgba(90,143,168,0.5)")}>
             <UserCircle size={13} style={{ flexShrink: 0 }} />
-            {session.user.email}
+            {t.myAccount}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 8 }}>
             <img src="/tok-en.png" alt="TokEn" style={{ width: 30, height: 30, flexShrink: 0 }} />
@@ -1955,7 +1957,7 @@ export default function Dashboard({ session }: { session: Session }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer" }}>
                   <UserCircle size={13} style={{ flexShrink: 0 }} />
-                  {session.user.email}
+                  {t.myAccount}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <img src="/tok-en.png" alt="TokEn" style={{ width: 24, height: 24, flexShrink: 0 }} />
