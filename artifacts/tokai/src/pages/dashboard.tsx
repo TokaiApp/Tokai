@@ -248,7 +248,7 @@ interface NeuralState {
   sleepQuality: number;
 }
 
-interface FocusPoint { time: string; value: number; }
+interface FocusPoint { time: string; value: number; bio?: number; fatigue?: number; wml?: number; }
 interface Task { id: string; title: string; description: string | null; done: boolean; estimatedMinutes: number | null; createdAt?: string; deadline?: string; emoji?: string; focusRequired?: number; position?: number; }
 
 const TASK_EMOJIS = ["📚", "✍️", "💻", "📧", "💪", "🍳", "🧹", "🎯", "🔬", "📞", "🛒", "🎨"];
@@ -476,6 +476,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [deleteConfirmStep, setDeleteConfirmStep] = useState<0 | 1 | 2>(0);
+  const [streamMetric, setStreamMetric] = useState<"focus" | "bio" | "fatigue" | "wml">("focus");
   const [showReport, setShowReport] = useState(false);
 
   // Anthropic API key (BYOK) — single source of truth; entered in the profile, used by TokAgent + AI endpoints
@@ -1520,7 +1521,7 @@ export default function Dashboard({ session }: { session: Session }) {
     if (dataSourceRef.current === "self-report") {
       // Values are user-controlled — just log to history without mutating neural state
       const maxSamples = Math.round(30 * 60 / tickSec);
-      setFocusHistory(h => [...h, { time: formatTimeSec(new Date()), value: prev.focusIndex }].slice(-maxSamples));
+      setFocusHistory(h => [...h, { time: formatTimeSec(new Date()), value: prev.focusIndex, bio: prev.bioEnergy, fatigue: prev.mentalFatigue, wml: prev.workingMemoryLoad }].slice(-maxSamples));
       setSamples(s => s + 1);
       return;
     }
@@ -1581,7 +1582,7 @@ export default function Dashboard({ session }: { session: Session }) {
     setNeural(next);
     neuralRef.current = next;
     const maxSamples = Math.round(30 * 60 / tickSec);
-    setFocusHistory(h => [...h, { time: formatTimeSec(new Date()), value: next.focusIndex }].slice(-maxSamples));
+    setFocusHistory(h => [...h, { time: formatTimeSec(new Date()), value: next.focusIndex, bio: next.bioEnergy, fatigue: next.mentalFatigue, wml: next.workingMemoryLoad }].slice(-maxSamples));
     setSamples(s => s + 1);
   }, [refreshRate]);
 
@@ -1825,20 +1826,40 @@ export default function Dashboard({ session }: { session: Session }) {
   const sessionDuration = `${Math.floor(sessionElapsed / 3600)}:${String(Math.floor((sessionElapsed % 3600) / 60)).padStart(2, "0")}:${String(sessionElapsed % 60).padStart(2, "0")}`;
   const effectiveTickSec = dataSource === "dataset" ? 2 : refreshRate;
   const fiveMinSamples = Math.round(5 * 60 / effectiveTickSec);
-  const recentSlice = focusHistory.slice(-fiveMinSamples);
+  const chartData = focusHistory.map(p => ({
+    time: p.time,
+    value: streamMetric === "focus" ? p.value
+         : streamMetric === "bio"   ? (p.bio     ?? 0)
+         : streamMetric === "fatigue" ? (p.fatigue ?? 0)
+         : (p.wml ?? 0),
+  }));
+  const recentSlice = chartData.slice(-fiveMinSamples);
   const avgFocus = recentSlice.length > 1
     ? Math.round(recentSlice.reduce((s, p) => s + p.value, 0) / recentSlice.length)
     : null;
-  const sessionSlice = focusHistory.slice(sessionStartSampleCount.current);
+  const sessionSlice = chartData.slice(sessionStartSampleCount.current);
   const sessionAvg = sessionSlice.length > 1
     ? Math.round(sessionSlice.reduce((s, p) => s + p.value, 0) / sessionSlice.length)
     : null;
-  const dayAvg = focusHistory.length > 1
-    ? Math.round(focusHistory.reduce((s, p) => s + p.value, 0) / focusHistory.length)
+  const dayAvg = chartData.length > 1
+    ? Math.round(chartData.reduce((s, p) => s + p.value, 0) / chartData.length)
     : null;
   const chartPxPerSample = Math.max(4, Math.round(chartWrapWidth / fiveMinSamples) * 2);
   const chartWidth = Math.max(chartWrapWidth, focusHistory.length * chartPxPerSample);
   const xInterval = Math.max(0, Math.round(60 / effectiveTickSec) - 1);
+
+  const smLabel = streamMetric === "focus"   ? (lang === "en" ? "FOCUS INDEX"    : "專注指數")
+                : streamMetric === "bio"     ? (lang === "en" ? "BIO ENERGY"     : "生理能量")
+                : streamMetric === "fatigue" ? (lang === "en" ? "MENTAL FATIGUE" : "心理疲勞")
+                :                              (lang === "en" ? "WORKING MEMORY" : "工作記憶");
+  const smColor = streamMetric === "focus" ? "#c084fc"
+                : streamMetric === "bio"   ? "#4ade80"
+                : streamMetric === "fatigue" ? "#f472b6"
+                : "#67e8f9";
+  const smValue = streamMetric === "focus"   ? neural.focusIndex
+                : streamMetric === "bio"     ? neural.bioEnergy
+                : streamMetric === "fatigue" ? neural.mentalFatigue
+                : neural.workingMemoryLoad;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "linear-gradient(135deg, #0c0818 0%, #100a25 50%, #080614 100%)", fontFamily: "var(--font-body)", color: "#c8d8e8" }}>
@@ -2382,14 +2403,14 @@ export default function Dashboard({ session }: { session: Session }) {
             <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 10, padding: 10, position: "relative" }}>
               {/* Overlaid header — floats over the empty top band of the chart */}
               <div style={{ position: "absolute", top: 8, left: 12, zIndex: 2, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", maxWidth: "calc(100% - 96px)", background: "rgba(12,8,24,0.55)", borderRadius: 6, padding: "3px 9px", backdropFilter: "blur(2px)" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#c084fc", letterSpacing: 2 }}><Activity size={14} color="#c084fc" /><span>{t.focusStream}</span></span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: smColor, letterSpacing: 2 }}><Activity size={14} color={smColor} /><span>{lang === "en" ? "STREAM" : "串流"} · {smLabel}</span></span>
                 {avgFocus !== null && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "rgba(192,132,252,0.9)", letterSpacing: 1 }}>{lang === "en" ? "5m avg" : "5分均值"} {avgFocus}</span>}
                 {sessionAvg !== null && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "rgba(56,189,248,0.95)", letterSpacing: 1 }}>{lang === "en" ? "session avg" : "階段均值"} {sessionAvg}</span>}
                 {dayAvg !== null && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "rgba(74,222,128,0.95)", letterSpacing: 1 }}>{lang === "en" ? "day avg" : "日均值"} {dayAvg}</span>}
               </div>
               {/* Top-right: live value + info */}
               <div style={{ position: "absolute", top: 8, right: 10, zIndex: 2, display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "#c084fc", background: "rgba(12,8,24,0.55)", borderRadius: 5, padding: "2px 6px" }}>{neural.focusIndex.toFixed(1)}</span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: smColor, background: "rgba(12,8,24,0.55)", borderRadius: 5, padding: "2px 6px" }}>{smValue.toFixed(1)}</span>
                 <InfoButton onClick={() => setInfoModal(INFO[lang].focusStream)} />
               </div>
               <div ref={chartWrapRef} style={{ width: "100%", position: "relative" }}>
@@ -2400,14 +2421,14 @@ export default function Dashboard({ session }: { session: Session }) {
                     if (!atRight) setIsLive(false);
                   }}>
                   <div style={{ width: chartWidth, height: 140, position: "relative" }}>
-                    <LineChart width={chartWidth} height={140} data={focusHistory} margin={{ top: 8, right: 16, bottom: 18, left: 0 }}>
+                    <LineChart width={chartWidth} height={140} data={chartData} margin={{ top: 8, right: 16, bottom: 18, left: 0 }}>
                       <XAxis dataKey="time" tickFormatter={(v: string) => v.slice(0, 5)} tick={{ fill: "#5a8fa8", fontSize: 12, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} interval={xInterval} />
                       <YAxis domain={[0, 100]} tick={{ fill: "#5a8fa8", fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} ticks={[0, 20, 40, 60, 80, 100]} width={32} />
-                      <ReferenceLine y={60} stroke="rgba(255,80,80,0.35)" strokeDasharray="4 4" />
-                      {avgFocus !== null && <ReferenceLine y={avgFocus} stroke="rgba(192,132,252,0.55)" strokeDasharray="6 3" />}
+                      {streamMetric === "focus" && <ReferenceLine y={60} stroke="rgba(255,80,80,0.35)" strokeDasharray="4 4" />}
+                      {avgFocus !== null && <ReferenceLine y={avgFocus} stroke={`${smColor}88`} strokeDasharray="6 3" />}
                       {sessionAvg !== null && <ReferenceLine y={sessionAvg} stroke="rgba(56,189,248,0.5)" strokeDasharray="6 3" />}
                       {dayAvg !== null && dayAvg !== sessionAvg && <ReferenceLine y={dayAvg} stroke="rgba(74,222,128,0.5)" strokeDasharray="6 3" />}
-                      <Line type="monotone" dataKey="value" stroke="#c084fc" strokeWidth={2} dot={false} isAnimationActive={false} />
+                      <Line type="monotone" dataKey="value" stroke={smColor} strokeWidth={2} dot={false} isAnimationActive={false} />
                     </LineChart>
                     {(() => {
                       const N = focusHistory.length;
@@ -2453,6 +2474,20 @@ export default function Dashboard({ session }: { session: Session }) {
                   style={{ position: "absolute", bottom: 6, right: 8, zIndex: 3, padding: "3px 11px", background: isLive ? "rgba(192,132,252,0.25)" : "rgba(12,8,24,0.85)", border: `1px solid ${isLive ? "rgba(192,132,252,0.7)" : "rgba(192,132,252,0.35)"}`, borderRadius: 5, color: isLive ? "#c084fc" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer", transition: "all 0.2s" }}>
                   {t.goLive}
                 </button>
+              </div>
+              {/* Metric selector */}
+              <div style={{ display: "flex", gap: 6, marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(192,132,252,0.1)", flexWrap: "wrap" }}>
+                {([
+                  ["focus",   lang === "en" ? "FOCUS INDEX"    : "專注指數",  "#c084fc"],
+                  ["bio",     lang === "en" ? "BIO ENERGY"     : "生理能量",  "#4ade80"],
+                  ["fatigue", lang === "en" ? "MENTAL FATIGUE" : "心理疲勞",  "#f472b6"],
+                  ["wml",     lang === "en" ? "WORKING MEMORY" : "工作記憶",  "#67e8f9"],
+                ] as [string, string, string][]).map(([key, label, color]) => (
+                  <button key={key} onClick={() => setStreamMetric(key as "focus" | "bio" | "fatigue" | "wml")}
+                    style={{ padding: "4px 12px", background: streamMetric === key ? `${color}22` : "transparent", border: `1px solid ${streamMetric === key ? color : "rgba(192,132,252,0.2)"}`, borderRadius: 4, color: streamMetric === key ? color : "rgba(90,143,168,0.6)", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer", transition: "all 0.15s" }}>
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
