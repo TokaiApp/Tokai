@@ -267,7 +267,7 @@ function loadSleepQuality(): number {
     const s = localStorage.getItem("tokai_sleep_quality");
     if (s) { const p = JSON.parse(s); if (p.date === todayStr()) return p.value; }
   } catch {}
-  return 70;
+  return 50;
 }
 function saveSleepQuality(value: number) {
   try { localStorage.setItem("tokai_sleep_quality", JSON.stringify({ date: todayStr(), value })); } catch {}
@@ -529,10 +529,10 @@ export default function Dashboard({ session }: { session: Session }) {
   const datasetDropdownRef = useRef<HTMLDivElement>(null);
 
   // Self-report mode state
-  const [selfReport, setSelfReport] = useState({ focusIndex: 50, bioEnergy: 70, mentalFatigue: 30, workingMemoryLoad: 40, sleepQuality: loadSleepQuality() });
+  const [selfReport, setSelfReport] = useState({ focusIndex: 50, bioEnergy: 50, mentalFatigue: 50, workingMemoryLoad: 50, sleepQuality: loadSleepQuality() });
   const [showCheckIn, setShowCheckIn] = useState(() => !hasCheckedInToday());
   const [lastCheckIn, setLastCheckIn] = useState<Date | null>(null);
-  const [checkInDraft, setCheckInDraft] = useState({ focusIndex: 50, bioEnergy: 70, mentalFatigue: 30, workingMemoryLoad: 40, sleepQuality: loadSleepQuality() });
+  const [checkInDraft, setCheckInDraft] = useState({ focusIndex: 50, bioEnergy: 50, mentalFatigue: 50, workingMemoryLoad: 50, sleepQuality: loadSleepQuality() });
   useEffect(() => {
     if (!datasetDropdownOpen) return;
     function handleOutside(e: MouseEvent) {
@@ -2587,7 +2587,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   onChange={e => setJournalInput(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && addJournalEntry()}
                   placeholder={t.notePlaceholder}
-                  style={{ flex: 1, padding: "8px 12px", background: "rgba(0,0,0,0.35)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", transition: "border-color 0.2s", minWidth: 0 }}
+                  style={{ flex: 1, padding: "8px 12px", background: "#0d0a1e", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", transition: "border-color 0.2s", minWidth: 0, colorScheme: "dark" }}
                   onFocus={e => (e.target.style.borderColor = "rgba(192,132,252,0.5)")}
                   onBlur={e => (e.target.style.borderColor = "rgba(192,132,252,0.2)")}
                 />
@@ -2823,9 +2823,9 @@ export default function Dashboard({ session }: { session: Session }) {
                     <select value={activeTaskId ?? ""} onChange={e => selectActiveTask(e.target.value || null)}
                       disabled={tasks.filter(t => !t.done).length === 0}
                       style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.35)", border: `1px solid ${activeTaskId ? "rgba(192,132,252,0.55)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: activeTaskId ? "#c8d8e8" : "#5a8fa8", fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
-                      <option value="">{t.activeTaskNone}</option>
+                      <option value="" style={{ background: "#120d28", color: "#5a8fa8" }}>{t.activeTaskNone}</option>
                       {tasks.filter(t => !t.done).map(tk => { const n = taskNumberById.get(tk.id); return (
-                        <option key={tk.id} value={tk.id}>{n ? `${n}. ` : ""}{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
+                        <option key={tk.id} value={tk.id} style={{ background: "#120d28", color: "#c8d8e8" }}>{n ? `${n}. ` : ""}{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
                       ); })}
                     </select>
                   </div>
@@ -2951,9 +2951,9 @@ export default function Dashboard({ session }: { session: Session }) {
               <select value={activeTaskId ?? ""} onChange={e => selectActiveTask(e.target.value || null)}
                 disabled={tasks.filter(t => !t.done).length === 0}
                 style={{ width: "100%", padding: "8px 10px", background: "rgba(0,0,0,0.35)", border: `1px solid ${activeTaskId ? "rgba(192,132,252,0.55)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, color: activeTaskId ? "#c8d8e8" : "#5a8fa8", fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
-                <option value="">{t.activeTaskNone}</option>
+                <option value="" style={{ background: "#120d28", color: "#5a8fa8" }}>{t.activeTaskNone}</option>
                 {tasks.filter(t => !t.done).map(tk => { const n = taskNumberById.get(tk.id); return (
-                  <option key={tk.id} value={tk.id}>{n ? `${n}. ` : ""}{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
+                  <option key={tk.id} value={tk.id} style={{ background: "#120d28", color: "#c8d8e8" }}>{n ? `${n}. ` : ""}{tk.emoji ? `${tk.emoji} ` : ""}{tk.title}</option>
                 ); })}
               </select>
             </div>
@@ -3446,7 +3446,15 @@ export default function Dashboard({ session }: { session: Session }) {
                     <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color, letterSpacing: 2 }}>{title}:</span>
                     <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.75)", letterSpacing: 0.5 }}>{label}</span>
                   </div>
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 18, fontWeight: 700, color }}>{checkInDraft[key]}<span style={{ fontSize: 12, color: "#5a8fa8" }}>{unit}</span></span>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
+                    <input
+                      type="number" min={0} max={100}
+                      value={checkInDraft[key]}
+                      onChange={e => { const v = Math.min(100, Math.max(0, Number(e.target.value) || 0)); setCheckInDraft(d => ({ ...d, [key]: v })); }}
+                      style={{ width: 52, fontFamily: "'Share Tech Mono', monospace", fontSize: 18, fontWeight: 700, color, background: "transparent", border: "none", borderBottom: `1px solid ${color}55`, outline: "none", textAlign: "right", padding: "0 2px", colorScheme: "dark", MozAppearance: "textfield" } as React.CSSProperties}
+                    />
+                    <span style={{ fontSize: 12, color: "#5a8fa8" }}>{unit}</span>
+                  </div>
                 </div>
                 <input
                   type="range" min={0} max={100} step={1}
