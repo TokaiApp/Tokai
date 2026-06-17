@@ -1159,6 +1159,7 @@ export default function Dashboard({ session }: { session: Session }) {
     await supabase.from("journal_entries").delete().eq("user_id", userId);
     await supabase.from("focus_sessions").delete().eq("user_id", userId);
     await supabase.from("profiles").delete().eq("user_id", userId);
+    await supabase.functions.invoke("delete-account");
     await supabase.auth.signOut();
   }
 
