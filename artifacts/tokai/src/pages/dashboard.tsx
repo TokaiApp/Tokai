@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { Github, Activity, BookOpen, ListChecks, Pill, Brain, Crosshair, Zap, Waves, BarChart2, Clock, Camera, Bot, UserCircle, Moon } from "lucide-react";
+import { Github, Activity, BookOpen, ListChecks, Pill, Brain, Crosshair, Zap, Waves, BarChart2, Clock, Camera, Bot, UserCircle, Moon, Settings } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, ReferenceLine,
 } from "recharts";
@@ -106,6 +106,7 @@ const T = {
     myBci: "MY BCI",
     profileTitle: "PROFILE",
     myAccount: "MY ACCOUNT",
+    settings: "SETTINGS",
     datasetSource: "SOURCE: STEW — Simultaneous Task EEG Workload Dataset",
     noteLogBtn: "LOG",
     checkInTitle: "NEURAL CHECK-IN",
@@ -214,6 +215,7 @@ const T = {
     myBci: "我的 BCI",
     profileTitle: "個人檔案",
     myAccount: "我的帳戶",
+    settings: "設定",
     datasetSource: "來源：STEW — Simultaneous Task EEG Workload Dataset",
     noteLogBtn: "紀錄",
     checkInTitle: "神經自評",
@@ -470,6 +472,8 @@ export default function Dashboard({ session }: { session: Session }) {
   const userId = session.user.id;
   const [profile, setProfile] = useState<{ name: string; bciDevice: string; subscriptionTier: string; tokens: number; aiProfile: string | null } | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState<0 | 1 | 2>(0);
   const [showReport, setShowReport] = useState(false);
 
   // Anthropic API key (BYOK) — single source of truth; entered in the profile, used by TokAgent + AI endpoints
@@ -1143,6 +1147,16 @@ export default function Dashboard({ session }: { session: Session }) {
     setTasks(p => p.filter(tk => tk.id !== id));
     setSelectedTaskId(null);
     await supabase.from("tasks").delete().eq("id", id);
+  }
+
+  async function deleteAccount() {
+    setDeleteConfirmStep(2);
+    await supabase.from("tasks").delete().eq("user_id", userId);
+    await supabase.from("med_log").delete().eq("user_id", userId);
+    await supabase.from("journal_entries").delete().eq("user_id", userId);
+    await supabase.from("focus_sessions").delete().eq("user_id", userId);
+    await supabase.from("profiles").delete().eq("user_id", userId);
+    await supabase.auth.signOut();
   }
 
   async function saveProfile(updates: Partial<typeof profile>) {
@@ -1897,11 +1911,19 @@ export default function Dashboard({ session }: { session: Session }) {
 
         {/* Pinned bottom user section */}
         <div style={{ padding: "12px 20px", borderTop: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", gap: 10, background: "linear-gradient(0deg, #0c0818, #0e0920)" }}>
-          <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer", transition: "color 0.2s" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
-            onMouseLeave={e => (e.currentTarget.style.color = "rgba(90,143,168,0.5)")}>
-            <UserCircle size={13} style={{ flexShrink: 0 }} />
-            {t.myAccount}
+          <div style={{ display: "flex", gap: 4 }}>
+            <div onClick={() => setShowProfileModal(true)} style={{ flex: 1, display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer", transition: "color 0.2s" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(90,143,168,0.5)")}>
+              <UserCircle size={13} style={{ flexShrink: 0 }} />
+              {t.myAccount}
+            </div>
+            <div onClick={() => setShowSettingsModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer", transition: "color 0.2s" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(90,143,168,0.5)")}>
+              <Settings size={13} style={{ flexShrink: 0 }} />
+              {t.settings}
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 8 }}>
             <img src="/tok-en.png" alt="TokEn" style={{ width: 30, height: 30, flexShrink: 0 }} />
@@ -1953,9 +1975,15 @@ export default function Dashboard({ session }: { session: Session }) {
             </div>
             <div style={{ padding: "6px 16px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer" }}>
-                  <UserCircle size={13} style={{ flexShrink: 0 }} />
-                  {t.myAccount}
+                <div style={{ display: "flex", gap: 12 }}>
+                  <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer" }}>
+                    <UserCircle size={13} style={{ flexShrink: 0 }} />
+                    {t.myAccount}
+                  </div>
+                  <div onClick={() => setShowSettingsModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer" }}>
+                    <Settings size={13} style={{ flexShrink: 0 }} />
+                    {t.settings}
+                  </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <img src="/tok-en.png" alt="TokEn" style={{ width: 24, height: 24, flexShrink: 0 }} />
@@ -3312,21 +3340,6 @@ export default function Dashboard({ session }: { session: Session }) {
               </div>
             </div>
 
-            {/* BCI Device */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "BCI DEVICE" : "腦機介面裝置"}</span>
-              <select value={profile.bciDevice} onChange={e => saveProfile({ bciDevice: e.target.value })}
-                style={{ padding: "8px 12px", background: "#120d28", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", cursor: "pointer", colorScheme: "dark" }}>
-                <option value="none">{lang === "en" ? "None (Simulated)" : "無（模擬）"}</option>
-                <option value="muse2">Muse 2</option>
-                <option value="muse_s">Muse S</option>
-                <option value="openbci">OpenBCI Cyton</option>
-                <option value="neurosky">NeuroSky MindWave</option>
-                <option value="emotiv">Emotiv EPOC X</option>
-                <option value="other">{lang === "en" ? "Other" : "其他"}</option>
-              </select>
-            </div>
-
             {/* Anthropic API key (BYOK) */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "ANTHROPIC API KEY · TOKAGENT" : "ANTHROPIC API 金鑰 · TOKAGENT"}</span>
@@ -3349,36 +3362,6 @@ export default function Dashboard({ session }: { session: Session }) {
                 {lang === "en" ? "Stored only in your browser, never on Tokai's servers. " : "僅儲存在你的瀏覽器，不會儲存於 Tokai 伺服器。"}
                 <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" style={{ color: "#c084fc", textDecoration: "none" }}>{lang === "en" ? "Get a key →" : "取得金鑰 →"}</a>
               </span>
-            </div>
-
-            {/* Accessibility */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "ACCESSIBILITY" : "無障礙"}</span>
-              <button onClick={() => setHighLegibility(v => !v)}
-                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 12px", background: highLegibility ? "rgba(192,132,252,0.12)" : "rgba(0,0,0,0.25)", border: `1px solid ${highLegibility ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, cursor: "pointer", textAlign: "left" }}>
-                <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8" }}>{lang === "en" ? "High-legibility font" : "高易讀字體"}</span>
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.7)", letterSpacing: 0.3 }}>{lang === "en" ? "Swaps reading text to Lexend (keeps the mono labels)" : "將閱讀文字換成 Lexend（保留等寬標籤）"}</span>
-                </span>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: highLegibility ? "#c084fc" : "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{highLegibility ? "ON" : "OFF"}</span>
-              </button>
-              <button onClick={() => setReduceMotion(v => !v)}
-                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 12px", background: reduceMotion ? "rgba(192,132,252,0.12)" : "rgba(0,0,0,0.25)", border: `1px solid ${reduceMotion ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, cursor: "pointer", textAlign: "left" }}>
-                <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8" }}>{lang === "en" ? "Reduce motion" : "減少動態效果"}</span>
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.7)", letterSpacing: 0.3 }}>{lang === "en" ? "Minimizes transitions, animations, and smooth scrolling" : "減少過渡、動畫與平滑捲動"}</span>
-                </span>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: reduceMotion ? "#c084fc" : "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{reduceMotion ? "ON" : "OFF"}</span>
-              </button>
-              <div style={{ padding: "9px 12px", background: "rgba(0,0,0,0.25)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, display: "flex", flexDirection: "column", gap: 7 }}>
-                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8" }}>{lang === "en" ? "Text size" : "文字大小"}</span>
-                <div style={{ display: "flex", gap: 6 }}>
-                  {([[0.9, lang === "en" ? "S" : "小"], [1, lang === "en" ? "M" : "中"], [1.15, lang === "en" ? "L" : "大"], [1.3, "XL"]] as [number, string][]).map(([v, label]) => (
-                    <button key={v} onClick={() => setTextScale(v)}
-                      style={{ flex: 1, padding: "6px 0", background: textScale === v ? "rgba(192,132,252,0.2)" : "transparent", border: `1px solid ${textScale === v ? "rgba(192,132,252,0.6)" : "rgba(192,132,252,0.2)"}`, borderRadius: 5, color: textScale === v ? "#c084fc" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer" }}>{label}</button>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Clinician report */}
@@ -3440,6 +3423,109 @@ export default function Dashboard({ session }: { session: Session }) {
                 style={{ alignSelf: "flex-start", padding: "6px 14px", background: "none", border: "1px solid rgba(192,132,252,0.3)", borderRadius: 4, color: profileGenerating ? "#5a8fa8" : "rgba(192,132,252,0.7)", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: profileGenerating ? "default" : "pointer", transition: "all 0.2s" }}>
                 {profileGenerating ? (lang === "en" ? "GENERATING..." : "生成中...") : (lang === "en" ? "✦ GENERATE SUMMARY" : "✦ 生成摘要")}
               </button>
+            </div>
+
+            {/* Danger zone */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid rgba(248,113,113,0.15)", paddingTop: 16 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(248,113,113,0.6)", letterSpacing: 2 }}>{lang === "en" ? "DANGER ZONE" : "危險區域"}</span>
+              {deleteConfirmStep === 0 && (
+                <button onClick={() => setDeleteConfirmStep(1)}
+                  style={{ padding: "9px 12px", background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 6, color: "rgba(248,113,113,0.7)", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer", textAlign: "left", transition: "all 0.2s" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(248,113,113,0.12)"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.5)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(248,113,113,0.06)"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.25)"; }}>
+                  {lang === "en" ? "Delete Account & All Data" : "刪除帳號與所有資料"}
+                </button>
+              )}
+              {deleteConfirmStep === 1 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 14px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.35)", borderRadius: 8 }}>
+                  <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: 14, color: "#fca5a5", lineHeight: 1.6 }}>
+                    {lang === "en"
+                      ? "This permanently deletes all your journal entries, medication logs, tasks, focus sessions, and profile. Your neural data belongs to you — we remove it completely."
+                      : "這將永久刪除你所有的日誌、用藥記錄、任務、專注紀錄與個人資料。你的神經資料屬於你——我們將完全移除它。"}
+                  </p>
+                  <p style={{ margin: 0, fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(248,113,113,0.6)", letterSpacing: 0.5 }}>
+                    {lang === "en" ? "Note: auth record deletion requires contacting support after this step." : "注意：驗證帳號的刪除需在此步驟後聯絡客服。"}
+                  </p>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => setDeleteConfirmStep(0)}
+                      style={{ flex: 1, padding: "8px 0", background: "transparent", border: "1px solid rgba(90,143,168,0.3)", borderRadius: 6, color: "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
+                      {lang === "en" ? "CANCEL" : "取消"}
+                    </button>
+                    <button onClick={deleteAccount}
+                      style={{ flex: 1, padding: "8px 0", background: "rgba(248,113,113,0.18)", border: "1px solid rgba(248,113,113,0.6)", borderRadius: 6, color: "#f87171", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>
+                      {lang === "en" ? "YES, DELETE" : "確認刪除"}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {deleteConfirmStep === 2 && (
+                <div style={{ padding: "12px 14px", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(248,113,113,0.7)", letterSpacing: 1 }}>
+                  {lang === "en" ? "Deleting data..." : "刪除中..."}
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── Settings modal ── */}
+      {showSettingsModal && (
+        <div onClick={() => setShowSettingsModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 420, background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.45)", borderRadius: 14, padding: 28, display: "flex", flexDirection: "column", gap: 18, boxShadow: "0 0 60px rgba(192,132,252,0.12)", maxHeight: "90vh", overflowY: "auto" }}>
+
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 3, height: 18, background: "#c084fc", borderRadius: 1 }} />
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#c084fc", letterSpacing: 3, flex: 1 }}>
+                <span style={{ color: "#7c3aed" }}>TOK</span>AI · {t.settings}
+              </span>
+              <button onClick={() => setShowSettingsModal(false)} style={{ background: "none", border: "none", color: "#5a8fa8", cursor: "pointer", fontSize: 22, padding: 0, lineHeight: 1 }}>×</button>
+            </div>
+
+            {/* BCI Device */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "BCI DEVICE" : "腦機介面裝置"}</span>
+              {profile && <select value={profile.bciDevice} onChange={e => saveProfile({ bciDevice: e.target.value })}
+                style={{ padding: "8px 12px", background: "#120d28", border: "1px solid rgba(192,132,252,0.25)", borderRadius: 6, color: "#c8d8e8", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, outline: "none", cursor: "pointer", colorScheme: "dark" }}>
+                <option value="none">{lang === "en" ? "None (Simulated)" : "無（模擬）"}</option>
+                <option value="muse2">Muse 2</option>
+                <option value="muse_s">Muse S</option>
+                <option value="openbci">OpenBCI Cyton</option>
+                <option value="neurosky">NeuroSky MindWave</option>
+                <option value="emotiv">Emotiv EPOC X</option>
+                <option value="other">{lang === "en" ? "Other" : "其他"}</option>
+              </select>}
+            </div>
+
+            {/* Accessibility */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#5a8fa8", letterSpacing: 2 }}>{lang === "en" ? "ACCESSIBILITY" : "無障礙"}</span>
+              <button onClick={() => setHighLegibility(v => !v)}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 12px", background: highLegibility ? "rgba(192,132,252,0.12)" : "rgba(0,0,0,0.25)", border: `1px solid ${highLegibility ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, cursor: "pointer", textAlign: "left" }}>
+                <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8" }}>{lang === "en" ? "High-legibility font" : "高易讀字體"}</span>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.7)", letterSpacing: 0.3 }}>{lang === "en" ? "Swaps reading text to Lexend (keeps the mono labels)" : "將閱讀文字換成 Lexend（保留等寬標籤）"}</span>
+                </span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: highLegibility ? "#c084fc" : "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{highLegibility ? "ON" : "OFF"}</span>
+              </button>
+              <button onClick={() => setReduceMotion(v => !v)}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 12px", background: reduceMotion ? "rgba(192,132,252,0.12)" : "rgba(0,0,0,0.25)", border: `1px solid ${reduceMotion ? "rgba(192,132,252,0.5)" : "rgba(192,132,252,0.2)"}`, borderRadius: 6, cursor: "pointer", textAlign: "left" }}>
+                <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8" }}>{lang === "en" ? "Reduce motion" : "減少動態效果"}</span>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(90,143,168,0.7)", letterSpacing: 0.3 }}>{lang === "en" ? "Minimizes transitions, animations, and smooth scrolling" : "減少過渡、動畫與平滑捲動"}</span>
+                </span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: reduceMotion ? "#c084fc" : "#5a8fa8", letterSpacing: 1, flexShrink: 0 }}>{reduceMotion ? "ON" : "OFF"}</span>
+              </button>
+              <div style={{ padding: "9px 12px", background: "rgba(0,0,0,0.25)", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, display: "flex", flexDirection: "column", gap: 7 }}>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "#c8d8e8" }}>{lang === "en" ? "Text size" : "文字大小"}</span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {([[0.9, lang === "en" ? "S" : "小"], [1, lang === "en" ? "M" : "中"], [1.15, lang === "en" ? "L" : "大"], [1.3, "XL"]] as [number, string][]).map(([v, label]) => (
+                    <button key={v} onClick={() => setTextScale(v)}
+                      style={{ flex: 1, padding: "6px 0", background: textScale === v ? "rgba(192,132,252,0.2)" : "transparent", border: `1px solid ${textScale === v ? "rgba(192,132,252,0.6)" : "rgba(192,132,252,0.2)"}`, borderRadius: 5, color: textScale === v ? "#c084fc" : "#5a8fa8", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: "pointer" }}>{label}</button>
+                  ))}
+                </div>
+              </div>
             </div>
 
           </div>
