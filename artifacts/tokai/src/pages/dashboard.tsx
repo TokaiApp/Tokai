@@ -1986,7 +1986,7 @@ export default function Dashboard({ session }: { session: Session }) {
                         <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
                       </button>
                       {datasetDropdownOpen && (
-                        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 8, padding: "6px 0", minWidth: 280, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+                        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 8, padding: "6px 0", minWidth: 340, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
                           {eegDataset.map((s, i) => (
                             <button
                               key={s.id}
@@ -2000,8 +2000,8 @@ export default function Dashboard({ session }: { session: Session }) {
                               onMouseEnter={e => { (e.currentTarget.style.background = "rgba(192,132,252,0.08)"); }}
                               onMouseLeave={e => { (e.currentTarget.style.background = datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent"); }}
                             >
-                              <span style={{ fontSize: 11, letterSpacing: 1 }}>{datasetSubjectIdx === i && dataSource === "dataset" ? "● " : "  "}{s.label}</span>
-                              <span style={{ fontSize: 9, color: "rgba(90,143,168,0.6)", letterSpacing: 0.5 }}>{s.description}</span>
+                              <span style={{ fontSize: 13, letterSpacing: 0.5 }}>{datasetSubjectIdx === i && dataSource === "dataset" ? "● " : "  "}{s.label}</span>
+                              <span style={{ fontSize: 11, color: "rgba(90,143,168,0.6)", letterSpacing: 0.3 }}>{s.description}</span>
                             </button>
                           ))}
                           <div style={{ borderTop: "1px solid rgba(192,132,252,0.15)", margin: "6px 0 0", padding: "6px 16px 2px" }}>
@@ -2099,7 +2099,7 @@ export default function Dashboard({ session }: { session: Session }) {
                     <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
                   </button>
                   {datasetDropdownOpen && (
-                    <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 8, padding: "6px 0", minWidth: 280, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+                    <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#120d28", border: "1px solid rgba(192,132,252,0.35)", borderRadius: 8, padding: "6px 0", minWidth: 340, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
                       {eegDataset.map((s, i) => (
                         <button
                           key={s.id}
@@ -2113,8 +2113,8 @@ export default function Dashboard({ session }: { session: Session }) {
                           onMouseEnter={e => { (e.currentTarget.style.background = "rgba(192,132,252,0.08)"); }}
                           onMouseLeave={e => { (e.currentTarget.style.background = datasetSubjectIdx === i && dataSource === "dataset" ? "rgba(192,132,252,0.12)" : "transparent"); }}
                         >
-                          <span style={{ fontSize: 11, letterSpacing: 1 }}>{datasetSubjectIdx === i && dataSource === "dataset" ? "● " : "  "}{s.label}</span>
-                          <span style={{ fontSize: 9, color: "rgba(90,143,168,0.6)", letterSpacing: 0.5 }}>{s.description}</span>
+                          <span style={{ fontSize: 13, letterSpacing: 0.5 }}>{datasetSubjectIdx === i && dataSource === "dataset" ? "● " : "  "}{s.label}</span>
+                          <span style={{ fontSize: 11, color: "rgba(90,143,168,0.6)", letterSpacing: 0.3 }}>{s.description}</span>
                         </button>
                       ))}
                       <div style={{ borderTop: "1px solid rgba(192,132,252,0.15)", margin: "6px 0 0", padding: "6px 16px 2px" }}>
