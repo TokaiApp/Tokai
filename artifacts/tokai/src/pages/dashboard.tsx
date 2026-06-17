@@ -427,7 +427,7 @@ function MetricCard({ title, icon, onInfo, children, dimmed, source }: { title: 
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>{children}</div>
       {srcStyle && (
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
           <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, padding: "2px 8px", borderRadius: 3, color: srcStyle.color, background: srcStyle.bg, border: `1px solid ${srcStyle.border}` }}>{source}</span>
         </div>
       )}
@@ -450,7 +450,7 @@ function Panel({ title, onInfo, children }: { title: React.ReactNode; onInfo?: (
 
 function Badge({ children, color }: { children: React.ReactNode; color: string }) {
   return (
-    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, padding: "2px 8px", border: `1px solid ${color}`, color, borderRadius: 3, letterSpacing: 1, marginTop: "auto", alignSelf: "flex-start" }}>
+    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, padding: "2px 8px", border: `1px solid ${color}`, color, borderRadius: 3, letterSpacing: 1, marginTop: "auto", alignSelf: "center" }}>
       {children}
     </span>
   );
