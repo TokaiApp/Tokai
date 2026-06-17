@@ -193,9 +193,9 @@ def main():
                 all_betas.extend(b)
                 all_noises.extend(n)
                 per_file_raw.append((sid_, cond, t, b, n))
-                print(f"  ✓ {path.name}  ({len(t)} epochs)")
+                print(f"  OK{path.name}  ({len(t)} epochs)")
             except Exception as e:
-                print(f"  ✗ {path.name}: {e}")
+                print(f"  !!{path.name}: {e}")
 
     if not per_file_raw:
         print("No files processed successfully.")
@@ -254,7 +254,7 @@ def main():
         json.dump(subjects_out, f, separators=(",", ":"))
 
     total = sum(len(s["samples"]) for s in subjects_out)
-    print(f"\nWrote {len(subjects_out)} profiles, {total} total samples → {out_path}")
+    print(f"\nWrote {len(subjects_out)} profiles, {total} total samples -> {out_path}")
     for s in subjects_out:
         print(f"  {s['id']:15s}  {s['label']}")
 
