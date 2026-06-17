@@ -643,6 +643,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [newMedName, setNewMedName] = useState("");
   const [newMedDose, setNewMedDose] = useState("");
   const [newMedTime, setNewMedTime] = useState("");
+  const [newMedRemindHours, setNewMedRemindHours] = useState<number | null>(null);
   const [editingMedId, setEditingMedId] = useState<string | null>(null);
   const [editMedName, setEditMedName] = useState("");
   const [editMedDose, setEditMedDose] = useState("");
@@ -1151,9 +1152,13 @@ export default function Dashboard({ session }: { session: Session }) {
       sampleIndex, rating: null,
     };
     setMedLog(prev => [...prev, entry]);
+    if (newMedRemindHours !== null) {
+      setMedReminders(p => [...p, { medId: entry.id, medName: name, fireAt: Date.now() + newMedRemindHours * 3600000 }]);
+    }
     setNewMedName("");
     setNewMedDose("");
     setNewMedTime("");
+    setNewMedRemindHours(null);
     await supabase.from("med_log").insert({
       id: entry.id, user_id: userId, name: entry.name, dose: entry.dose,
       time: entry.time, focus_time: entry.focusTime ?? null, sample_index: entry.sampleIndex, rating: null,
@@ -2711,6 +2716,15 @@ export default function Dashboard({ session }: { session: Session }) {
                       {t.medLogBtn}
                     </button>
                   </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(251,191,36,0.5)", letterSpacing: 0.5, flexShrink: 0 }}>⏰ {lang === "zh" ? "提醒我於" : "REMIND ME IN"}</span>
+                    {([null, 1, 2, 4, 6] as (number | null)[]).map(h => (
+                      <button key={h ?? "none"} onClick={() => setNewMedRemindHours(newMedRemindHours === h ? null : h)}
+                        style={{ padding: "2px 7px", background: newMedRemindHours === h && h !== null ? "rgba(251,191,36,0.2)" : "transparent", border: `1px solid ${newMedRemindHours === h && h !== null ? "rgba(251,191,36,0.55)" : "rgba(251,191,36,0.2)"}`, borderRadius: 4, color: newMedRemindHours === h && h !== null ? "#fbbf24" : "rgba(251,191,36,0.45)", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, cursor: "pointer", transition: "all 0.1s" }}>
+                        {h === null ? "—" : `${h}h`}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div style={{ padding: "4px 0", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(251,191,36,0.4)", letterSpacing: 1 }}>
@@ -2740,21 +2754,13 @@ export default function Dashboard({ session }: { session: Session }) {
                     <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#5a8fa8", flexShrink: 0 }}>{med.time}</span>
                     <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, color: "#fbbf24", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{med.name}{med.dose ? ` · ${med.dose}` : ""}</span>
                     {selectedDate === todayStr() && (<>
-                      {medReminders.find(r => r.medId === med.id) ? (
-                        <span onClick={e => { e.stopPropagation(); setMedReminders(p => p.filter(r => r.medId !== med.id)); }}
+                      {(() => { const r = medReminders.find(r => r.medId === med.id); return r ? (
+                        <span onClick={e => { e.stopPropagation(); setMedReminders(p => p.filter(x => x.medId !== med.id)); }}
+                          title={lang === "en" ? "Click to cancel reminder" : "點擊取消提醒"}
                           style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#fbbf24", cursor: "pointer", flexShrink: 0, border: "1px solid rgba(251,191,36,0.4)", borderRadius: 3, padding: "1px 5px" }}>
-                          ⏰ {Math.round((medReminders.find(r => r.medId === med.id)!.fireAt - Date.now()) / 3600000)}h
+                          ⏰ {Math.round((r.fireAt - Date.now()) / 3600000)}h
                         </span>
-                      ) : (
-                        <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 3, flexShrink: 0 }}>
-                          {[1, 2, 4, 6].map(h => (
-                            <button key={h} onClick={e => { e.stopPropagation(); setMedReminders(p => [...p.filter(r => r.medId !== med.id), { medId: med.id, medName: med.name, fireAt: Date.now() + h * 3600000 }]); }}
-                              style={{ background: "none", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 3, color: "rgba(251,191,36,0.5)", fontFamily: "'Share Tech Mono', monospace", fontSize: 9, padding: "1px 4px", cursor: "pointer" }}>
-                              {h}h
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      ) : null; })()}
                       <button onClick={e => { e.stopPropagation(); deleteMed(med.id); }} style={{ background: "none", border: "none", color: "rgba(255,100,100,0.4)", cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1, flexShrink: 0 }}>✕</button>
                     </>)}
                   </div>
