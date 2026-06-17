@@ -14,7 +14,7 @@
     <a href="https://go.tokai.app"><img src="https://img.shields.io/badge/Live%20Demo-Alpha-c084fc?style=flat-square&logo=vercel" alt="Live Demo" /></a>
     <a href="https://tokai.app"><img src="https://img.shields.io/badge/Website-tokai.app-7c3aed?style=flat-square" alt="Website" /></a>
     <a href="https://github.com/TokaiApp/Tokai/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square" alt="License" /></a>
-    <img src="https://img.shields.io/badge/Version-0.2.1--alpha-f472b6?style=flat-square" alt="Version" />
+    <img src="https://img.shields.io/badge/Version-0.3.0--alpha-f472b6?style=flat-square" alt="Version" />
     <img src="https://img.shields.io/badge/AI-Claude%20(Anthropic)-orange?style=flat-square" alt="AI" />
   </p>
 
@@ -47,17 +47,17 @@ Everything is themed as the **Tok** family — the prefix nods to *token* (the a
 
 | | English | 中文 |
 |---|---|---|
-| 🧠 | **Real-time neural dashboard** — a horizontally-scrollable row of nine live metric cards (Focus Index, Sleep Quality, Bio Energy, Mental Fatigue, Working Memory Load, Neural Noise, Theta/Beta Ratio, Focus Window, Hyperfocus Risk), each with a status badge pinned to the bottom; updates every second with on-edge scroll arrows and fade hints. Self-reportable cards are always fully visible; BCI-only cards dim gracefully in Self-Report mode | **即時神經儀表板** — 可左右捲動的九張即時指標卡列（專注指數、睡眠品質、生理能量、心理疲勞、工作記憶負荷、神經噪訊、θ/β 比值、專注窗口、過度專注風險），每張卡片底部均有狀態徽章；每秒更新，含邊緣捲動箭頭與漸層提示。可自我回報的指標卡始終完整顯示；僅限 BCI 的指標卡在自我回報模式下優雅淡出 |
-| 📈 | **Focus Stream** — a scrollable real-time line chart with side scroll arrows, a LIVE pill, and reference lines for the 5-minute, session, and day averages; medication and journal markers are overlaid on the timeline | **專注串流** — 可捲動的即時折線圖，含側邊箭頭、LIVE 按鈕，以及 5 分鐘／本次／當日均值參考線；時間軸上疊加用藥與日誌標記 |
+| 🧠 | **Real-time neural dashboard** — a horizontally-scrollable row of nine live metric cards (Focus Index, Sleep Quality, Bio Energy, Mental Fatigue, Working Memory Load, Neural Noise, Theta/Beta Ratio, Focus Window, Hyperfocus Risk), each with a status badge and a colored **data-source badge** (EEG / EST / SELF / SIM / COMP / LIVE) showing exactly where that metric comes from in the current mode; updates every second with on-edge scroll arrows and fade hints. Self-reportable cards are always fully visible; BCI-only cards dim gracefully in Self-Report mode | **即時神經儀表板** — 可左右捲動的九張即時指標卡列（專注指數、睡眠品質、生理能量、心理疲勞、工作記憶負荷、神經噪訊、θ/β 比值、專注窗口、過度專注風險），每張卡片含狀態徽章與彩色**資料來源徽章**（EEG／EST／SELF／SIM／COMP／LIVE），清楚顯示當前模式下該指標的數據來源；每秒更新，含邊緣捲動箭頭與漸層提示。可自我回報的指標卡始終完整顯示；僅限 BCI 的指標卡在自我回報模式下優雅淡出 |
+| 📈 | **Focus Stream** — a scrollable real-time line chart with side scroll arrows, a LIVE pill, and reference lines for the 5-minute, session, and day averages; medication and journal markers are overlaid on the timeline. A **pill selector** lets you switch the stream between four metrics: **Focus Index, Bio Energy, Mental Fatigue,** and **Working Memory Load** | **專注串流** — 可捲動的即時折線圖，含側邊箭頭、LIVE 按鈕，以及 5 分鐘／本次／當日均值參考線；時間軸上疊加用藥與日誌標記。**切換按鈕**可在四種指標之間切換顯示：**專注指數、生理能量、心理疲勞**與**工作記憶負荷** |
 | 🤖 | **TokAgent** — a Claude-powered assistant in a slide-up **bottom dock**. Reads your live neural metrics, full task list, journal, and meds to give context-aware planning advice. Per-day sessions, persisted history. Uses a server key or your own | **TokAgent** — 由 Claude 驅動的助手，置於可滑出的**底部面板**。整合即時神經指標、任務清單、日誌與用藥，提供情境感知規劃建議。按日分組、保存對話。可用伺服器金鑰或自備金鑰 |
 | ✅ | **TokDo** — a focus-aware task manager: pick an **Active Task** and TokAgent recommends what you *should* be doing right now (confirm or switch). Numbered, **drag-to-reorder** list (▲/▼ on mobile), per-task **Focus Required** (0–100) with readiness badges, emoji, estimates, deadlines, and a detail modal | **TokDo** — 專注感知任務管理器：選擇**進行中任務**，TokAgent 即建議你此刻**應該**做什麼（確認或切換）。可編號、**拖曳排序**清單（行動裝置用 ▲/▼），每項任務含**所需專注度**（0–100）與就緒徽章、表情、預估與截止日 |
 | ⏱ | **TokTimer** — a Pomodoro timer tied to your brain data: links sessions to your Active Task, suggests an early break when focus drops and an extend when you're in flow, logs completed blocks, with presets (25/5 · 50/10 · 90/20), auto-continue, a chime, a browser-tab countdown, and an always-visible header chip while running | **TokTimer** — 與腦部數據連動的番茄鐘：將時段連結到進行中任務，專注下降時建議提早休息、心流時建議延長，記錄完成時段；含預設、自動接續、提示音、瀏覽器分頁倒數，以及執行中常駐標頭計時器 |
 | 💡 | **TokInsights** — automatic, on-device observations from your own history: when you focus best, which moods track your focus, task completion, where your focus time goes, and more. No API calls — instant and private | **TokInsights** — 根據你自身歷史在本機自動計算的觀察：你何時最專注、哪些情緒對應高專注、任務完成度、專注時間花在哪等。不呼叫 API — 即時且私密 |
 | 📓 | **TokNote** — an ADHD-friendly journal with multi-select mood tagging, each entry auto-stamped with date, time, and your Focus Index at that moment | **TokNote** — ADHD 友善日誌，支援多選情緒標籤，每則條目自動標記日期、時間與當下專注指數 |
-| 💊 | **TokMed** — log medications, supplements, and stimulants; Tokai tracks how your Focus Index shifts in the 15–30 minutes after each entry | **TokMed** — 記錄藥物、補充品與咖啡因；Tokai 追蹤記錄後 15–30 分鐘內專注指數的變化 |
+| 💊 | **TokMed** — log medications, supplements, and stimulants with optional reminders; chart markers show exactly when each entry was logged on the Focus Stream | **TokMed** — 記錄藥物、補充品與咖啡因，支援用藥提醒；用藥時間點以標記疊加於專注串流時間軸上 |
 | 🧬 | **Data Source selector** — four modes: **Self-Report** (default — rate Focus Index, Bio Energy, Mental Fatigue, Working Memory Load, and Sleep Quality via a neural check-in modal; auto-opens once per calendar day; BCI-only cards dim gracefully), **Simulated** (generative AR(1) model), **Dataset** (five EEG profiles from STEW + DEAP: High Focus, ADHD Pattern, Cognitive Fatigue, High WM Load, Hyperfocus), and **My BCI** (live headset, Beta) | **資料來源選擇器** — 四種模式：**自我回報**（預設 — 透過神經自評彈窗評估專注指數、生理能量、心理疲勞、工作記憶負荷與睡眠品質；每日曆日自動開啟一次；不可自評的指標卡優雅淡出）、**模擬**（AR(1) 生成模型）、**資料集**（五種源自 STEW 與 DEAP 的 EEG 受試者檔案：高專注、ADHD 模式、認知疲勞、高工作記憶負荷、過度專注）與**我的 BCI**（即時頭戴裝置，Beta 版提供）|
 | 🔔 | **Notifications** — focus-drop alerts, recovery banners, medication reminders, and TokTimer phase changes | **通知** — 專注下降提醒、恢復橫幅、用藥提醒與 TokTimer 階段切換 |
-| 🪙 | **Profiles & TokEn** — Supabase-backed accounts with an AI-generated profile summary, BCI device selection, subscription tiers, and the TokEn currency | **個人檔案與 TokEn** — 由 Supabase 支援的帳戶，含 AI 生成的個人摘要、BCI 裝置選擇、訂閱方案與 TokEn 代幣 |
+| 🪙 | **My Account & Settings** — **My Account** (user icon in sidebar) shows your email, AI-generated neural profile summary, subscription tier, TokEn balance, and a two-step **account deletion** that wipes all data tables and removes the auth record via a Supabase Edge Function (neurorights-aligned). **Settings** (gear icon) controls BCI device selection and accessibility preferences | **我的帳戶與設定** — **我的帳戶**（側欄使用者圖示）顯示電子郵件、AI 生成的神經個人摘要、訂閱方案、TokEn 餘額，以及透過 Supabase Edge Function 徹底刪除所有資料與驗證紀錄的兩步驟**帳戶刪除**（符合神經權利原則）。**設定**（齒輪圖示）控制 BCI 裝置選擇與無障礙偏好 |
 | 📅 | **Day selector** — browse any past day; TokNote, TokAgent, and TokDo are filtered per selected day (past days are read-only) | **日期選擇器** — 瀏覽任一歷史日期；TokNote、TokAgent 與 TokDo 均按所選日期篩選（歷史日期唯讀） |
 | 🀄 | **Bilingual** — full English and Traditional Chinese (繁體中文) across every panel | **雙語支援** — 所有面板完整支援英文與繁體中文 |
 | 📱 | **Responsive** — three-column desktop layout (sidebar · dashboard · TokDo) with a swipeable widget row on mobile | **響應式設計** — 桌機三欄（側欄 · 儀表板 · TokDo），行動裝置採可滑動的小工具列 |
@@ -78,11 +78,11 @@ Everything is themed as the **Tok** family — the prefix nods to *token* (the a
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, TypeScript, Vite |
+| Frontend | React 19, TypeScript, Vite |
 | Charts | Recharts |
 | Icons | Lucide React |
 | Fonts | Share Tech Mono, Rajdhani, Inter (Google Fonts) |
-| Auth & Database | [Supabase](https://supabase.com) (Postgres + Auth + Row-Level Security) |
+| Auth & Database | [Supabase](https://supabase.com) (Postgres + Auth + Row-Level Security + Edge Functions) |
 | AI | [Anthropic Claude](https://anthropic.com) — Haiku 4.5 (fast planning) and Sonnet (chat / vision) |
 | API Server | Node.js, Express 5 (stateless relay) |
 | Monorepo | pnpm workspaces |
@@ -100,7 +100,8 @@ Tokai/
 │   │   │   ├── pages/
 │   │   │   │   └── dashboard.tsx       # Main dashboard (metrics, TokDo, TokTimer, TokInsights…)
 │   │   │   ├── components/
-│   │   │   │   └── agent-chat.tsx      # TokAgent chat UI (rendered in the bottom dock)
+│   │   │   │   ├── agent-chat.tsx      # TokAgent chat UI (rendered in the bottom dock)
+│   │   │   │   └── clinician-report.tsx # Printable focus & activity report
 │   │   │   ├── data/
 │   │   │   │   └── eeg_dataset.ts      # Dataset-parameterised EEG profiles (STEW + DEAP)
 │   │   │   └── lib/
@@ -112,6 +113,10 @@ Tokai/
 │       └── api/
 │           └── index.js               # /api/chat, /api/best-task, /api/generate-profile,
 │                                       # /api/generate-description, /api/mood-check
+├── supabase/
+│   └── functions/
+│       └── delete-account/
+│           └── index.ts               # Edge Function: verifies JWT, calls auth.admin.deleteUser()
 ├── lib/db/                         # Shared DB types/tooling
 ├── pnpm-workspace.yaml
 └── README.md
@@ -189,6 +194,15 @@ Run the migrations in `artifacts/tokai/migrations/` and confirm RLS is enabled o
 1. Import as a separate Vercel project (the `vercel.json` configures the serverless function)
 2. Add `ANTHROPIC_API_KEY` (users can also supply their own key in the UI)
 
+### Supabase Edge Functions (`supabase/functions/`)
+Required for full account deletion. Install the [Supabase CLI](https://supabase.com/docs/guides/cli), link your project, then deploy:
+```bash
+supabase login
+supabase link --project-ref YOUR_PROJECT_REF
+supabase functions deploy delete-account
+```
+The function's environment variables (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) are injected automatically — no manual configuration needed.
+
 ---
 
 ## Neural Metrics Explained
@@ -241,6 +255,7 @@ The full source — including the API relay and the exact system prompts sent to
 | **Mental Privacy** | Per-user data isolation via Supabase RLS; local-only API keys and chat; Anthropic's no-training API policy; open-source auditability |
 | **Personal Identity** | No writing to the brain; TokAgent is strictly advisory and cannot alter your state or identity |
 | **Free Will / Agency** | TokAgent's recommendation is advisory — you choose your Active Task and every task action requires explicit input |
+| **Right to Delete** | Two-step account deletion wipes all data rows and removes the Supabase Auth record via a server-side Edge Function, leaving no recoverable trace |
 | **Fair Access** | Web-based, open source, bring-your-own-key option (free Anthropic tier), bilingual (EN / 繁中) |
 | **Algorithmic Bias Protection** | No demographic data collected; recommendations based solely on your own metrics; system prompts are publicly auditable |
 
@@ -260,6 +275,11 @@ The full source — including the API relay and the exact system prompts sent to
 - [x] **Open EEG dataset profiles** — five parameterised subject profiles drawn from STEW and DEAP; selectable in the Data Source panel
 - [x] **Self-Report mode** — hardware-free cognitive state input via a neural check-in modal (Focus Index, Bio Energy, Mental Fatigue, Working Memory Load, Sleep Quality); BCI-only cards dim gracefully; now the default data source; auto-opens once per calendar day
 - [x] **Sleep Quality metric** — 9th neural metric, self-reportable, persisted daily via `localStorage`; predicts next-day ADHD symptom severity
+- [x] **Per-metric data source badges** — every MetricCard shows a colored badge (EEG/EST/SELF/SIM/COMP/LIVE) that updates with the selected data source mode
+- [x] **Multi-metric Focus Stream** — pill selector switches the real-time chart between Focus Index, Bio Energy, Mental Fatigue, and Working Memory Load
+- [x] **Dataset mode locked playback** — fixed 2 s/epoch matching STEW epoch length; Refresh Rate slider and Manual Refresh disabled in dataset mode
+- [x] **My Account + Settings modals** — account info, AI profile summary, and two-step account deletion (My Account); BCI device and accessibility settings (Settings gear icon)
+- [x] **Full account deletion** — client wipes all data rows; Supabase Edge Function deletes the Auth user record server-side (neurorights-aligned)
 - [ ] **Real EEG integration** — Muse 2, OpenBCI, Neurosity (My BCI mode, Beta)
 - [ ] **Focus-aware scheduling** — plan the day against your focus curve; optional Google Calendar sync
 - [ ] **Metered AI / free tier** — wire the TokEn currency to real AI usage
