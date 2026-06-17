@@ -634,6 +634,11 @@ export default function Dashboard({ session }: { session: Session }) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const [medLog, setMedLog] = useState<MedEntry[]>([]);
+  const medSuggestions = useMemo(() => {
+    const seen = new Map<string, string>();
+    [...medLog].reverse().forEach(m => { if (!seen.has(m.name)) seen.set(m.name, m.dose ?? ""); });
+    return [...seen.entries()].slice(0, 8).map(([name, dose]) => ({ name, dose }));
+  }, [medLog]);
   const [newMedName, setNewMedName] = useState("");
   const [newMedDose, setNewMedDose] = useState("");
   const [newMedTime, setNewMedTime] = useState("");
@@ -2573,7 +2578,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   {t.pastDayReadOnly}
                 </div>
               ) : (
-              <div style={{ padding: "10px 16px", borderTop: "1px solid rgba(192,132,252,0.15)", display: "flex", gap: 8, alignItems: "center", background: "rgba(0,0,0,0.15)", flexShrink: 0 }}>
+              <div style={{ padding: "10px 16px", borderTop: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", gap: 6, background: "rgba(0,0,0,0.15)", flexShrink: 0 }}>
                 <input
                   type="file"
                   accept="image/*"
@@ -2587,10 +2592,11 @@ export default function Dashboard({ session }: { session: Session }) {
                   onChange={e => setJournalInput(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && addJournalEntry()}
                   placeholder={t.notePlaceholder}
-                  style={{ flex: 1, padding: "8px 12px", background: "#0d0a1e", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", transition: "border-color 0.2s", minWidth: 0, colorScheme: "dark" }}
+                  style={{ width: "100%", padding: "8px 12px", background: "#0d0a1e", border: "1px solid rgba(192,132,252,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", transition: "border-color 0.2s", boxSizing: "border-box", colorScheme: "dark" }}
                   onFocus={e => (e.target.style.borderColor = "rgba(192,132,252,0.5)")}
                   onBlur={e => (e.target.style.borderColor = "rgba(192,132,252,0.2)")}
                 />
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 }}>
                   <button
                     onClick={triggerMoodCheck}
@@ -2639,10 +2645,11 @@ export default function Dashboard({ session }: { session: Session }) {
                 <button
                   onClick={addJournalEntry}
                   disabled={!journalInput.trim()}
-                  style={{ padding: "8px 14px", background: journalInput.trim() ? "rgba(192,132,252,0.15)" : "rgba(192,132,252,0.05)", border: "1px solid rgba(192,132,252,0.3)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: journalInput.trim() ? "pointer" : "not-allowed", transition: "background 0.2s", flexShrink: 0, alignSelf: "stretch" }}
+                  style={{ padding: "8px 14px", background: journalInput.trim() ? "rgba(192,132,252,0.15)" : "rgba(192,132,252,0.05)", border: "1px solid rgba(192,132,252,0.3)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: journalInput.trim() ? "pointer" : "not-allowed", transition: "background 0.2s", flexShrink: 0, marginLeft: "auto" }}
                 >
                   LOG
                 </button>
+                </div>
               </div>
               )}
             </div>
@@ -2675,6 +2682,19 @@ export default function Dashboard({ session }: { session: Session }) {
                       {t.medLogBtn}
                     </button>
                   </div>
+                  {medSuggestions.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {medSuggestions.map(s => (
+                        <button key={s.name} onClick={() => { setNewMedName(s.name); setNewMedDose(s.dose); }}
+                          style={{ padding: "3px 9px", background: "rgba(251,191,36,0.07)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 12, color: "rgba(251,191,36,0.8)", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 0.3, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.12s" }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(251,191,36,0.16)"; (e.currentTarget as HTMLButtonElement).style.color = "#fbbf24"; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(251,191,36,0.07)"; (e.currentTarget as HTMLButtonElement).style.color = "rgba(251,191,36,0.8)"; }}
+                        >
+                          {s.name}{s.dose ? ` · ${s.dose}` : ""}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div style={{ padding: "4px 0", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(251,191,36,0.4)", letterSpacing: 1 }}>
