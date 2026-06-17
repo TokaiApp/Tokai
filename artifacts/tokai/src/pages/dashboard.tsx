@@ -409,7 +409,7 @@ const METRIC_SOURCES: Record<string, Record<string, string>> = {
     focusIndex: "SIM", theta: "SIM", beta: "SIM", tbRatio: "SIM",
     neuralNoise: "SIM", workingMemoryLoad: "SIM",
     bioEnergy: "SIM", mentalFatigue: "SIM",
-    focusWindow: "COMP", hyperfocusRisk: "COMP", sleepQuality: "SELF",
+    focusWindow: "COMP", hyperfocusRisk: "COMP", sleepQuality: "SIM",
   },
 };
 
@@ -420,15 +420,13 @@ function MetricCard({ title, icon, onInfo, children, dimmed, source }: { title: 
       <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: "linear-gradient(180deg, #c084fc, #7c3aed)" }} />
       <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, color: "#5a8fa8", letterSpacing: 2, marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 6, minHeight: "2.6em", lineHeight: 1.3 }}>
         {icon && <span style={{ flexShrink: 0, marginTop: 2 }}>{icon}</span>}
-        <span style={{ flex: 1 }}>{title}</span>
+        <span style={{ flex: 1 }}>
+          {title}
+          {srcStyle && <span style={{ fontSize: 8, letterSpacing: 1, color: srcStyle.color, opacity: 0.75, marginLeft: 5 }}>· {source}</span>}
+        </span>
         {onInfo && <span style={{ flexShrink: 0 }}><InfoButton onClick={onInfo} /></span>}
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>{children}</div>
-      {srcStyle && (
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
-          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 8, letterSpacing: 1.5, padding: "2px 5px", borderRadius: 3, color: srcStyle.color, background: srcStyle.bg, border: `1px solid ${srcStyle.border}` }}>{source}</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -1899,7 +1897,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
         {/* Pinned bottom user section */}
         <div style={{ padding: "12px 20px", borderTop: "1px solid rgba(192,132,252,0.15)", display: "flex", flexDirection: "column", gap: 10, background: "linear-gradient(0deg, #0c0818, #0e0920)" }}>
-          <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer", transition: "color 0.2s" }}
+          <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer", transition: "color 0.2s" }}
             onMouseEnter={e => (e.currentTarget.style.color = "#c084fc")}
             onMouseLeave={e => (e.currentTarget.style.color = "rgba(90,143,168,0.5)")}>
             <UserCircle size={13} style={{ flexShrink: 0 }} />
@@ -1955,7 +1953,7 @@ export default function Dashboard({ session }: { session: Session }) {
             </div>
             <div style={{ padding: "6px 16px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer" }}>
+                <div onClick={() => setShowProfileModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(90,143,168,0.5)", letterSpacing: 0.5, cursor: "pointer" }}>
                   <UserCircle size={13} style={{ flexShrink: 0 }} />
                   {t.myAccount}
                 </div>
