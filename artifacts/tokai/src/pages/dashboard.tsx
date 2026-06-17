@@ -637,8 +637,9 @@ export default function Dashboard({ session }: { session: Session }) {
   const medSuggestions = useMemo(() => {
     const seen = new Map<string, string>();
     [...medLog].reverse().forEach(m => { if (!seen.has(m.name)) seen.set(m.name, m.dose ?? ""); });
-    return [...seen.entries()].slice(0, 8).map(([name, dose]) => ({ name, dose }));
+    return [...seen.entries()].slice(0, 12).map(([name, dose]) => ({ name, dose }));
   }, [medLog]);
+  const [medNameDropdownOpen, setMedNameDropdownOpen] = useState(false);
   const [newMedName, setNewMedName] = useState("");
   const [newMedDose, setNewMedDose] = useState("");
   const [newMedTime, setNewMedTime] = useState("");
@@ -2667,9 +2668,37 @@ export default function Dashboard({ session }: { session: Session }) {
             <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(251,191,36,0.1)", flexShrink: 0 }}>
               {selectedDate === todayStr() ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <input value={newMedName} onChange={e => setNewMedName(e.target.value)} onKeyDown={e => e.key === "Enter" && logMed()} placeholder={t.medNamePlaceholder}
-                    style={{ width: "100%", padding: "7px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", boxSizing: "border-box" }}
-                    onFocus={e => (e.target.style.borderColor = "rgba(251,191,36,0.5)")} onBlur={e => (e.target.style.borderColor = "rgba(251,191,36,0.2)")} />
+                  {/* Med name combobox */}
+                  <div style={{ position: "relative" }}>
+                    <input value={newMedName}
+                      onChange={e => { setNewMedName(e.target.value); setMedNameDropdownOpen(true); }}
+                      onFocus={e => { (e.target as HTMLInputElement).style.borderColor = "rgba(251,191,36,0.5)"; setMedNameDropdownOpen(true); }}
+                      onBlur={e => { (e.target as HTMLInputElement).style.borderColor = "rgba(251,191,36,0.2)"; setTimeout(() => setMedNameDropdownOpen(false), 150); }}
+                      onKeyDown={e => { if (e.key === "Enter") { logMed(); setMedNameDropdownOpen(false); } if (e.key === "Escape") setMedNameDropdownOpen(false); }}
+                      placeholder={t.medNamePlaceholder}
+                      style={{ width: "100%", padding: "7px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", boxSizing: "border-box" }}
+                    />
+                    {medNameDropdownOpen && medSuggestions.length > 0 && (() => {
+                      const q = newMedName.trim().toLowerCase();
+                      const filtered = q ? medSuggestions.filter(s => s.name.toLowerCase().includes(q)) : medSuggestions;
+                      if (!filtered.length) return null;
+                      return (
+                        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#1a1200", border: "1px solid rgba(251,191,36,0.35)", borderRadius: 8, zIndex: 60, boxShadow: "0 6px 24px rgba(0,0,0,0.6)", overflow: "hidden" }}>
+                          {filtered.map(s => (
+                            <div key={s.name}
+                              onMouseDown={e => { e.preventDefault(); setNewMedName(s.name); setNewMedDose(s.dose); setMedNameDropdownOpen(false); }}
+                              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", cursor: "pointer", transition: "background 0.1s" }}
+                              onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "rgba(251,191,36,0.1)"}
+                              onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
+                            >
+                              <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "#d0e8f8" }}>{s.name}</span>
+                              {s.dose && <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(251,191,36,0.6)" }}>{s.dose}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
                   <div style={{ display: "flex", gap: 6 }}>
                     <input value={newMedDose} onChange={e => setNewMedDose(e.target.value)} onKeyDown={e => e.key === "Enter" && logMed()} placeholder={t.medDosePlaceholder}
                       style={{ flex: 1, padding: "7px 12px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 6, color: "#d0e8f8", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", minWidth: 0 }}
@@ -2682,19 +2711,6 @@ export default function Dashboard({ session }: { session: Session }) {
                       {t.medLogBtn}
                     </button>
                   </div>
-                  {medSuggestions.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                      {medSuggestions.map(s => (
-                        <button key={s.name} onClick={() => { setNewMedName(s.name); setNewMedDose(s.dose); }}
-                          style={{ padding: "3px 9px", background: "rgba(251,191,36,0.07)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 12, color: "rgba(251,191,36,0.8)", fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 0.3, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.12s" }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(251,191,36,0.16)"; (e.currentTarget as HTMLButtonElement).style.color = "#fbbf24"; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(251,191,36,0.07)"; (e.currentTarget as HTMLButtonElement).style.color = "rgba(251,191,36,0.8)"; }}
-                        >
-                          {s.name}{s.dose ? ` · ${s.dose}` : ""}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div style={{ padding: "4px 0", fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "rgba(251,191,36,0.4)", letterSpacing: 1 }}>
