@@ -101,6 +101,12 @@ const T = {
     deadlineLabel: "DEADLINE:", taskAddedLabel: "ADDED",
     dueLabel: "DUE",
     selfReport: "SELF-REPORT",
+    simulated: "SIMULATED",
+    datasetMode: "DATASET",
+    myBci: "MY BCI",
+    profileTitle: "PROFILE",
+    datasetSource: "SOURCE: STEW",
+    noteLogBtn: "LOG",
     checkInTitle: "NEURAL CHECK-IN",
     checkInSubtitle: "How are you feeling right now?",
     checkInSleepLabel: "How well did you sleep last night?",
@@ -202,6 +208,12 @@ const T = {
     deadlineLabel: "截止日期：", taskAddedLabel: "新增於",
     dueLabel: "截止",
     selfReport: "自我回報",
+    simulated: "模擬",
+    datasetMode: "資料集",
+    myBci: "我的 BCI",
+    profileTitle: "個人檔案",
+    datasetSource: "來源：STEW",
+    noteLogBtn: "紀錄",
     checkInTitle: "神經自評",
     checkInSubtitle: "你現在感覺如何？",
     checkInSleepLabel: "你昨晚睡得如何？",
@@ -1968,7 +1980,7 @@ export default function Dashboard({ session }: { session: Session }) {
                       }}
                     >
                       {dataSource === "simulated" && <span style={{ marginRight: 6, fontSize: 9 }}>●</span>}
-                      SIMULATED
+                      {t.simulated}
                     </button>
                     <div ref={datasetDropdownRef} style={{ position: "relative" }}>
                       <button
@@ -1982,7 +1994,7 @@ export default function Dashboard({ session }: { session: Session }) {
                         }}
                       >
                         {dataSource === "dataset" && <span style={{ fontSize: 9 }}>●</span>}
-                        DATASET
+                        {t.datasetMode}
                         <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
                       </button>
                       {datasetDropdownOpen && (
@@ -2005,7 +2017,7 @@ export default function Dashboard({ session }: { session: Session }) {
                             </button>
                           ))}
                           <div style={{ borderTop: "1px solid rgba(192,132,252,0.15)", margin: "6px 0 0", padding: "6px 16px 2px" }}>
-                            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>SOURCE: STEW + DEAP</span>
+                            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>{t.datasetSource}</span>
                           </div>
                         </div>
                       )}
@@ -2020,7 +2032,7 @@ export default function Dashboard({ session }: { session: Session }) {
                         cursor: "not-allowed",
                       }}
                     >
-                      MY BCI
+                      {t.myBci}
                     </button>
                   </div>
                 </div>
@@ -2118,7 +2130,7 @@ export default function Dashboard({ session }: { session: Session }) {
                         </button>
                       ))}
                       <div style={{ borderTop: "1px solid rgba(192,132,252,0.15)", margin: "6px 0 0", padding: "6px 16px 2px" }}>
-                        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>SOURCE: STEW + DEAP</span>
+                        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(90,143,168,0.45)", letterSpacing: 1 }}>{t.datasetSource}</span>
                       </div>
                     </div>
                   )}
@@ -2653,7 +2665,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   disabled={!journalInput.trim()}
                   style={{ padding: "8px 14px", background: journalInput.trim() ? "rgba(192,132,252,0.15)" : "rgba(192,132,252,0.05)", border: "1px solid rgba(192,132,252,0.3)", borderRadius: 6, color: "#c084fc", fontFamily: "'Share Tech Mono', monospace", fontSize: 12, letterSpacing: 1, cursor: journalInput.trim() ? "pointer" : "not-allowed", transition: "background 0.2s", flexShrink: 0, marginLeft: "auto" }}
                 >
-                  LOG
+                  {t.noteLogBtn}
                 </button>
                 </div>
               </div>
@@ -3235,7 +3247,7 @@ export default function Dashboard({ session }: { session: Session }) {
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 3, height: 18, background: "#c084fc", borderRadius: 1 }} />
               <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#c084fc", letterSpacing: 3, flex: 1 }}>
-                <span style={{ color: "#7c3aed" }}>TOK</span>USER · PROFILE
+                <span style={{ color: "#7c3aed" }}>TOK</span>USER · {t.profileTitle}
               </span>
               <button onClick={() => setShowProfileModal(false)} style={{ background: "none", border: "none", color: "#5a8fa8", cursor: "pointer", fontSize: 22, padding: 0, lineHeight: 1 }}>×</button>
             </div>
