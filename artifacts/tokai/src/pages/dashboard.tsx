@@ -375,7 +375,44 @@ function InfoButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function MetricCard({ title, icon, onInfo, children, dimmed }: { title: string; icon?: React.ReactNode; onInfo?: () => void; children: React.ReactNode; dimmed?: boolean }) {
+const SOURCE_BADGE: Record<string, { color: string; bg: string; border: string }> = {
+  EEG:  { color: "#67e8f9",            bg: "rgba(103,232,249,0.10)", border: "rgba(103,232,249,0.25)" },
+  EST:  { color: "#fbbf24",            bg: "rgba(251,191,36,0.10)",  border: "rgba(251,191,36,0.25)"  },
+  SELF: { color: "#c084fc",            bg: "rgba(192,132,252,0.10)", border: "rgba(192,132,252,0.25)" },
+  SIM:  { color: "rgba(90,143,168,0.65)", bg: "rgba(90,143,168,0.08)", border: "rgba(90,143,168,0.20)" },
+  COMP: { color: "rgba(90,143,168,0.5)", bg: "rgba(90,143,168,0.06)", border: "rgba(90,143,168,0.15)" },
+  LIVE: { color: "#4ade80",            bg: "rgba(74,222,128,0.10)",  border: "rgba(74,222,128,0.25)"  },
+};
+
+const METRIC_SOURCES: Record<string, Record<string, string>> = {
+  dataset: {
+    focusIndex: "EEG", theta: "EEG", beta: "EEG", tbRatio: "EEG",
+    neuralNoise: "EEG", workingMemoryLoad: "EEG",
+    bioEnergy: "EST", mentalFatigue: "EST",
+    focusWindow: "COMP", hyperfocusRisk: "COMP", sleepQuality: "SELF",
+  },
+  "self-report": {
+    focusIndex: "SELF", bioEnergy: "SELF", mentalFatigue: "SELF",
+    workingMemoryLoad: "SELF", sleepQuality: "SELF",
+    theta: "COMP", beta: "COMP", tbRatio: "COMP",
+    neuralNoise: "COMP", focusWindow: "COMP", hyperfocusRisk: "COMP",
+  },
+  bci: {
+    focusIndex: "LIVE", theta: "LIVE", beta: "LIVE", tbRatio: "LIVE",
+    neuralNoise: "LIVE", workingMemoryLoad: "LIVE",
+    bioEnergy: "EST", mentalFatigue: "EST",
+    focusWindow: "COMP", hyperfocusRisk: "COMP", sleepQuality: "SELF",
+  },
+  simulated: {
+    focusIndex: "SIM", theta: "SIM", beta: "SIM", tbRatio: "SIM",
+    neuralNoise: "SIM", workingMemoryLoad: "SIM",
+    bioEnergy: "SIM", mentalFatigue: "SIM",
+    focusWindow: "COMP", hyperfocusRisk: "COMP", sleepQuality: "SELF",
+  },
+};
+
+function MetricCard({ title, icon, onInfo, children, dimmed, source }: { title: string; icon?: React.ReactNode; onInfo?: () => void; children: React.ReactNode; dimmed?: boolean; source?: string }) {
+  const srcStyle = source ? (SOURCE_BADGE[source] ?? SOURCE_BADGE.COMP) : null;
   return (
     <div style={{ background: "linear-gradient(135deg, #120d28, #160f30)", border: "1px solid rgba(192,132,252,0.15)", borderRadius: 10, padding: "16px 20px", position: "relative", overflow: "hidden", flex: "0 0 185px", minWidth: 0, opacity: dimmed ? 0.38 : 1, transition: "opacity 0.3s", display: "flex", flexDirection: "column" }}>
       <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: "linear-gradient(180deg, #c084fc, #7c3aed)" }} />
@@ -385,6 +422,11 @@ function MetricCard({ title, icon, onInfo, children, dimmed }: { title: string; 
         {onInfo && <span style={{ flexShrink: 0 }}><InfoButton onClick={onInfo} /></span>}
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>{children}</div>
+      {srcStyle && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 8, letterSpacing: 1.5, padding: "2px 5px", borderRadius: 3, color: srcStyle.color, background: srcStyle.bg, border: `1px solid ${srcStyle.border}` }}>{source}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1555,6 +1597,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const focusInfo = getFocusInfo(neural.focusIndex);
   const noiseInfo = getNoiseInfo(neural.neuralNoise);
   const tbrInfo = getTBRInfo(neural.tbRatio);
+  const ms = METRIC_SOURCES[dataSource];
 
   function getInsight() {
     const f = neural.focusIndex;
@@ -2158,14 +2201,14 @@ export default function Dashboard({ session }: { session: Session }) {
           {/* Metric cards — horizontal scroll, ~5 visible */}
           <div style={{ position: "relative" }}>
             <div ref={metricScrollRef} style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}>
-              <MetricCard title={t.focusIndex} icon={<Crosshair size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].focusIndex)}>
+              <MetricCard title={t.focusIndex} icon={<Crosshair size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].focusIndex)} source={ms.focusIndex}>
                 <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                   {neural.focusIndex.toFixed(1)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
                 </div>
                 <Badge color={focusInfo.color}>{focusInfo.label}</Badge>
               </MetricCard>
 
-              <MetricCard title={t.sleepQuality} icon={<Moon size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].sleepQuality)}>
+              <MetricCard title={t.sleepQuality} icon={<Moon size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].sleepQuality)} source={ms.sleepQuality}>
                 <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                   {Math.round(neural.sleepQuality)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
                 </div>
@@ -2177,7 +2220,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 </Badge>
               </MetricCard>
 
-              <MetricCard title={t.bioEnergy} icon={<Zap size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].bioEnergy)}>
+              <MetricCard title={t.bioEnergy} icon={<Zap size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].bioEnergy)} source={ms.bioEnergy}>
                 <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                   {Math.round(neural.bioEnergy)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>%</span>
                 </div>
@@ -2189,7 +2232,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 </Badge>
               </MetricCard>
 
-              <MetricCard title={t.mentalFatigue} icon={<Activity size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].mentalFatigue)}>
+              <MetricCard title={t.mentalFatigue} icon={<Activity size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].mentalFatigue)} source={ms.mentalFatigue}>
                 <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                   {neural.mentalFatigue.toFixed(1)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
                 </div>
@@ -2201,7 +2244,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 </Badge>
               </MetricCard>
 
-              <MetricCard title={t.workingMemory} icon={<Brain size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].workingMemory)}>
+              <MetricCard title={t.workingMemory} icon={<Brain size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].workingMemory)} source={ms.workingMemoryLoad}>
                 <div style={{ fontSize: 32, fontWeight: 700, color: "#e8f4ff", marginBottom: 8 }}>
                   {neural.workingMemoryLoad.toFixed(1)}<span style={{ fontSize: 15, color: "#5a8fa8" }}>/100</span>
                 </div>
@@ -2210,7 +2253,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 </Badge>
               </MetricCard>
 
-              <MetricCard title={t.neuralNoise} icon={<Waves size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].neuralNoise)} dimmed={dataSource === "self-report"}>
+              <MetricCard title={t.neuralNoise} icon={<Waves size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].neuralNoise)} dimmed={dataSource === "self-report"} source={ms.neuralNoise}>
                 {dataSource === "self-report" ? (
                   <>
                     <div style={{ fontSize: 28, fontWeight: 700, color: "rgba(90,143,168,0.5)", marginBottom: 8 }}>—</div>
@@ -2226,7 +2269,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 )}
               </MetricCard>
 
-              <MetricCard title={t.tbRatio} icon={<BarChart2 size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].tbRatio)} dimmed={dataSource === "self-report"}>
+              <MetricCard title={t.tbRatio} icon={<BarChart2 size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].tbRatio)} dimmed={dataSource === "self-report"} source={ms.tbRatio}>
                 {dataSource === "self-report" ? (
                   <>
                     <div style={{ fontSize: 28, fontWeight: 700, color: "rgba(90,143,168,0.5)", marginBottom: 8 }}>—</div>
@@ -2243,7 +2286,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 )}
               </MetricCard>
 
-              <MetricCard title={t.focusWindow} icon={<Clock size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].focusWindow)} dimmed={dataSource === "self-report"}>
+              <MetricCard title={t.focusWindow} icon={<Clock size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].focusWindow)} dimmed={dataSource === "self-report"} source={ms.focusWindow}>
                 {dataSource === "self-report" ? (
                   <>
                     <div style={{ fontSize: 28, fontWeight: 700, color: "rgba(90,143,168,0.5)", marginBottom: 8 }}>—</div>
@@ -2267,7 +2310,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   })()}
               </MetricCard>
 
-              <MetricCard title={t.hyperfocusRisk} icon={<Crosshair size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].hyperfocusRisk)} dimmed={dataSource === "self-report"}>
+              <MetricCard title={t.hyperfocusRisk} icon={<Crosshair size={12} color="#5a8fa8" />} onInfo={() => setInfoModal(INFO[lang].hyperfocusRisk)} dimmed={dataSource === "self-report"} source={ms.hyperfocusRisk}>
                 {dataSource === "self-report" ? (
                   <>
                     <div style={{ fontSize: 28, fontWeight: 700, color: "rgba(90,143,168,0.5)", marginBottom: 8 }}>—</div>
