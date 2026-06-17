@@ -252,7 +252,7 @@ interface FocusPoint { time: string; value: number; bio?: number; fatigue?: numb
 interface Task { id: string; title: string; description: string | null; done: boolean; estimatedMinutes: number | null; createdAt?: string; deadline?: string; emoji?: string; focusRequired?: number; position?: number; }
 
 const TASK_EMOJIS = ["📚", "✍️", "💻", "📧", "💪", "🍳", "🧹", "🎯", "🔬", "📞", "🛒", "🎨"];
-interface MedEntry { id: string; name: string; dose: string; time: string; date: string; focusTime?: string; sampleIndex: number; rating: number | null; }
+interface MedEntry { id: string; name: string; dose: string; time: string; date: string; focusTime?: string; rating: number | null; }
 type Mood = "hyperfocus" | "flow" | "focused" | "restless" | "scattered" | "anxious" | "fatigued" | "zoned-out" | "crashed" | "low";
 interface JournalEntry { id: string; text: string; time: string; date: string; focusIndex: number; mood: Mood[]; focusTime?: string; }
 interface MoodAssessment { mood: "positive" | "neutral" | "low"; energy: "high" | "moderate" | "low"; stress: "calm" | "mild" | "elevated"; suggestion: string; }
@@ -1049,7 +1049,7 @@ export default function Dashboard({ session }: { session: Session }) {
         time: r.time as string,
         date: r.logged_at ? (r.logged_at as string).slice(0, 10) : todayStr(),
         focusTime: r.focus_time as string | undefined,
-        sampleIndex: r.sample_index as number, rating: r.rating as number | null,
+        rating: r.rating as number | null,
       }));
       const mappedJournal: JournalEntry[] = (jData ?? []).map((r: Record<string, unknown>) => ({
         id: r.id as string, text: r.text as string, time: r.time as string,
@@ -1196,32 +1196,15 @@ export default function Dashboard({ session }: { session: Session }) {
     setProfileGenerating(false);
   }
 
-  function getMedDelta(med: MedEntry) {
-    const idx = med.focusTime
-      ? focusHistory.findIndex(p => p.time === med.focusTime)
-      : med.sampleIndex;
-    if (idx < 0) return null;
-    const baseFocus = focusHistory[idx]?.value;
-    if (baseFocus == null || focusHistory.length <= idx + 1) return null;
-    const tickSec = dataSource === "dataset" ? 2 : refreshRate;
-    const windowSamples = Math.round(15 * 60 / tickSec);
-    const endIdx = Math.min(idx + windowSamples, focusHistory.length - 1);
-    if (endIdx <= idx) return null;
-    const delta = Math.round(focusHistory[endIdx].value - baseFocus);
-    const minutes = Math.round((endIdx - idx) * tickSec / 60);
-    return { delta, minutes };
-  }
-
   async function logMed() {
     const name = newMedName.trim();
     if (!name) return;
     const timeStr = newMedTime.trim() || formatTime(new Date());
-    const sampleIndex = focusHistory.length - 1;
     const entry: MedEntry = {
       id: Date.now().toString(), name, dose: newMedDose.trim(),
       time: timeStr, date: todayStr(),
-      focusTime: focusHistory[sampleIndex]?.time,
-      sampleIndex, rating: null,
+      focusTime: focusHistory[focusHistory.length - 1]?.time,
+      rating: null,
     };
     setMedLog(prev => [...prev, entry]);
     if (newMedRemindHours !== null) {
@@ -1233,7 +1216,7 @@ export default function Dashboard({ session }: { session: Session }) {
     setNewMedRemindHours(null);
     await supabase.from("med_log").insert({
       id: entry.id, user_id: userId, name: entry.name, dose: entry.dose,
-      time: entry.time, focus_time: entry.focusTime ?? null, sample_index: entry.sampleIndex, rating: null,
+      time: entry.time, focus_time: entry.focusTime ?? null, rating: null,
     });
   }
 
@@ -1368,18 +1351,16 @@ export default function Dashboard({ session }: { session: Session }) {
   }
 
   async function agentLogMedication(name: string, dose?: string) {
-    const sampleIndex = focusHistory.length - 1;
     const entry: MedEntry = {
       id: Date.now().toString(), name, dose: dose ?? "",
       time: formatTime(new Date()), date: todayStr(),
-      focusTime: focusHistory[Math.max(0, sampleIndex)]?.time,
-      sampleIndex: Math.max(0, sampleIndex), rating: null,
+      focusTime: focusHistory[focusHistory.length - 1]?.time,
+      rating: null,
     };
     setMedLog(prev => [...prev, entry]);
     await supabase.from("med_log").insert({
       id: entry.id, user_id: userId, name: entry.name, dose: entry.dose,
-      time: entry.time, focus_time: entry.focusTime ?? null,
-      sample_index: entry.sampleIndex, rating: null,
+      time: entry.time, focus_time: entry.focusTime ?? null, rating: null,
     });
   }
 
@@ -2896,11 +2877,6 @@ export default function Dashboard({ session }: { session: Session }) {
                       <button onClick={e => { e.stopPropagation(); deleteMed(med.id); }} style={{ background: "none", border: "none", color: "rgba(255,100,100,0.4)", cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1, flexShrink: 0 }}>✕</button>
                     </>)}
                   </div>
-                  {(() => { const delta = getMedDelta(med); return delta ? (
-                    <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: delta.delta > 0 ? "#4ade80" : delta.delta < 0 ? "#f472b6" : "#5a8fa8", letterSpacing: 0.5, marginTop: 3 }}>
-                      {delta.delta > 0 ? "+" : ""}{delta.delta} focus in {delta.minutes}m
-                    </div>
-                  ) : null; })()}
                 </div>
               ))}
             </div>
@@ -3330,7 +3306,7 @@ export default function Dashboard({ session }: { session: Session }) {
           email={session.user.email ?? ""}
           lang={lang}
           journal={journal.map(e => ({ date: e.date, time: e.time, text: e.text, focusIndex: e.focusIndex, mood: e.mood }))}
-          meds={medLog.map(m => { const d = getMedDelta(m); return { date: m.date ?? todayStr(), time: m.time, name: m.name, dose: m.dose, delta: d?.delta ?? null, deltaMin: d?.minutes ?? null }; })}
+          meds={medLog.map(m => ({ date: m.date ?? todayStr(), time: m.time, name: m.name, dose: m.dose }))}
           tasks={tasks.map(tk => ({ title: tk.title, done: tk.done, createdAt: tk.createdAt, focusRequired: tk.focusRequired, estimatedMinutes: tk.estimatedMinutes }))}
           sessions={focusSessions.map(s => ({ date: s.date, time: s.time, taskTitle: s.taskTitle, minutes: s.minutes }))}
           insights={insights}

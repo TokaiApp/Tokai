@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 
 interface JournalEntry { date?: string; time: string; text: string; focusIndex: number; mood: string[]; }
-interface MedRow { date: string; time: string; name: string; dose: string; delta: number | null; deltaMin: number | null; }
+interface MedRow { date: string; time: string; name: string; dose: string; }
 interface TaskRow { title: string; done: boolean; createdAt?: string; focusRequired?: number; estimatedMinutes: number | null; }
 interface SessionRow { date: string; time: string; taskTitle: string | null; minutes: number; }
 
@@ -14,7 +14,7 @@ const UI = {
     summary: "Summary", avgFocus: "Avg focus (journaled)", journalEntries: "Journal entries",
     focusSessions: "Focus sessions", focusMinutes: "Focus minutes", tasksDone: "Tasks completed", medsLogged: "Meds logged",
     focusTrend: "Self-reported focus over time", day: "Day", entries: "Entries", avg: "Avg focus", noData: "No data in this range.",
-    medsHdr: "Medication & supplement log", med: "Medication", dose: "Dose", whenH: "When", deltaH: "Focus Δ (15–30 min)",
+    medsHdr: "Medication & supplement log", med: "Medication", dose: "Dose", whenH: "When",
     moodHdr: "Journal & mood", moods: "Moods", note: "Note", focus: "Focus",
     sessionsHdr: "Focus sessions (TokTimer)", blocks: "Blocks", minutes: "Minutes", topTask: "Top task",
     tasksHdr: "Tasks", completion: "Completion", reqDone: "Avg focus required (done)", reqPending: "Avg focus required (pending)",
@@ -29,7 +29,7 @@ const UI = {
     summary: "摘要", avgFocus: "平均專注（日誌）", journalEntries: "日誌條目",
     focusSessions: "專注時段", focusMinutes: "專注分鐘", tasksDone: "已完成任務", medsLogged: "用藥紀錄",
     focusTrend: "自述專注趨勢", day: "日期", entries: "條目", avg: "平均專注", noData: "此範圍內無資料。",
-    medsHdr: "藥物與補充品紀錄", med: "藥物", dose: "劑量", whenH: "時間", deltaH: "專注變化（15–30 分）",
+    medsHdr: "藥物與補充品紀錄", med: "藥物", dose: "劑量", whenH: "時間",
     moodHdr: "日誌與情緒", moods: "情緒", note: "筆記", focus: "專注",
     sessionsHdr: "專注時段（TokTimer）", blocks: "時段數", minutes: "分鐘", topTask: "主要任務",
     tasksHdr: "任務", completion: "完成率", reqDone: "平均所需專注（已完成）", reqPending: "平均所需專注（未完成）",
@@ -172,10 +172,9 @@ export default function ClinicianReport({ name, email, lang = "en", journal, med
         <div style={h2}>{t.medsHdr}</div>
         {mr.length === 0 ? <div style={{ fontSize: 13, color: "#9ca3af" }}>{t.noData}</div> : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead><tr><th style={th}>{t.whenH}</th><th style={th}>{t.med}</th><th style={th}>{t.dose}</th><th style={th}>{t.deltaH}</th></tr></thead>
+            <thead><tr><th style={th}>{t.whenH}</th><th style={th}>{t.med}</th><th style={th}>{t.dose}</th></tr></thead>
             <tbody>{mr.slice().reverse().map((m, i) => (
-              <tr key={i}><td style={td}>{m.date} {m.time}</td><td style={td}>{m.name}</td><td style={td}>{m.dose || "—"}</td>
-                <td style={{ ...td, color: m.delta == null ? "#9ca3af" : m.delta > 0 ? "#15803d" : m.delta < 0 ? "#b91c1c" : C.ink }}>{m.delta == null ? "—" : `${m.delta > 0 ? "+" : ""}${m.delta} in ${m.deltaMin}m`}</td></tr>
+              <tr key={i}><td style={td}>{m.date} {m.time}</td><td style={td}>{m.name}</td><td style={td}>{m.dose || "—"}</td></tr>
             ))}</tbody>
           </table>
         )}
