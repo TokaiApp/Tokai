@@ -427,7 +427,9 @@ function MetricCard({ title, icon, onInfo, children, dimmed, source }: { title: 
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>{children}</div>
       {srcStyle && (
-        <span style={{ position: "absolute", bottom: 14, right: 16, fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, padding: "2px 8px", borderRadius: 3, color: srcStyle.color, background: srcStyle.bg, border: `1px solid ${srcStyle.border}` }}>{source}</span>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, letterSpacing: 1, padding: "2px 8px", borderRadius: 3, color: srcStyle.color, background: srcStyle.bg, border: `1px solid ${srcStyle.border}` }}>{source}</span>
+        </div>
       )}
     </div>
   );
