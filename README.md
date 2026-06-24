@@ -16,6 +16,8 @@
     <a href="https://github.com/TokaiApp/Tokai/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square" alt="License" /></a>
     <img src="https://img.shields.io/badge/Version-0.3.0--alpha-f472b6?style=flat-square" alt="Version" />
     <img src="https://img.shields.io/badge/AI-Claude%20(Anthropic)-orange?style=flat-square" alt="AI" />
+    <a href="https://github.com/TokaiApp/tokai-web"><img src="https://img.shields.io/badge/Website%20Repo-GitHub-22c55e?style=flat-square&logo=github" alt="Website Repo" /></a>
+    <a href="https://github.com/TokaiApp/tokai-evaluation-data"><img src="https://img.shields.io/badge/Evaluation%20Data-GitHub-64748b?style=flat-square&logo=github" alt="Evaluation Data" /></a>
   </p>
 
   <p>
@@ -287,6 +289,15 @@ The full source — including the API relay and the exact system prompts sent to
 - [ ] **Mobile app** — native iOS/Android with EEG Bluetooth pairing
 - [ ] **HRV & biometric integration** — Apple Watch, Fitbit, Garmin
 - [ ] **LUNA integration** — binary classification model for ADHD detection (research phase)
+
+---
+
+## Related Repositories
+
+| Repository | Description |
+|---|---|
+| [TokaiApp/tokai-web](https://github.com/TokaiApp/tokai-web) | Marketing website — [tokai.app](https://tokai.app) |
+| [TokaiApp/tokai-evaluation-data](https://github.com/TokaiApp/tokai-evaluation-data) | TokAgent technical evaluation data (93-trial scoring sheet, prompts, methodology) |
 
 ---
 
