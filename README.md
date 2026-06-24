@@ -16,6 +16,8 @@
     <a href="https://github.com/TokaiApp/Tokai/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square" alt="License" /></a>
     <img src="https://img.shields.io/badge/Version-0.3.0--alpha-f472b6?style=flat-square" alt="Version" />
     <img src="https://img.shields.io/badge/AI-Claude%20(Anthropic)-orange?style=flat-square" alt="AI" />
+  </p>
+  <p>
     <a href="https://github.com/TokaiApp/tokai-web"><img src="https://img.shields.io/badge/Website%20Repo-GitHub-22c55e?style=flat-square&logo=github" alt="Website Repo" /></a>
     <a href="https://github.com/TokaiApp/tokai-evaluation-data"><img src="https://img.shields.io/badge/Evaluation%20Data-GitHub-64748b?style=flat-square&logo=github" alt="Evaluation Data" /></a>
   </p>
