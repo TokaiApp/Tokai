@@ -45,6 +45,16 @@ Neural data can be driven by four sources selectable in the dashboard: **Self-Re
 
 ---
 
+## The Name
+
+**Tokai** is styled as **TOK** + **AI** — but the choice of "Tok" goes deeper than wordplay.
+
+In Russian and several Slavic languages (Bulgarian, Serbian, Macedonian), **Ток** (*Tok*) means *electrical current* or *flow*. Neuroscientists use the phrase **электрические токи мозга** (*elektricheskiye toki mozga*) — "electrical currents of the brain" — to describe the bioelectrical signals that EEG measures. That is exactly what Tokai reads.
+
+**Tok** (electrical current of the brain) + **AI** — an AI that thinks with your brain's own flow.
+
+---
+
 ## Features 核心功能
 
 Everything is themed as the **Tok** family — the prefix nods to *token* (the app currency, **TokEn**) and the first syllable of *Tokai*.
